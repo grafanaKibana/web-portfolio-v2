@@ -1,0 +1,42 @@
+export const metadata = {
+  kind: "article",
+  title: "Building an LLM Evaluation Harness with Microsoft.Extensions.AI",
+  description:
+    "A dataset-driven NUnit evaluation harness for prompt test suites, classification metrics, LLM-based evaluators, and local or CI reporting.",
+  published: "2026-03-16",
+  tags: [".NET", "AI evaluation", "NUnit"],
+}
+
+The official `Microsoft.Extensions.AI.Evaluation` examples explain how to run an evaluator against one response. A production test suite also needs repeatable datasets, parallel execution, aggregate metrics, and reports that engineers can inspect locally or in CI.
+
+The harness is NUnit-based, dataset-driven, and produces reports with `dotnet aieval report`.
+
+## The structure
+
+```text
+MEAI.Evaluations/
+├── Common/
+│   ├── EvaluationTestBase.cs
+│   ├── EvaluatorBase.cs
+│   ├── Evaluators/
+│   └── Calculators/
+├── Datasets/
+├── Scenarios/
+└── RunEvaluation.cs
+```
+
+Every evaluation scenario is one NUnit test class backed by a CSV dataset. The base class handles chat client setup, reporting configuration, and summary generation. The scenario supplies the prompt, evaluators, and aggregate metrics.
+
+## The base test class
+
+The base class is generic over the prediction type collected during each test iteration. It keeps the model under test separate from the judge model, runs child cases in parallel, and stores predictions in a `ConcurrentBag` so collection remains safe across threads.
+
+## Aggregating results
+
+The evaluation library scores individual iterations but does not aggregate metrics across them. The harness computes those metrics during teardown and writes a separate summary scenario into the report.
+
+That keeps per-case detail and aggregate quality in one place: engineers can inspect individual ExactMatch failures alongside accuracy, precision, recall, and F1 without leaving the generated HTML report.
+
+## Takeaway
+
+The evaluator handles individual scoring. The surrounding test infrastructure handles datasets, parallel execution, aggregation, and reporting inside the existing NUnit and CI workflow.
