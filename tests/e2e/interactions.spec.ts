@@ -472,6 +472,20 @@ test("splash fails open when a readiness dependency fails", async ({ page }) => 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hi, I’m Nikita Reshetnik.");
 });
 
+test("splash remains noticeable and supports an indefinite debug flag", async ({ page }) => {
+  await page.goto("/");
+  const splash = page.locator('[data-slot="opening-splash"]');
+  await expect(splash).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(splash).toBeVisible();
+  await expect(splash).toBeHidden({ timeout: 2_000 });
+
+  await page.goto("/?debugSplash");
+  await expect(splash).toBeVisible();
+  await page.waitForTimeout(1_250);
+  await expect(splash).toBeVisible();
+});
+
 test("reduced motion disables the splash and availability translation", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(() => {

@@ -28,6 +28,14 @@ for (const family of missingRouteFamilies) {
   });
 }
 
+test("Home sections keep their semantic order", async ({ page }) => {
+  await page.goto("/");
+
+  expect(await page.locator("main#main > section").evaluateAll((sections) =>
+    sections.map((section) => section.getAttribute("aria-labelledby") ?? section.id),
+  )).toEqual(["intro-heading", "about-heading", "experience-heading"]);
+});
+
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
