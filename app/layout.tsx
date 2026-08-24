@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { clsx } from "clsx";
 import { OpeningSplash } from "./_shell/opening-splash/opening-splash";
 import { SiteFooter } from "./_shell/site-footer/site-footer";
 import { SiteHeader } from "./_shell/site-header/site-header";
@@ -36,14 +37,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={clsx(geistSans.variable, geistMono.variable, "h-full antialiased")}
       suppressHydrationWarning
     >
       <body id="top" className="flex min-h-full flex-col">
         <ThemeProvider>
           <OpeningSplash name={profile.name} />
           <a
-            className={`${styles.skipLink} sr-only fixed left-4 top-4 rounded-md bg-background px-4 py-3 font-medium shadow-md focus:not-sr-only focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2`}
+            className={clsx(styles.skipLink, "sr-only fixed left-4 top-4 rounded-md bg-background px-4 py-3 font-medium shadow-md focus:not-sr-only focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
             href="#main"
           >
             {home.accessibility.skipToContent}

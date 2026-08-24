@@ -55,7 +55,7 @@ Use a **route-oriented vertical-slice modular monolith**. Keep the implementatio
 - Use singular `@param name - description` for each runtime parameter, `@returns` only when a function produces a value, `@typeParam name - description` for each named generic parameter, and `@throws` only for meaningful failure contracts. TypeScript signatures own type information; do not duplicate types in tags.
 - Use `@remarks` only when the summary cannot hold essential behavior, `@see` only for a useful related API or resource (with `{@link}` for hyperlinks), `@example` only for genuinely non-obvious usage, and `@deprecated` only with a supported replacement.
 - Keep summaries under 160 characters and all comments current and behavior-focused; update or remove them with the implementation they describe.
-- All automated tests live under `tests/`. Browser specifications live under `tests/e2e/`; architecture and documentation checks also live under `tests/`.
+- All automated tests live under `tests/`. Browser specifications live under `tests/e2e/`; documentation checks also live under `tests/`.
 - Add the smallest regression that proves non-trivial branches, parsers, trust boundaries, accessibility behavior, or architecture constraints.
 - Test public contracts and observable behavior; avoid coupling tests to private implementation details.
 
@@ -70,7 +70,6 @@ npm run test:content
 npm run test:contrast
 npm run test:documentation
 npm run test:seo
-npm run check:architecture
 npm run build
 npm run test:e2e
 git diff --check

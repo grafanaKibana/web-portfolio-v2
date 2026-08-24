@@ -1,5 +1,6 @@
 import { ArrowDown, Download, type LucideIcon } from "lucide-react";
 import { home } from "@/content/structured";
+import { clsx } from "clsx";
 import { DescriptorRotation } from "../descriptor-rotation/descriptor-rotation";
 import styles from "./home-hero.module.scss";
 
@@ -44,16 +45,19 @@ function Icon({ name, className }: { name: string; className?: string }) {
  */
 export function HomeHero() {
   const [primaryAction, secondaryAction] = home.hero.actions;
+  if (!primaryAction || !secondaryAction) {
+    throw new Error("Home Hero requires exactly two actions");
+  }
 
   return (
     <section
       aria-labelledby="intro-heading"
-      className={`${styles.hero} page-shell-gutter box-border flex w-full flex-col items-center justify-center pt-8 text-center`}
+      className={clsx(styles.hero, "page-shell-gutter box-border flex w-full flex-col items-center justify-center pt-8 text-center")}
     >
-      <div className={`${styles.availability} inline-flex items-center rounded-full py-1.5 text-xs font-medium`}>
+      <div className={clsx(styles.availability, "inline-flex items-center rounded-full py-1.5 text-xs font-medium")}>
         <span
           aria-hidden="true"
-          className={`${styles.availabilityDot} size-1.5 animate-pulse rounded-full motion-reduce:animate-none`}
+          className={clsx(styles.availabilityDot, "size-1.5 animate-pulse rounded-full motion-reduce:animate-none")}
           data-slot="availability-dot"
         />
         {home.hero.availability.status}
@@ -61,27 +65,27 @@ export function HomeHero() {
           {home.hero.availability.qualifier}
         </span>
       </div>
-      <h1 id="intro-heading" className={`${styles.heading} m-0 font-medium`}>
+      <h1 id="intro-heading" className={clsx(styles.heading, "m-0 font-medium")}>
         <span className="block whitespace-nowrap">{home.hero.title}</span>
         <span className="block whitespace-nowrap text-muted-foreground">{home.hero.lead}</span>
       </h1>
-      <div className={`${styles.descriptorSlot} flex items-center justify-center`}>
+      <div className={clsx(styles.descriptorSlot, "flex items-center justify-center")}>
         <DescriptorRotation
           descriptors={home.hero.descriptors}
           interval={home.hero.descriptorInterval}
         />
       </div>
-      <div className={`${styles.actions} flex w-full flex-col lg:w-auto lg:flex-row lg:items-center`}>
+      <div className={clsx(styles.actions, "flex w-full flex-col lg:w-auto lg:flex-row lg:items-center")}>
         <a
-          className={`${styles.action} inline-flex w-full items-center justify-center gap-2 rounded-md border border-transparent bg-primary font-medium text-primary-foreground hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:w-auto lg:px-4 lg:leading-5`}
+          className={clsx(styles.action, "inline-flex w-full items-center justify-center gap-2 rounded-md border border-transparent bg-primary font-medium text-primary-foreground hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:w-auto lg:px-4 lg:leading-5")}
           download
           href={primaryAction.href}
         >
-          <Icon name={primaryAction.icon} className={styles.primaryActionIcon} />
+          <Icon name={primaryAction.icon} className={clsx(styles.primaryActionIcon)} />
           {primaryAction.label}
         </a>
         <a
-          className={`${styles.action} group mt-1.5 inline-flex w-full items-center justify-center gap-2 rounded-md font-medium transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto`}
+          className={clsx(styles.action, "group mt-1.5 inline-flex w-full items-center justify-center gap-2 rounded-md font-medium transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto")}
           href={secondaryAction.href}
         >
           {secondaryAction.label}
@@ -91,7 +95,7 @@ export function HomeHero() {
           />
         </a>
       </div>
-      <ul className={`${styles.socialLinks} desktop-link-row-gap grid w-full grid-cols-2 justify-items-center gap-x-1 gap-y-1 sm:flex sm:flex-wrap sm:justify-center sm:gap-y-0 lg:w-auto`}>
+      <ul className={clsx(styles.socialLinks, "desktop-link-row-gap grid w-full grid-cols-2 justify-items-center gap-x-1 gap-y-1 sm:flex sm:flex-wrap sm:justify-center sm:gap-y-0 lg:w-auto")}>
         {home.hero.socialLinks.map((link) => (
           <li key={link.href}>
             <a

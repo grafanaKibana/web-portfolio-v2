@@ -147,12 +147,13 @@ export function validateContentMetadata(
     if (!allowedFields.has(field)) fail(source, field, "is not supported");
   }
 
+  const updated = optionalDate(input.updated, source, "updated");
+  const contentTags = tags(input.tags, source);
   const common = {
-    kind,
     title: text(input.title, source, "title"),
     description: text(input.description, source, "description"),
-    updated: optionalDate(input.updated, source, "updated"),
-    tags: tags(input.tags, source),
+    ...(updated === undefined ? {} : { updated }),
+    ...(contentTags === undefined ? {} : { tags: contentTags }),
   };
 
   if (kind === "article") {

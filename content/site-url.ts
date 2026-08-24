@@ -1,6 +1,6 @@
 type SiteEnvironment = {
-  NEXT_PUBLIC_SITE_URL?: string;
-  VERCEL_PROJECT_PRODUCTION_URL?: string;
+  NEXT_PUBLIC_SITE_URL?: string | undefined;
+  VERCEL_PROJECT_PRODUCTION_URL?: string | undefined;
 };
 
 /**

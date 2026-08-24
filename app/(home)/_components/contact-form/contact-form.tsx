@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type SyntheticEvent, useState } from "react";
 
 const emailAddress = "reshetnik.nikita@gmail.com";
 
@@ -22,7 +22,7 @@ export function ContactForm() {
    *
    * @param event - Valid contact-form submission event.
    */
-  function sendEmail(event: FormEvent<HTMLFormElement>) {
+  function sendEmail(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
     event.preventDefault();
     window.location.href = mailto;
   }
@@ -38,7 +38,9 @@ export function ContactForm() {
           className={`${fieldClass} h-11 w-full`}
           id="contact-name"
           name="name"
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) => {
+            setName(event.target.value);
+          }}
           placeholder="Your name"
           required
           type="text"
@@ -52,7 +54,9 @@ export function ContactForm() {
           className={`${fieldClass} h-11 w-full`}
           id="contact-email"
           name="email"
-          onChange={(event) => setEmail(event.target.value)}
+          onChange={(event) => {
+            setEmail(event.target.value);
+          }}
           placeholder="m@example.com"
           required
           type="email"
@@ -66,7 +70,9 @@ export function ContactForm() {
           className={`${fieldClass} min-h-28 w-full resize-y`}
           id="contact-message"
           name="message"
-          onChange={(event) => setMessage(event.target.value)}
+          onChange={(event) => {
+            setMessage(event.target.value);
+          }}
           placeholder="What would you like to discuss?"
           required
           rows={4}

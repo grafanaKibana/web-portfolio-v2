@@ -32,7 +32,7 @@ export async function loadProject(
   validateSlug(slug, "projects");
   if (!getProjectSlugs().includes(slug)) return undefined;
 
-  const loadedModule = await import(`./${slug}.mdx`);
+  const loadedModule: unknown = await import(`./${slug}.mdx`);
   const content = validateMdxModule(
     loadedModule,
     slug,

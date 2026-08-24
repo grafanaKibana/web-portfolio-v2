@@ -145,7 +145,7 @@ function number(value: unknown, path: string): number {
  */
 function array<T>(value: unknown, path: string, parse: (item: unknown, path: string) => T): T[] {
   if (!Array.isArray(value)) throw new Error(`content/portfolio.yaml: ${path} must be an array`);
-  return value.map((item, index) => parse(item, `${path}[${index}]`));
+  return value.map((item, index) => parse(item, `${path}[${String(index)}]`));
 }
 
 /**
@@ -175,6 +175,63 @@ function iconLink(value: unknown, path: string) {
 }
 
 /**
+ * Parses the validated profile branch of the portfolio document.
+ *
+ * @param sourceProfile - Untrusted profile record from the YAML root.
+ * @returns The validated portfolio profile.
+ * @throws When a required profile field is missing or malformed.
+ */
+function parseProfile(sourceProfile: RecordValue): PortfolioProfile {
+  const education = record(sourceProfile.education, "profile.education");
+
+  return {
+    name: string(sourceProfile.name, "profile.name"),
+    headline: string(sourceProfile.headline, "profile.headline"),
+    summary: array(sourceProfile.summary, "profile.summary", string),
+    careerChapters: array(sourceProfile.careerChapters, "profile.careerChapters", (value, path) => {
+      const item = record(value, path);
+      return {
+        meta: string(item.meta, `${path}.meta`),
+        title: string(item.title, `${path}.title`),
+        summary: string(item.summary, `${path}.summary`),
+      };
+    }),
+    facts: array(sourceProfile.facts, "profile.facts", (value, path) => {
+      const item = record(value, path);
+      return { label: string(item.label, `${path}.label`), value: string(item.value, `${path}.value`) };
+    }),
+    experience: array(sourceProfile.experience, "profile.experience", (value, path) => {
+      const item = record(value, path);
+      return {
+        organization: string(item.organization, `${path}.organization`),
+        logo: string(item.logo, `${path}.logo`),
+        role: string(item.role, `${path}.role`),
+        period: string(item.period, `${path}.period`),
+        summary: string(item.summary, `${path}.summary`),
+        highlights: array(item.highlights, `${path}.highlights`, string),
+      };
+    }),
+    education: {
+      institution: string(education.institution, "profile.education.institution"),
+      qualification: string(education.qualification, "profile.education.qualification"),
+      period: string(education.period, "profile.education.period"),
+    },
+    certifications: array(sourceProfile.certifications, "profile.certifications", (value, path) => {
+      const item = record(value, path);
+      return {
+        label: string(item.label, `${path}.label`),
+        ...(item.href === undefined ? {} : { href: string(item.href, `${path}.href`) }),
+      };
+    }),
+    skills: array(sourceProfile.skills, "profile.skills", (value, path) => {
+      const item = record(value, path);
+      return { title: string(item.title, `${path}.title`), skills: array(item.skills, `${path}.skills`, string) };
+    }),
+    links: array(sourceProfile.links, "profile.links", link),
+  };
+}
+
+/**
  * Validates and returns the repository-authored portfolio YAML document.
  *
  * @param value - Parsed but untrusted YAML document.
@@ -187,7 +244,6 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
   const sourceHome = record(root.home, "home");
   const accessibility = record(sourceHome.accessibility, "home.accessibility");
   const theme = record(sourceHome.theme, "home.theme");
-  const education = record(sourceProfile.education, "profile.education");
   const mobileNavigation = record(sourceHome.mobileNavigation, "home.mobileNavigation");
   const hero = record(sourceHome.hero, "home.hero");
   const experience = record(sourceHome.experience, "home.experience");
@@ -203,51 +259,7 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
   if (descriptorInterval <= 0) throw new Error("content/portfolio.yaml: home.hero.descriptorInterval must be positive");
 
   return {
-    profile: {
-      name: string(sourceProfile.name, "profile.name"),
-      headline: string(sourceProfile.headline, "profile.headline"),
-      summary: array(sourceProfile.summary, "profile.summary", string),
-      careerChapters: array(sourceProfile.careerChapters, "profile.careerChapters", (value, path) => {
-        const item = record(value, path);
-        return {
-          meta: string(item.meta, `${path}.meta`),
-          title: string(item.title, `${path}.title`),
-          summary: string(item.summary, `${path}.summary`),
-        };
-      }),
-      facts: array(sourceProfile.facts, "profile.facts", (value, path) => {
-        const item = record(value, path);
-        return { label: string(item.label, `${path}.label`), value: string(item.value, `${path}.value`) };
-      }),
-      experience: array(sourceProfile.experience, "profile.experience", (value, path) => {
-        const item = record(value, path);
-        return {
-          organization: string(item.organization, `${path}.organization`),
-          logo: string(item.logo, `${path}.logo`),
-          role: string(item.role, `${path}.role`),
-          period: string(item.period, `${path}.period`),
-          summary: string(item.summary, `${path}.summary`),
-          highlights: array(item.highlights, `${path}.highlights`, string),
-        };
-      }),
-      education: {
-        institution: string(education.institution, "profile.education.institution"),
-        qualification: string(education.qualification, "profile.education.qualification"),
-        period: string(education.period, "profile.education.period"),
-      },
-      certifications: array(sourceProfile.certifications, "profile.certifications", (value, path) => {
-        const item = record(value, path);
-        return {
-          label: string(item.label, `${path}.label`),
-          ...(item.href === undefined ? {} : { href: string(item.href, `${path}.href`) }),
-        };
-      }),
-      skills: array(sourceProfile.skills, "profile.skills", (value, path) => {
-        const item = record(value, path);
-        return { title: string(item.title, `${path}.title`), skills: array(item.skills, `${path}.skills`, string) };
-      }),
-      links: array(sourceProfile.links, "profile.links", link),
-    },
+    profile: parseProfile(sourceProfile),
     home: {
       metadataDescription: string(sourceHome.metadataDescription, "home.metadataDescription"),
       accessibility: {

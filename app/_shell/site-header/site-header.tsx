@@ -1,5 +1,6 @@
 import { House } from "lucide-react";
 import { home } from "@/content/structured";
+import { clsx } from "clsx";
 import { MobileNavigation } from "../mobile-navigation/mobile-navigation";
 import { ThemeToggle } from "../theme/theme";
 import styles from "./site-header.module.scss";
@@ -13,10 +14,10 @@ export function SiteHeader() {
   const hasNavigation = home.navigation.length > 0;
 
   return (
-    <header className={`${styles.header} sticky top-0 z-40`} data-slot="site-header">
+    <header className={clsx(styles.header, "sticky top-0 z-40")} data-slot="site-header">
       <nav
         aria-label={home.accessibility.primaryNavigation}
-        className={`${styles.navigation} relative mx-auto flex h-full w-full items-center justify-between`}
+        className={clsx(styles.navigation, "relative mx-auto flex h-full w-full items-center justify-between")}
       >
         <a
           aria-label={home.accessibility.backToTop}
@@ -53,7 +54,7 @@ export function SiteHeader() {
       {hasNavigation && (
         <noscript>
           <details className="text-ui-xs absolute left-1/2 top-2 z-50 w-54 -translate-x-1/2 lg:hidden">
-            <summary className={`${styles.summary} flex min-h-11 cursor-pointer list-none items-center justify-center font-medium`}>
+            <summary className={clsx(styles.summary, "flex min-h-11 cursor-pointer list-none items-center justify-center font-medium")}>
               {home.mobileNavigation.triggerLabel}
             </summary>
             <nav

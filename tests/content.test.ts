@@ -117,16 +117,16 @@ test("MDX discovery is deterministic and ignores unrelated files", async (t) => 
     writeFile(join(directory, "notes.txt"), "ignored\n"),
   ])
 
-  assert.deepEqual(await discoverMdxSlugs(directory, "test content"), ["first", "second"])
+  assert.deepEqual(discoverMdxSlugs(directory, "test content"), ["first", "second"])
 })
 
-test("representative repository content is discoverable", async () => {
+test("representative repository content is discoverable", () => {
   assert.deepEqual(
-    await discoverMdxSlugs(join(process.cwd(), "content/articles"), "articles"),
+    discoverMdxSlugs(join(process.cwd(), "content/articles"), "articles"),
     ["building-an-llm-evaluation-harness"],
   )
   assert.deepEqual(
-    await discoverMdxSlugs(join(process.cwd(), "content/projects"), "projects"),
+    discoverMdxSlugs(join(process.cwd(), "content/projects"), "projects"),
     ["devbook"],
   )
 })
@@ -185,8 +185,10 @@ test("repository omits unverified activity data and uses the approved resume rel
   t.after(() => { console.warn = warn })
   assert.deepEqual(await loadActivitySnapshot(), { available: false })
 
+  const [primaryAction] = home.hero.actions
+  assert.ok(primaryAction)
   assert.equal(
-    home.hero.actions[0].href,
+    primaryAction.href,
     "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf",
   )
 })

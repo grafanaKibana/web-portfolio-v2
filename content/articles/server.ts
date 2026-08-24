@@ -32,7 +32,7 @@ export async function loadArticle(
   validateSlug(slug, "articles");
   if (!getArticleSlugs().includes(slug)) return undefined;
 
-  const loadedModule = await import(`./${slug}.mdx`);
+  const loadedModule: unknown = await import(`./${slug}.mdx`);
   const content = validateMdxModule(
     loadedModule,
     slug,

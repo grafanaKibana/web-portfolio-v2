@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { clsx } from "clsx";
 import styles from "./descriptor-rotation.module.scss";
 
 /**
@@ -19,15 +20,19 @@ export function DescriptorRotation({ descriptors, interval }: {
   const phaseClass = phase === "entering" ? styles.entering : styles.exiting;
 
   useEffect(() => {
-    const timer = window.setInterval(() => setPhase("exiting"), interval);
-    return () => window.clearInterval(timer);
+    const timer = window.setInterval(() => {
+      setPhase("exiting");
+    }, interval);
+    return () => {
+      window.clearInterval(timer);
+    };
   }, [interval]);
 
   return (
     <span className="inline-grid">
       <span
-        key={`${index}-${phase}`}
-        className={`${styles.label} ${phaseClass} col-start-1 row-start-1 inline-block font-mono text-xs font-medium uppercase text-primary-text`}
+        key={`${String(index)}-${phase}`}
+        className={clsx(styles.label, phaseClass, "col-start-1 row-start-1 inline-block font-mono text-xs font-medium uppercase text-primary-text")}
         data-slot="hero-descriptor"
         data-state={phase}
         onAnimationEnd={() => {
@@ -36,7 +41,7 @@ export function DescriptorRotation({ descriptors, interval }: {
           setPhase("entering");
         }}
       >
-        {descriptors[index]}
+        {descriptors[index] ?? ""}
       </span>
     </span>
   );

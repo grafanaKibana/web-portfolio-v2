@@ -12,11 +12,14 @@ const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8")
  * @returns The numeric OKLCH channels.
  * @throws AssertionError when the requested token is missing.
  */
-function token(selector: string, name: string) {
+function token(selector: string, name: string): [number, number, number] {
   const section = css.match(new RegExp(`${selector.replace(".", "\\.")} \\{([\\s\\S]*?)\\n\\}`))?.[1]
   const value = section?.match(new RegExp(`--${name}: oklch\\(([^)]+)\\)`))?.[1]
   assert.ok(value, `Missing --${name} in ${selector}`)
-  return value.split(/\s+/).map(Number)
+  const channels = value.split(/\s+/).map(Number)
+  assert.equal(channels.length, 3, `Expected three OKLCH channels for --${name} in ${selector}`)
+  assert.ok(channels.every(Number.isFinite), `Expected numeric OKLCH channels for --${name} in ${selector}`)
+  return channels as [number, number, number]
 }
 
 /**
@@ -25,7 +28,7 @@ function token(selector: string, name: string) {
  * @param oklch - Lightness, chroma, and hue channels.
  * @returns The relative luminance.
  */
-function luminance(oklch: number[]) {
+function luminance(oklch: [number, number, number]) {
   const [lightness, chroma, hue] = oklch
   const radians = hue * Math.PI / 180
   const a = chroma * Math.cos(radians)
@@ -53,9 +56,12 @@ function luminance(oklch: number[]) {
  * @param background - Background OKLCH channels.
  * @returns The contrast ratio.
  */
-function contrast(foreground: number[], background: number[]) {
-  const values = [luminance(foreground), luminance(background)].sort((left, right) => right - left)
-  return (values[0] + 0.05) / (values[1] + 0.05)
+function contrast(foreground: [number, number, number], background: [number, number, number]) {
+  const foregroundLuminance = luminance(foreground)
+  const backgroundLuminance = luminance(background)
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance)
+  const darker = Math.min(foregroundLuminance, backgroundLuminance)
+  return (lighter + 0.05) / (darker + 0.05)
 }
 
 test("text and primary button colors meet WCAG AA contrast", () => {

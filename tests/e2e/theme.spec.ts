@@ -6,10 +6,11 @@ test("theme selection persists after reload", async ({ page }) => {
 
   const selectedTheme = await page.evaluate(() => localStorage.getItem("theme"));
   expect(selectedTheme).toMatch(/^(?:dark|light)$/);
-  await expect(page.locator("html")).toHaveClass(new RegExp(selectedTheme!));
+  if (!selectedTheme) throw new Error("Theme selection must be persisted");
+  await expect(page.locator("html")).toHaveClass(new RegExp(selectedTheme));
 
   await page.reload();
-  await expect(page.locator("html")).toHaveClass(new RegExp(selectedTheme!));
+  await expect(page.locator("html")).toHaveClass(new RegExp(selectedTheme));
 });
 
 test("stored theme hydrates without a mismatch", async ({ page }) => {
@@ -19,7 +20,9 @@ test("stored theme hydrates without a mismatch", async ({ page }) => {
       hydrationErrors.push(message.text());
     }
   });
-  await page.addInitScript(() => localStorage.setItem("theme", "dark"));
+  await page.addInitScript(() => {
+    localStorage.setItem("theme", "dark");
+  });
 
   await page.goto("/");
 

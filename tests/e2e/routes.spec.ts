@@ -51,7 +51,7 @@ test.describe("without JavaScript", () => {
       "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf",
     );
     await expect(page.getByRole("contentinfo")).toContainText(
-      `© ${new Date().getFullYear()} Nikita Reshetnik. All rights reserved. · Local Time:`,
+      `© ${String(new Date().getFullYear())} Nikita Reshetnik. All rights reserved. · Local Time:`,
     );
     await expect(page.getByRole("navigation", {
       name: "Compact navigation",

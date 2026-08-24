@@ -74,7 +74,9 @@ export function ThemeToggle({ labels }: { labels: {
       className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:size-8"
       data-slot="theme-toggle"
       disabled={!mounted}
-      onClick={() => setTheme(dark ? "light" : "dark")}
+      onClick={() => {
+        setTheme(dark ? "light" : "dark");
+      }}
     >
       <Icon aria-hidden className="size-ui-icon opacity-70" />
     </button>

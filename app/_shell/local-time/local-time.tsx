@@ -27,7 +27,9 @@ export function LocalTime({ initialTime, locale, timeZone }: LocalTimeProps) {
     };
     update();
     const timer = window.setInterval(update, 30_000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+    };
   }, [locale, timeZone]);
 
   return <time>{time}</time>;

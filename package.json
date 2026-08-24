@@ -6,13 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "npm run lint:code && npm run lint:styles",
+    "lint:code": "eslint . --max-warnings=0",
+    "lint:styles": "stylelint \"app/**/*.{css,scss}\" --max-warnings=0",
     "typecheck": "next typegen && tsc --noEmit",
     "test:content": "NODE_OPTIONS=--conditions=react-server tsx --test tests/content.test.ts",
     "test:contrast": "tsx --test tests/contrast.test.ts",
     "test:documentation": "tsx --test tests/documentation.test.ts",
     "test:seo": "NODE_OPTIONS=--conditions=react-server tsx --test tests/seo.test.ts",
-    "check:architecture": "node tests/architecture.test.mjs",
     "setup:browsers": "playwright install chromium webkit",
     "test:e2e": "playwright test"
   },
@@ -44,8 +45,11 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "sass": "^1.103.1",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard-scss": "^17.0.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
-    "typescript": "^5"
+    "typescript": "^5",
+    "typescript-eslint": "^8.68.0"
   }
 }

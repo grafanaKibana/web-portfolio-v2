@@ -55,9 +55,13 @@ test("compact selector opens as a content-height blurred header extension", asyn
   ]) {
     await page.setViewportSize(viewport);
     await page.goto("/");
-    await page.evaluate((theme) => localStorage.setItem("theme", theme), viewport.theme);
+    await page.evaluate((theme) => {
+      localStorage.setItem("theme", theme);
+    }, viewport.theme);
     await page.reload();
-    await page.evaluate(() => window.scrollTo(0, 320));
+    await page.evaluate(() => {
+      window.scrollTo(0, 320);
+    });
 
     const trigger = page.getByRole("button", { name: "Jump to section" });
     const themeToggle = page.locator('[data-slot="theme-toggle"]');
@@ -167,7 +171,7 @@ test("the home page contains the approved hero, About, and Phase 3 Experience se
   expect(socialBoxes[2]?.y).toBe(socialBoxes[3]?.y);
   expect(socialBoxes[2]?.y).toBeGreaterThan(socialBoxes[0]?.y ?? 0);
   await expect(page.getByRole("contentinfo")).toContainText(
-    `© ${new Date().getFullYear()} Nikita Reshetnik. All rights reserved. · Local Time:`,
+    `© ${String(new Date().getFullYear())} Nikita Reshetnik. All rights reserved. · Local Time:`,
   );
   await expect(page.getByRole("contentinfo").locator("time")).toHaveText(/^\d{2}:\d{2} \(.+\)$/);
   const footerPadding = await page.getByRole("contentinfo").evaluate((footer) => {
@@ -242,16 +246,18 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
     expect(compactEleksImage.height).toBe(30);
     await expect(compactEleksLogo).toHaveCSS("overflow", "hidden");
     const compactPeriodLayouts = await experience.locator('[data-slot="experience-period"]').evaluateAll((periods) =>
-      periods.map((period) => ({
-        rowCount: new Set(
-          Array.from(period.querySelectorAll<HTMLElement>('[data-slot="period-part"]')).map((part) =>
-            Math.round(part.getBoundingClientRect().top),
-          ),
-        ).size,
-        separatorDisplay: getComputedStyle(
-          period.querySelector<HTMLElement>('[data-slot="period-separator"]')!,
-        ).display,
-      })),
+      periods.map((period) => {
+        const separator = period.querySelector<HTMLElement>('[data-slot="period-separator"]');
+        if (!separator) throw new Error("Experience period separator must exist");
+        return {
+          rowCount: new Set(
+            Array.from(period.querySelectorAll<HTMLElement>('[data-slot="period-part"]')).map((part) =>
+              Math.round(part.getBoundingClientRect().top),
+            ),
+          ).size,
+          separatorDisplay: getComputedStyle(separator).display,
+        };
+      }),
     );
     expect(compactPeriodLayouts.every(({ rowCount, separatorDisplay }) =>
       rowCount === 1 && separatorDisplay !== "none"
@@ -349,7 +355,9 @@ test("Experience is reachable through desktop and compact navigation", async ({ 
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.evaluate(() => window.scrollTo(0, 320));
+  await page.evaluate(() => {
+    window.scrollTo(0, 320);
+  });
   await page.getByRole("button", { name: "Jump to section" }).click();
   await page.getByRole("navigation", { name: "Mobile navigation" })
     .getByRole("link", { name: "Experience" })
@@ -405,7 +413,9 @@ test("About clears the sticky header through direct, desktop, and modal navigati
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.evaluate(() => window.scrollTo(0, 320));
+  await page.evaluate(() => {
+    window.scrollTo(0, 320);
+  });
   const trigger = page.getByRole("button", { name: "Jump to section" });
   await expect(trigger).toBeVisible();
   await trigger.click();
@@ -460,7 +470,9 @@ test("descriptor follows the reference timing and reduced-motion animation", asy
 
 test("splash fails open when a readiness dependency fails", async ({ page }) => {
   await page.addInitScript(() => {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/unbound-method -- The test intentionally patches this DOM prototype method.
     const querySelector = Document.prototype.querySelector;
+    // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/no-unnecessary-type-parameters -- Preserve the DOM method's generic return contract while patching it.
     Document.prototype.querySelector = function <ElementType extends Element = Element>(selector: string) {
       if (selector === "#intro-heading") return null;
       return querySelector.call(this, selector) as ElementType | null;
@@ -509,7 +521,7 @@ test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
   for (const width of [390, 768, 1024]) {
-    test(`the Phase 3 header exposes only approved navigation at ${width}px`, async ({ page }) => {
+    test(`the Phase 3 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/");
       await expect(page.getByRole("navigation", {

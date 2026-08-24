@@ -86,10 +86,10 @@ function declarationLabel(node: ts.Node, sourceFile: ts.SourceFile): string | un
     (ts.isMethodDeclaration(node)
       || ts.isGetAccessorDeclaration(node)
       || ts.isSetAccessorDeclaration(node))
-    && node.name
   ) {
     return node.name.getText(sourceFile);
   }
+  return undefined;
 }
 
 /**
@@ -120,6 +120,7 @@ function functionLike(node: ts.Node): ts.FunctionLikeDeclaration | undefined {
   ) {
     return node.initializer;
   }
+  return undefined;
 }
 
 /**
@@ -200,7 +201,10 @@ function documentedNames(
   tag: "param" | "typeParam",
 ): string[] {
   const pattern = new RegExp(`^@${tag}\\s+(\\S+)\\s+-\\s+\\S.*$`, "gm");
-  return [...documentation.matchAll(pattern)].map((match) => match[1]);
+  return [...documentation.matchAll(pattern)].flatMap((match) => {
+    const name = match[1];
+    return name === undefined ? [] : [name];
+  });
 }
 
 /**
@@ -243,10 +247,11 @@ test("named functions and classes have concise TSDoc with accurate contract tags
       if (label) {
         const line = sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
         const documentation = documentationText(node, sourceFile);
-        const location = `${file}:${line} ${label}`;
+        const location = `${file}:${String(line)} ${label}`;
         if (!documentation) missing.push(location);
         else {
-          const summary = documentation.split(/\n\s*@/, 1)[0].trim();
+          const [firstLine = ""] = documentation.split(/\n\s*@/, 1);
+          const summary = firstLine.trim();
           if (summary.length > 160) verbose.push(location);
 
           if (/^@params\b/m.test(documentation)) {
@@ -271,7 +276,8 @@ test("named functions and classes have concise TSDoc with accurate contract tags
 
           const returnTags = tagLines(documentation, "returns");
           if (returnsValue(node)) {
-            if (returnTags.length !== 1 || !/^@returns\s+\S/.test(returnTags[0])) {
+            const [returnTag] = returnTags;
+            if (returnTags.length !== 1 || returnTag === undefined || !/^@returns\s+\S/.test(returnTag)) {
               invalid.push(`${location}: value-returning functions require one descriptive @returns tag`);
             }
           } else if (returnTags.length) {
