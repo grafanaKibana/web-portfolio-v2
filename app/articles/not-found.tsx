@@ -7,7 +7,7 @@ import Link from "next/link";
  */
 export default function ArticleNotFound() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <h1>Article not found</h1>
       <p>The article you requested does not exist.</p>
       <Link href="/articles">View all articles</Link>

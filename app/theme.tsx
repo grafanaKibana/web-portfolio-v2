@@ -50,27 +50,33 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 /**
  * Toggles the resolved color theme after hydration.
  *
+ * @param labels - YAML-authored accessible labels for each theme state.
  * @returns The accessible theme toggle.
  */
-export function ThemeToggle() {
+export function ThemeToggle({ labels }: { labels: {
+  change: string;
+  switchToDark: string;
+  switchToLight: string;
+} }) {
   const mounted = useHydrated();
   const { resolvedTheme, setTheme } = useTheme();
 
   const dark = mounted && resolvedTheme === "dark";
   const label = mounted
-    ? `Switch to ${dark ? "light" : "dark"} theme`
-    : "Change color theme";
+    ? (dark ? labels.switchToLight : labels.switchToDark)
+    : labels.change;
   const Icon = mounted ? (dark ? Sun : Moon) : SunMoon;
 
   return (
     <button
       type="button"
       aria-label={label}
-      className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait"
+      className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:size-8"
+      data-slot="theme-toggle"
       disabled={!mounted}
       onClick={() => setTheme(dark ? "light" : "dark")}
     >
-      <Icon aria-hidden className="size-4" />
+      <Icon aria-hidden className="size-ui-icon opacity-70" />
     </button>
   );
 }

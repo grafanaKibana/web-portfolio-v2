@@ -1,0 +1,126 @@
+profile:
+  name: Nikita Reshetnik
+  headline: Shipping Agents at scale
+  summary:
+    - I’m Nikita, an AI Engineer with a Software/.NET foundation and 5 years of experience building enterprise software.
+    - I design LLM-powered services for extraction, classification, controlled rewriting, semantic matching, and embedding-based search, supported by automated evaluation pipelines that keep quality visible as prompts evolve.
+    - I also ship .NET services, lead cross-functional delivery, improve engineering workflows, and help teams adopt AI development tools in day-to-day work.
+  careerChapters:
+    - meta: 2024—Present · 2 roles
+      title: AI Engineering
+      summary: Designing and delivering production AI capabilities, evaluation systems, engineering enablement, and internal AI platforms.
+    - meta: 2021—2024 · 5 roles
+      title: Software Engineering
+      summary: Progressed from internships to end-to-end ownership across .NET APIs, microservices, monoliths, plugins, SQL, releases, and team practices.
+  facts:
+    - { label: Current role, value: Senior AI Engineer }
+    - { label: Education, value: Bachelor of Software Engineering }
+    - { label: Languages, value: "English, Ukrainian, Russian" }
+    - { label: Based in, value: Europe }
+  experience:
+    - organization: DraftKings
+      logo: /companies/draftkings.svg
+      role: Senior AI Engineer
+      period: April 2026 — Present
+      summary: Working on an internal AI platform that helps engineers ship faster through AI-assisted development workflows, automated code generation, intelligent documentation, and structured enablement programs.
+      highlights: []
+    - organization: ELEKS
+      logo: /companies/eleks.svg
+      role: AI Engineer
+      period: November 2024 — March 2026
+      summary: Designed and delivered a reusable LLM-powered REST service for extraction, classification, controlled rewriting, suggestions, semantic matching, and embedding-based prediction search. Built evaluation and observability workflows around the AI features and led cross-functional delivery.
+      highlights:
+        - Built automated prompt-quality pipelines covering Accuracy, Macro and Micro F1, and LLM-as-a-Judge Correctness, Faithfulness, and Relevance.
+        - Led delivery across engineering, QA, MLOps, Data Science, DevOps, and Product.
+        - Created documentation and onboarding material and led practical AI-tooling sessions.
+    - organization: ELEKS
+      logo: /companies/eleks.svg
+      role: Software Engineer
+      period: December 2023 — November 2024
+      summary: Delivered end-to-end features and fixes across RESTful microservices, a monolithic application, plugin packages, and a desktop client. Improved SQL performance, code quality, release reliability, and day-to-day Agile delivery.
+      highlights: []
+    - organization: ELEKS
+      logo: /companies/eleks.svg
+      role: Junior Software Engineer
+      period: May 2022 — December 2023
+      summary: Delivered features and fixes across REST APIs, microservices, a monolith, and plugin packages. Supported client investigations and strengthened team knowledge through documentation and a shared SQL query library.
+      highlights: []
+    - organization: ELEKS
+      logo: /companies/eleks.svg
+      role: Trainee Software Engineer
+      period: December 2021 — May 2022
+      summary: Delivered supervised REST API work and small but important fixes while learning the system architecture, modern .NET practices, and the time-management and legal domain.
+      highlights: []
+    - organization: ELEKS
+      logo: /companies/eleks.svg
+      role: Software Engineer Intern
+      period: September 2021 — November 2021
+      summary: Built AutoHubAPI as a practical environment for learning REST API development, then presented the application and progress to company management.
+      highlights: []
+    - organization: Sigma Software Group
+      logo: /companies/sigma-software.svg
+      role: Software Engineer Intern
+      period: March 2021 — April 2021
+      summary: Worked across design, front-end, back-end, and testing on a team-built car-rental application. Used UML and Figma to guide implementation and achieved more than 80% unit and integration test coverage on the back-end.
+      highlights: []
+  education:
+    institution: State University of Information and Communication Technologies
+    qualification: Bachelor, Software Engineering
+    period: September 2019 — June 2023
+  certifications:
+    - { label: Azure AI Fundamentals — Microsoft, August 2025 }
+    - { label: GitHub Copilot — GitHub, June 2025 }
+  skills:
+    - { title: AI engineering, skills: [LLMs, Embeddings, Prompt evaluation, Semantic search, Retrieval evaluation] }
+    - { title: Software engineering, skills: [.NET, REST, Elasticsearch, Kafka, Microsoft SQL Server, CI/CD] }
+    - { title: Engineering enablement, skills: [Grafana, GitHub Copilot, Cursor, Technical documentation, Team leadership] }
+  links:
+    - { label: LinkedIn, href: "https://www.linkedin.com/in/nikitareshetnik/" }
+    - { label: Telegram, href: "https://t.me/grafanaKibana" }
+    - { label: GitHub, href: "https://github.com/grafanaKibana" }
+    - { label: LeetCode, href: "https://leetcode.com/u/grafanaKibana/" }
+
+home:
+  metadataDescription: AI engineer shipping agents at scale with a software and .NET foundation.
+  accessibility:
+    skipToContent: Skip to content
+    backToTop: Back to top
+    primaryNavigation: Primary navigation
+    mobileNavigation: Mobile navigation
+    compactNavigation: Compact navigation
+  theme:
+    change: Change color theme
+    switchToDark: Switch to dark theme
+    switchToLight: Switch to light theme
+  navigation:
+    - { label: About, href: "#about" }
+    - { label: Experience, href: "#experience" }
+  mobileNavigation:
+    closeLabel: Close navigation
+    triggerLabel: Jump to section
+    defaultSectionLabel: About
+    scrollThreshold: 260
+  hero:
+    availability: { status: Open to work, qualifier: remote or relocation }
+    title: Hi, I’m Nikita Reshetnik.
+    lead: Shipping Agents at scale.
+    descriptors: [AI Engineer, Software Developer, UI Design Enthusiast, Open Source Contributor]
+    descriptorInterval: 3200
+    actions:
+      - { label: Download Résumé, href: "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf", icon: download }
+      - { label: Explore Experience, href: "#experience", icon: arrow-down }
+    socialLinks:
+      - { label: LinkedIn, href: "https://www.linkedin.com/in/nikitareshetnik/", icon: linkedin }
+      - { label: Telegram, href: "https://t.me/grafanaKibana", icon: telegram }
+      - { label: GitHub, href: "https://github.com/grafanaKibana", icon: github }
+      - { label: LeetCode, href: "https://leetcode.com/u/grafanaKibana/", icon: leetcode }
+  experience:
+    sectionNumber: "02"
+    label: Experience
+    range: 7 roles · 2021—Present
+    detailsLabel: Details
+  footer:
+    rights: All rights reserved.
+    localTimeLabel: Local Time
+    locale: en-GB
+    timeZone: Europe/Kyiv

@@ -1,3 +1,9 @@
+import "server-only";
+
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { load } from "js-yaml";
+
 export interface ExternalLink {
   label: string;
   href: string;
@@ -5,6 +11,7 @@ export interface ExternalLink {
 
 export interface Experience {
   organization: string;
+  logo: string;
   role: string;
   period: string;
   summary: string;
@@ -26,6 +33,7 @@ export interface PortfolioProfile {
   name: string;
   headline: string;
   summary: readonly string[];
+  careerChapters: readonly { meta: string; title: string; summary: string }[];
   facts: readonly { label: string; value: string }[];
   experience: readonly Experience[];
   education: Education;
@@ -34,92 +42,261 @@ export interface PortfolioProfile {
   links: readonly ExternalLink[];
 }
 
-export const profile = {
-  name: "Nikita Reshetnik",
-  headline: "Senior AI Engineer with a Software/.NET foundation",
-  summary: [
-    "I’m Nikita, an AI Engineer with a Software/.NET foundation and 5 years of experience building enterprise software.",
-    "I design LLM-powered services for extraction, classification, controlled rewriting, semantic matching, and embedding-based search, supported by automated evaluation pipelines that keep quality visible as prompts evolve.",
-    "I also ship .NET services, lead cross-functional delivery, improve engineering workflows, and help teams adopt AI development tools in day-to-day work.",
-  ],
-  facts: [
-    { label: "Based in", value: "Europe" },
-    { label: "Current role", value: "Senior AI Engineer" },
-    { label: "Education", value: "Bachelor, Software Engineering" },
-    { label: "Languages", value: "English, Ukrainian, Russian" },
-  ],
-  experience: [
-    {
-      organization: "DraftKings",
-      role: "Senior AI Engineer",
-      period: "April 2026 — Present",
-      summary: "Working on an internal AI platform that helps engineers ship faster through AI-assisted development workflows, automated code generation, intelligent documentation, and structured enablement programs.",
-      highlights: [],
+export interface HomeContent {
+  metadataDescription: string;
+  accessibility: {
+    skipToContent: string;
+    backToTop: string;
+    primaryNavigation: string;
+    mobileNavigation: string;
+    compactNavigation: string;
+  };
+  theme: {
+    change: string;
+    switchToDark: string;
+    switchToLight: string;
+  };
+  navigation: readonly ExternalLink[];
+  mobileNavigation: {
+    closeLabel: string;
+    triggerLabel: string;
+    defaultSectionLabel: string;
+    scrollThreshold: number;
+  };
+  hero: {
+    availability: { status: string; qualifier: string };
+    title: string;
+    lead: string;
+    descriptors: readonly string[];
+    descriptorInterval: number;
+    actions: readonly (ExternalLink & { icon: string })[];
+    socialLinks: readonly (ExternalLink & { icon: string })[];
+  };
+  experience: {
+    sectionNumber: string;
+    label: string;
+    range: string;
+    detailsLabel: string;
+  };
+  footer: {
+    rights: string;
+    localTimeLabel: string;
+    locale: string;
+    timeZone: string;
+  };
+}
+
+type RecordValue = Record<string, unknown>;
+
+/**
+ * Returns an object field or throws a source-specific content error.
+ *
+ * @param value - Untrusted YAML value.
+ * @param path - Human-readable field path.
+ * @returns The validated object.
+ * @throws When the value is not an object.
+ */
+function record(value: unknown, path: string): RecordValue {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`content/portfolio.yaml: ${path} must be an object`);
+  }
+  return value as RecordValue;
+}
+
+/**
+ * Returns a string field or throws a source-specific content error.
+ *
+ * @param value - Untrusted YAML value.
+ * @param path - Human-readable field path.
+ * @returns The validated non-empty string.
+ * @throws When the value is not a non-empty string.
+ */
+function string(value: unknown, path: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`content/portfolio.yaml: ${path} must be a non-empty string`);
+  }
+  return value;
+}
+
+/**
+ * Returns a finite number field or throws a source-specific content error.
+ *
+ * @param value - Untrusted YAML value.
+ * @param path - Human-readable field path.
+ * @returns The validated finite number.
+ * @throws When the value is not a finite number.
+ */
+function number(value: unknown, path: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`content/portfolio.yaml: ${path} must be a number`);
+  }
+  return value;
+}
+
+/**
+ * Maps an array field or throws a source-specific content error.
+ *
+ * @typeParam T - Parsed array item type.
+ * @param value - Untrusted YAML value.
+ * @param path - Human-readable field path.
+ * @param parse - Item validator.
+ * @returns The validated array.
+ * @throws When the value is not an array or an item is invalid.
+ */
+function array<T>(value: unknown, path: string, parse: (item: unknown, path: string) => T): T[] {
+  if (!Array.isArray(value)) throw new Error(`content/portfolio.yaml: ${path} must be an array`);
+  return value.map((item, index) => parse(item, `${path}[${index}]`));
+}
+
+/**
+ * Parses a labeled hyperlink from YAML.
+ *
+ * @param value - Untrusted YAML link value.
+ * @param path - Human-readable field path.
+ * @returns The validated labeled link.
+ * @throws When the link shape is invalid.
+ */
+function link(value: unknown, path: string): ExternalLink {
+  const item = record(value, path);
+  return { label: string(item.label, `${path}.label`), href: string(item.href, `${path}.href`) };
+}
+
+/**
+ * Parses a labeled icon hyperlink from YAML.
+ *
+ * @param value - Untrusted YAML link value.
+ * @param path - Human-readable field path.
+ * @returns The validated labeled icon link.
+ * @throws When the link shape is invalid.
+ */
+function iconLink(value: unknown, path: string) {
+  const item = record(value, path);
+  return { ...link(item, path), icon: string(item.icon, `${path}.icon`) };
+}
+
+/**
+ * Validates and returns the repository-authored portfolio YAML document.
+ *
+ * @param value - Parsed but untrusted YAML document.
+ * @returns The validated portfolio profile and home content.
+ * @throws When any required content field is missing or malformed.
+ */
+function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: HomeContent } {
+  const root = record(value, "root");
+  const sourceProfile = record(root.profile, "profile");
+  const sourceHome = record(root.home, "home");
+  const accessibility = record(sourceHome.accessibility, "home.accessibility");
+  const theme = record(sourceHome.theme, "home.theme");
+  const education = record(sourceProfile.education, "profile.education");
+  const mobileNavigation = record(sourceHome.mobileNavigation, "home.mobileNavigation");
+  const hero = record(sourceHome.hero, "home.hero");
+  const experience = record(sourceHome.experience, "home.experience");
+  const availability = record(hero.availability, "home.hero.availability");
+  const footer = record(sourceHome.footer, "home.footer");
+  const navigation = array(sourceHome.navigation, "home.navigation", link);
+  const descriptors = array(hero.descriptors, "home.hero.descriptors", string);
+  const actions = array(hero.actions, "home.hero.actions", iconLink);
+  const socialLinks = array(hero.socialLinks, "home.hero.socialLinks", iconLink);
+  const descriptorInterval = number(hero.descriptorInterval, "home.hero.descriptorInterval");
+  if (!descriptors.length) throw new Error("content/portfolio.yaml: home.hero.descriptors must not be empty");
+  if (actions.length !== 2) throw new Error("content/portfolio.yaml: home.hero.actions must contain two actions");
+  if (descriptorInterval <= 0) throw new Error("content/portfolio.yaml: home.hero.descriptorInterval must be positive");
+
+  return {
+    profile: {
+      name: string(sourceProfile.name, "profile.name"),
+      headline: string(sourceProfile.headline, "profile.headline"),
+      summary: array(sourceProfile.summary, "profile.summary", string),
+      careerChapters: array(sourceProfile.careerChapters, "profile.careerChapters", (value, path) => {
+        const item = record(value, path);
+        return {
+          meta: string(item.meta, `${path}.meta`),
+          title: string(item.title, `${path}.title`),
+          summary: string(item.summary, `${path}.summary`),
+        };
+      }),
+      facts: array(sourceProfile.facts, "profile.facts", (value, path) => {
+        const item = record(value, path);
+        return { label: string(item.label, `${path}.label`), value: string(item.value, `${path}.value`) };
+      }),
+      experience: array(sourceProfile.experience, "profile.experience", (value, path) => {
+        const item = record(value, path);
+        return {
+          organization: string(item.organization, `${path}.organization`),
+          logo: string(item.logo, `${path}.logo`),
+          role: string(item.role, `${path}.role`),
+          period: string(item.period, `${path}.period`),
+          summary: string(item.summary, `${path}.summary`),
+          highlights: array(item.highlights, `${path}.highlights`, string),
+        };
+      }),
+      education: {
+        institution: string(education.institution, "profile.education.institution"),
+        qualification: string(education.qualification, "profile.education.qualification"),
+        period: string(education.period, "profile.education.period"),
+      },
+      certifications: array(sourceProfile.certifications, "profile.certifications", (value, path) => {
+        const item = record(value, path);
+        return {
+          label: string(item.label, `${path}.label`),
+          ...(item.href === undefined ? {} : { href: string(item.href, `${path}.href`) }),
+        };
+      }),
+      skills: array(sourceProfile.skills, "profile.skills", (value, path) => {
+        const item = record(value, path);
+        return { title: string(item.title, `${path}.title`), skills: array(item.skills, `${path}.skills`, string) };
+      }),
+      links: array(sourceProfile.links, "profile.links", link),
     },
-    {
-      organization: "ELEKS",
-      role: "AI Engineer",
-      period: "November 2024 — March 2026",
-      summary: "Designed and delivered a reusable LLM-powered REST service for extraction, classification, controlled rewriting, suggestions, semantic matching, and embedding-based prediction search. Built evaluation and observability workflows around the AI features and led cross-functional delivery.",
-      highlights: [
-        "Built automated prompt-quality pipelines covering Accuracy, Macro and Micro F1, and LLM-as-a-Judge Correctness, Faithfulness, and Relevance.",
-        "Led delivery across engineering, QA, MLOps, Data Science, DevOps, and Product.",
-        "Created documentation and onboarding material and led practical AI-tooling sessions.",
-      ],
+    home: {
+      metadataDescription: string(sourceHome.metadataDescription, "home.metadataDescription"),
+      accessibility: {
+        skipToContent: string(accessibility.skipToContent, "home.accessibility.skipToContent"),
+        backToTop: string(accessibility.backToTop, "home.accessibility.backToTop"),
+        primaryNavigation: string(accessibility.primaryNavigation, "home.accessibility.primaryNavigation"),
+        mobileNavigation: string(accessibility.mobileNavigation, "home.accessibility.mobileNavigation"),
+        compactNavigation: string(accessibility.compactNavigation, "home.accessibility.compactNavigation"),
+      },
+      theme: {
+        change: string(theme.change, "home.theme.change"),
+        switchToDark: string(theme.switchToDark, "home.theme.switchToDark"),
+        switchToLight: string(theme.switchToLight, "home.theme.switchToLight"),
+      },
+      navigation,
+      mobileNavigation: {
+        closeLabel: string(mobileNavigation.closeLabel, "home.mobileNavigation.closeLabel"),
+        triggerLabel: string(mobileNavigation.triggerLabel, "home.mobileNavigation.triggerLabel"),
+        defaultSectionLabel: string(mobileNavigation.defaultSectionLabel, "home.mobileNavigation.defaultSectionLabel"),
+        scrollThreshold: number(mobileNavigation.scrollThreshold, "home.mobileNavigation.scrollThreshold"),
+      },
+      hero: {
+        availability: {
+          status: string(availability.status, "home.hero.availability.status"),
+          qualifier: string(availability.qualifier, "home.hero.availability.qualifier"),
+        },
+        title: string(hero.title, "home.hero.title"),
+        lead: string(hero.lead, "home.hero.lead"),
+        descriptors,
+        descriptorInterval,
+        actions,
+        socialLinks,
+      },
+      experience: {
+        sectionNumber: string(experience.sectionNumber, "home.experience.sectionNumber"),
+        label: string(experience.label, "home.experience.label"),
+        range: string(experience.range, "home.experience.range"),
+        detailsLabel: string(experience.detailsLabel, "home.experience.detailsLabel"),
+      },
+      footer: {
+        rights: string(footer.rights, "home.footer.rights"),
+        localTimeLabel: string(footer.localTimeLabel, "home.footer.localTimeLabel"),
+        locale: string(footer.locale, "home.footer.locale"),
+        timeZone: string(footer.timeZone, "home.footer.timeZone"),
+      },
     },
-    {
-      organization: "ELEKS",
-      role: "Software Engineer",
-      period: "December 2023 — November 2024",
-      summary: "Delivered end-to-end features and fixes across RESTful microservices, a monolithic application, plugin packages, and a desktop client. Improved SQL performance, code quality, release reliability, and day-to-day Agile delivery.",
-      highlights: [],
-    },
-    {
-      organization: "ELEKS",
-      role: "Junior Software Engineer",
-      period: "May 2022 — December 2023",
-      summary: "Delivered features and fixes across REST APIs, microservices, a monolith, and plugin packages. Supported client investigations and strengthened team knowledge through documentation and a shared SQL query library.",
-      highlights: [],
-    },
-    {
-      organization: "ELEKS",
-      role: "Trainee Software Engineer",
-      period: "December 2021 — May 2022",
-      summary: "Delivered supervised REST API work and small but important fixes while learning the system architecture, modern .NET practices, and the time-management and legal domain.",
-      highlights: [],
-    },
-    {
-      organization: "ELEKS",
-      role: "Software Engineer Intern",
-      period: "September 2021 — November 2021",
-      summary: "Built AutoHubAPI as a practical environment for learning REST API development, then presented the application and progress to company management.",
-      highlights: [],
-    },
-    {
-      organization: "Sigma Software Group",
-      role: "Software Engineer Intern",
-      period: "March 2021 — April 2021",
-      summary: "Worked across design, front-end, back-end, and testing on a team-built car-rental application. Used UML and Figma to guide implementation and achieved more than 80% unit and integration test coverage on the back-end.",
-      highlights: [],
-    },
-  ],
-  education: {
-    institution: "State University of Information and Communication Technologies",
-    qualification: "Bachelor, Software Engineering",
-    period: "September 2019 — June 2023",
-  },
-  certifications: [
-    { label: "Azure AI Fundamentals — Microsoft, August 2025" },
-    { label: "GitHub Copilot — GitHub, June 2025" },
-  ] as PortfolioProfile["certifications"],
-  skills: [
-    { title: "AI engineering", skills: ["LLMs", "Embeddings", "Prompt evaluation", "Semantic search", "Retrieval evaluation"] },
-    { title: "Software engineering", skills: [".NET", "REST", "Elasticsearch", "Kafka", "Microsoft SQL Server", "CI/CD"] },
-    { title: "Engineering enablement", skills: ["Grafana", "GitHub Copilot", "Cursor", "Technical documentation", "Team leadership"] },
-  ],
-  links: [
-    { label: "LinkedIn", href: "https://www.linkedin.com/in/nikitareshetnik/" },
-    { label: "GitHub", href: "https://github.com/grafanaKibana" },
-    { label: "Email", href: "mailto:reshetnik.nikita@gmail.com" },
-  ],
-} satisfies PortfolioProfile;
+  };
+}
+
+const content = validatePortfolio(load(readFileSync(join(process.cwd(), "content", "portfolio.yaml"), "utf8")));
+
+export const { profile, home } = content;

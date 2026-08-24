@@ -1,0 +1,55 @@
+@keyframes descriptor-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.875rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes descriptor-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-0.875rem);
+  }
+}
+
+@keyframes descriptor-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes descriptor-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.label {
+  letter-spacing: 0.16em;
+}
+
+.entering {
+  animation: descriptor-in 0.58s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.exiting {
+  animation: descriptor-out 0.58s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entering {
+    animation: descriptor-fade 0.5s ease both;
+  }
+
+  .exiting {
+    animation: descriptor-fade-out 0.5s ease both;
+  }
+}

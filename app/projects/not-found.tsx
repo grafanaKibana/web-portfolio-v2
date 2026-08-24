@@ -7,7 +7,7 @@ import Link from "next/link";
  */
 export default function ProjectNotFound() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <h1>Project not found</h1>
       <p>The project you requested does not exist.</p>
       <Link href="/projects">View all projects</Link>

@@ -1,131 +1,237 @@
-import Link from "next/link";
-import { Download } from "lucide-react";
+import {
+  ArrowDown,
+  ChevronRight,
+  Download,
+  type LucideIcon,
+} from "lucide-react";
+import Image from "next/image";
+import { DescriptorRotation } from "./_components/descriptor-rotation";
+import { home, profile } from "@/content/structured";
+import styles from "./page.module.scss";
 
-import { ContactForm } from "@/app/_components/contact-form";
-import { DescriptorRotation } from "@/app/_components/descriptor-rotation";
-import { loadActivitySnapshot } from "@/content/activity";
-import { loadArticles } from "@/content/articles/server";
-import { loadProjects } from "@/content/projects/server";
-import { profile } from "@/content/structured";
+const icons: Record<string, LucideIcon> = {
+  "arrow-down": ArrowDown,
+  download: Download,
+};
 
-const sectionClass = "border-t py-14 sm:py-20";
-const headingClass = "mb-8 text-2xl font-medium tracking-tight";
-const activityMonth = new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" });
+const brandPaths: Record<string, string> = {
+  linkedin: "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z",
+  telegram: "M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z",
+  github: "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12",
+  leetcode: "M13.483 0a1.374 1.374 0 0 0-.961.438L7.116 6.226l-3.854 4.126a5.266 5.266 0 0 0-1.209 2.104 5.35 5.35 0 0 0-.125.513 5.527 5.527 0 0 0 .062 2.362 5.83 5.83 0 0 0 .349 1.017 5.938 5.938 0 0 0 1.271 1.818l4.277 4.193.039.038c2.248 2.165 5.852 2.133 8.063-.074l2.396-2.392c.54-.54.54-1.414.003-1.955a1.378 1.378 0 0 0-1.951-.003l-2.396 2.392a3.021 3.021 0 0 1-4.205.038l-.02-.019-4.276-4.193c-.652-.64-.972-1.469-.948-2.263a2.68 2.68 0 0 1 .066-.523 2.545 2.545 0 0 1 .619-1.164L9.13 8.114c1.058-1.134 3.204-1.27 4.43-.278l3.501 2.831c.593.48 1.461.387 1.94-.207a1.384 1.384 0 0 0-.207-1.943l-3.5-2.831c-.8-.647-1.766-1.045-2.774-1.202l2.015-2.158A1.384 1.384 0 0 0 13.483 0zm-2.866 12.815a1.38 1.38 0 0 0-1.38 1.382 1.38 1.38 0 0 0 1.38 1.382H20.79a1.38 1.38 0 0 0 1.38-1.382 1.38 1.38 0 0 0-1.38-1.382z",
+};
 
 /**
- * Loads server-owned portfolio content and renders the home page.
+ * Resolves one YAML icon key through the local icon allowlist.
  *
- * @returns The complete portfolio home page.
+ * @param name - YAML icon identifier.
+ * @param className - Optional classes applied to the icon.
+ * @returns The matching decorative icon.
+ * @throws When YAML contains an unsupported icon identifier.
  */
-export default async function Home() {
-  const [activity, articles, projects] = await Promise.all([loadActivitySnapshot(), loadArticles(), loadProjects()]);
+function Icon({ name, className }: { name: string; className?: string }) {
+  const path = brandPaths[name];
+  if (path) {
+    return (
+      <svg aria-hidden="true" className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path d={path} />
+      </svg>
+    );
+  }
+  const Component = icons[name];
+  if (!Component) throw new Error(`Unknown portfolio icon: ${name}`);
+  return <Component aria-hidden="true" className={className} />;
+}
+
+/**
+ * Renders the corrected clean-slate portfolio introduction.
+ *
+ * @returns The portfolio home page.
+ */
+export default function Home() {
+  const [primaryAction, secondaryAction] = home.hero.actions;
 
   return (
-    <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-6">
-      <section className="py-20 sm:py-28" aria-labelledby="intro-heading">
-        <p className="mb-4 h-5 overflow-hidden font-mono text-sm text-primary-text">
-          <DescriptorRotation />
-        </p>
-        <h1 id="intro-heading" className="max-w-3xl text-4xl font-medium tracking-tight sm:text-6xl">
-          Hi, I’m {profile.name}.
+    <main id="main" tabIndex={-1} className="flex flex-1 flex-col focus:outline-none">
+      <section
+        aria-labelledby="intro-heading"
+        className={`${styles.hero} page-shell-gutter box-border flex w-full flex-col items-center justify-center pt-8 text-center`}
+      >
+        <div className={`${styles.availability} inline-flex items-center rounded-full py-1.5 text-xs font-medium`}>
+          <span
+            aria-hidden="true"
+            className={`${styles.availabilityDot} size-1.5 animate-pulse rounded-full motion-reduce:animate-none`}
+            data-slot="availability-dot"
+          />
+          {home.hero.availability.status}
+          <span className="font-normal text-muted-foreground">
+            {home.hero.availability.qualifier}
+          </span>
+        </div>
+        <h1
+          id="intro-heading"
+          className={`${styles.heading} m-0 font-medium`}
+        >
+          <span className="block whitespace-nowrap">{home.hero.title}</span>
+          <span className="block whitespace-nowrap text-muted-foreground">{home.hero.lead}</span>
         </h1>
-        <p className="mt-6 max-w-2xl text-xl leading-8 text-muted-foreground">{profile.headline}.</p>
-        <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3">
-          <a className="inline-flex items-center gap-2 font-medium underline underline-offset-4" href="/nikita-reshetnik-cv.pdf">
-            <Download aria-hidden="true" className="size-4" /> Résumé
+        <div className={`${styles.descriptorSlot} flex items-center justify-center`}>
+          <DescriptorRotation
+            descriptors={home.hero.descriptors}
+            interval={home.hero.descriptorInterval}
+          />
+        </div>
+        <div className={`${styles.actions} flex w-full flex-col lg:w-auto lg:flex-row lg:items-center`}>
+          <a
+            className={`${styles.action} inline-flex w-full items-center justify-center gap-2 rounded-md border border-transparent bg-primary font-medium text-primary-foreground hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:w-auto lg:px-4 lg:leading-5`}
+            download
+            href={primaryAction.href}
+          >
+            <Icon
+              name={primaryAction.icon}
+              className={styles.primaryActionIcon}
+            />
+            {primaryAction.label}
           </a>
-          {profile.links.map((link) => <a key={link.href} className="font-medium underline underline-offset-4" href={link.href}>{link.label}</a>)}
+          <a
+            className={`${styles.action} group mt-1.5 inline-flex w-full items-center justify-center gap-2 rounded-md font-medium transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto`}
+            href={secondaryAction.href}
+          >
+            {secondaryAction.label}
+            <Icon
+              name={secondaryAction.icon}
+              className="-order-1 size-3.5 opacity-60 transition-transform duration-150 group-hover:translate-y-0.5 motion-reduce:group-hover:translate-none motion-reduce:transition-none lg:order-none"
+            />
+          </a>
         </div>
-      </section>
-
-      <section id="about" className={sectionClass} aria-labelledby="about-heading">
-        <h2 id="about-heading" className={headingClass}>About</h2>
-        <div className="max-w-3xl space-y-5 text-lg leading-8 text-muted-foreground">
-          {profile.summary.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-        </div>
-        <dl className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {profile.facts.map((fact) => <div key={fact.label}><dt className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{fact.label}</dt><dd className="mt-2 font-medium">{fact.value}</dd></div>)}
-        </dl>
-      </section>
-
-      <section id="experience" className={sectionClass} aria-labelledby="experience-heading">
-        <h2 id="experience-heading" className={headingClass}>Experience</h2>
-        <ol className="space-y-10">
-          {profile.experience.map((experience) => (
-            <li key={`${experience.organization}-${experience.role}-${experience.period}`} className="grid gap-3 sm:grid-cols-[12rem_1fr]">
-              <p className="font-mono text-sm text-muted-foreground">{experience.period}</p>
-              <div>
-                <h3 className="text-lg font-semibold">{experience.role}</h3>
-                <p className="mt-1 font-medium text-muted-foreground">{experience.organization}</p>
-                <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">{experience.summary}</p>
-                {experience.highlights.length > 0 && (
-                  <details open className="mt-4">
-                    <summary className="cursor-pointer font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                      Details
-                    </summary>
-                    <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
-                      {experience.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}
-                    </ul>
-                  </details>
-                )}
-              </div>
+        <ul className={`${styles.socialLinks} desktop-link-row-gap grid w-full grid-cols-2 justify-items-center gap-x-1 gap-y-1 sm:flex sm:flex-wrap sm:justify-center sm:gap-y-0 lg:w-auto`}>
+          {home.hero.socialLinks.map((link) => (
+            <li key={link.href}>
+              <a
+                className="text-ui-xs inline-flex min-h-11 items-center gap-2 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                href={link.href}
+              >
+                <Icon name={link.icon} className="size-3.5 opacity-65" />
+                {link.label}
+              </a>
             </li>
           ))}
-        </ol>
+        </ul>
       </section>
-
-      <section id="education" className={sectionClass} aria-labelledby="education-heading">
-        <h2 id="education-heading" className={headingClass}>Education</h2>
-        <p className="font-mono text-sm text-muted-foreground">{profile.education.period}</p>
-        <h3 className="mt-3 text-lg font-semibold">{profile.education.qualification}</h3>
-        <p className="mt-1 text-muted-foreground">{profile.education.institution}</p>
-        <h3 className="mt-10 font-medium">Industry certifications</h3>
-        <ul className="mt-4 space-y-3">{profile.certifications.map((certification) => <li key={certification.label}>{certification.href ? <a className="underline underline-offset-4" href={certification.href}>{certification.label}</a> : certification.label}</li>)}</ul>
-      </section>
-
-      <section id="skills" className={sectionClass} aria-labelledby="skills-heading">
-        <h2 id="skills-heading" className={headingClass}>Skills</h2>
-        <div className="grid gap-8 md:grid-cols-3">
-          {profile.skills.map((group) => <div key={group.title}><h3 className="font-medium">{group.title}</h3><ul className="mt-4 flex flex-wrap gap-2 text-sm text-muted-foreground">{group.skills.map((skill) => <li key={skill} className="rounded-full border px-3 py-1">{skill}</li>)}</ul></div>)}
-        </div>
-      </section>
-
-      <section id="projects" className={sectionClass} aria-labelledby="projects-heading">
-        <div className="mb-8 flex items-baseline justify-between gap-4"><h2 id="projects-heading" className="text-2xl font-medium tracking-tight">Selected work</h2><Link className="text-sm underline underline-offset-4" href="/projects">All projects</Link></div>
-        <ul className="space-y-8">{projects.map((project) => <li key={project.slug}><h3 className="text-xl font-medium"><Link className="underline-offset-4 hover:underline" href={`/projects/${project.slug}`}>{project.metadata.title}</Link></h3><p className="mt-3 max-w-3xl leading-7 text-muted-foreground">{project.metadata.description}</p></li>)}</ul>
-      </section>
-
-      <section id="code" className={sectionClass} aria-labelledby="code-heading">
-        <h2 id="code-heading" className={headingClass}>Code activity</h2>
-        <p className="max-w-2xl leading-7 text-muted-foreground">Open-source work includes merged contributions to Microsoft.Extensions.AI.Evaluation reporting and Obsidian Digital Garden publishing.</p>
-        <a className="mt-5 inline-block font-medium underline underline-offset-4" href="https://github.com/grafanaKibana">github.com/grafanaKibana</a>
-        {activity.available && (
-          <figure className="mt-10 border-t pt-6">
-            <figcaption className="font-mono text-xs uppercase tracking-wider text-muted-foreground">GitHub activity · last 12 months</figcaption>
-            <div className="mt-6 grid h-24 grid-cols-12 items-end gap-2" aria-hidden="true">
-              {activity.months.map((month) => <span key={month.period} className="bg-primary/30" style={{ height: `${month.value * 100}%` }} />)}
-            </div>
-            <ol className="mt-3 grid grid-cols-12 gap-2 text-center font-mono text-[10px] text-muted-foreground">
-              {activity.months.map((month) => <li key={month.period}><span aria-hidden="true">{activityMonth.format(new Date(`${month.period}-01T00:00:00Z`))}</span><span className="sr-only">{month.period}: {Math.round(month.value * 100)}% relative activity</span></li>)}
-            </ol>
-          </figure>
-        )}
-      </section>
-
-      <section id="writing" className={sectionClass} aria-labelledby="writing-heading">
-        <div className="mb-8 flex items-baseline justify-between gap-4"><h2 id="writing-heading" className="text-2xl font-medium tracking-tight">Writing</h2><Link className="text-sm underline underline-offset-4" href="/articles">All writing</Link></div>
-        <ul className="space-y-8">{articles.map((article) => <li key={article.slug}><time className="font-mono text-sm text-muted-foreground" dateTime={article.metadata.published}>{article.metadata.published}</time><h3 className="mt-2 text-xl font-medium"><Link className="underline-offset-4 hover:underline" href={`/articles/${article.slug}`}>{article.metadata.title}</Link></h3><p className="mt-3 max-w-3xl leading-7 text-muted-foreground">{article.metadata.description}</p></li>)}</ul>
-      </section>
-
-      <section id="contact" className={sectionClass} aria-labelledby="contact-heading">
-        <h2 id="contact-heading" className={headingClass}>Contact</h2>
-        <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
-          <div>
-            <p className="max-w-2xl text-lg leading-8 text-muted-foreground">Have a role, project, or engineering challenge worth discussing? Send me a message or email me directly.</p>
-            <a className="mt-6 inline-block text-lg font-medium underline underline-offset-4" href="mailto:reshetnik.nikita@gmail.com">reshetnik.nikita@gmail.com</a>
+      <section
+        id="about"
+        aria-labelledby="about-heading"
+        className={`${styles.about} page-shell-gutter w-full`}
+      >
+        <h2
+          id="about-heading"
+          className={`${styles.sectionLabel} border-t font-mono font-normal uppercase text-muted-foreground`}
+        >
+          <span aria-hidden="true">01 — </span>About
+        </h2>
+        <div className={styles.aboutContent}>
+          <div className={styles.summary}>
+            {profile.summary.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
           </div>
-          <ContactForm />
+          <div className={styles.careerChapters}>
+            {profile.careerChapters.map((chapter) => (
+              <div className={styles.careerChapter} key={chapter.title}>
+                <p className={`${styles.chapterMeta} font-mono text-muted-foreground`}>
+                  {chapter.meta}
+                </p>
+                <h3 className={styles.chapterTitle}>{chapter.title}</h3>
+                <p className={`${styles.chapterSummary} text-muted-foreground`}>
+                  {chapter.summary}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
+        <dl className={`${styles.facts} border-t`}>
+          {profile.facts.map((fact) => (
+            <div key={fact.label}>
+              <dt className={`${styles.factLabel} font-mono uppercase text-muted-foreground`}>
+                {fact.label}
+              </dt>
+              <dd className={styles.factValue}>{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <section
+        id="experience"
+        aria-labelledby="experience-heading"
+        className={`${styles.experience} page-shell-gutter w-full`}
+      >
+        <div className={`${styles.experienceHeader} border-t font-mono uppercase text-muted-foreground`}>
+          <h2 id="experience-heading">
+            <span aria-hidden="true">{home.experience.sectionNumber} — </span>
+            {home.experience.label}
+          </h2>
+          <p>{home.experience.range}</p>
+        </div>
+        <ol className={styles.timeline}>
+          {profile.experience.map((experience, index) => {
+            const [periodStart, periodEnd] = experience.period.split(" — ", 2);
+
+            return (
+              <li className={styles.experienceItem} key={`${experience.organization}-${experience.role}-${experience.period}`}>
+                <p
+                  className={`${styles.experiencePeriod} self-start font-mono text-muted-foreground`}
+                  data-slot="experience-period"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`${styles.timelineDot} ${index === 0 ? styles.timelineDotCurrent : ""}`}
+                    data-slot="timeline-dot"
+                  />
+                  <span className={styles.periodPart} data-slot="period-part">{periodStart}</span>
+                  <span aria-hidden="true" className={styles.periodSeparator} data-slot="period-separator">—</span>
+                  <span className={styles.periodPart} data-slot="period-part">{periodEnd}</span>
+                </p>
+                <article className={styles.experienceBody}>
+                  <div className="flex items-center gap-3 lg:gap-3.5">
+                    <span
+                      aria-hidden="true"
+                      className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border bg-white"
+                      data-slot="company-logo"
+                    >
+                      <Image
+                        alt=""
+                        className="size-full rounded-full object-contain"
+                        height={32}
+                        src={experience.logo}
+                        width={32}
+                      />
+                    </span>
+                    <div data-slot="role-heading">
+                      <h3 className={styles.roleTitle}>{experience.role}</h3>
+                      <p className={`${styles.organization} text-muted-foreground`}>
+                        {experience.organization}
+                      </p>
+                    </div>
+                  </div>
+                  <p className={`${styles.roleSummary} text-muted-foreground`}>
+                    {experience.summary}
+                  </p>
+                  {experience.highlights.length > 0 && (
+                    <details className={styles.roleDetails}>
+                      <summary className="font-mono uppercase text-muted-foreground">
+                        <ChevronRight aria-hidden="true" className={styles.detailsIcon} />
+                        {home.experience.detailsLabel}
+                      </summary>
+                      <ul className={styles.highlights}>
+                        {experience.highlights.map((highlight) => (
+                          <li key={highlight}>{highlight}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </article>
+              </li>
+            );
+          })}
+        </ol>
       </section>
     </main>
   );

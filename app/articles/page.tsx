@@ -17,9 +17,9 @@ export default async function ArticlesPage() {
   const articles = await loadArticles();
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-20">
+    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 focus:outline-none">
       <header className="max-w-2xl">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="tracking-route-kicker font-mono text-xs uppercase text-muted-foreground">
           Writing
         </p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight">Articles</h1>

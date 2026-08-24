@@ -1,46 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const descriptors = [
-  "AI Engineer",
-  "Software Developer",
-  "UI Design Enthusiast",
-  "Open Source Contributor",
-] as const;
+import styles from "./descriptor-rotation.module.scss";
 
 /**
- * Rotates the hero descriptor briefly unless reduced motion is requested.
+ * Rotates the YAML-authored hero descriptors at the reference cadence.
  *
- * @returns The current hero descriptor.
+ * @param descriptors - Non-empty descriptor sequence.
+ * @param interval - Rotation interval in milliseconds.
+ * @returns The current animated descriptor.
  */
-export function DescriptorRotation() {
+export function DescriptorRotation({ descriptors, interval }: {
+  descriptors: readonly string[];
+  interval: number;
+}) {
   const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState<"entering" | "exiting">("entering");
+  const phaseClass = phase === "entering" ? styles.entering : styles.exiting;
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    const deadline = performance.now() + 5_000;
-    const timer = window.setInterval(
-      () => {
-        if (performance.now() >= deadline) {
-          window.clearInterval(timer);
-          return;
-        }
-        setIndex((current) => (current + 1) % descriptors.length);
-      },
-      2_000,
-    );
-
+    const timer = window.setInterval(() => setPhase("exiting"), interval);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [interval]);
 
   return (
-    <span
-      key={index}
-      className="hero-descriptor"
-    >
-      {descriptors[index]}
+    <span className="inline-grid">
+      <span
+        key={`${index}-${phase}`}
+        className={`${styles.label} ${phaseClass} col-start-1 row-start-1 inline-block font-mono text-xs font-medium uppercase text-primary-text`}
+        data-slot="hero-descriptor"
+        data-state={phase}
+        onAnimationEnd={() => {
+          if (phase !== "exiting") return;
+          setIndex((current) => (current + 1) % descriptors.length);
+          setPhase("entering");
+        }}
+      >
+        {descriptors[index]}
+      </span>
     </span>
   );
 }

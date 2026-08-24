@@ -1,5 +1,4 @@
 import assert from "node:assert/strict"
-import { createHash } from "node:crypto"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -10,6 +9,7 @@ import { discoverMdxSlugs } from "../content/discovery"
 import { validateMdxModule } from "../content/load"
 import { validateContentMetadata } from "../content/metadata"
 import { validateSlug } from "../content/slugs"
+import { home, profile } from "../content/structured"
 
 test("valid article and project metadata is accepted", () => {
   const article = validateContentMetadata(
@@ -179,12 +179,91 @@ test("activity snapshot parser fails open", async (t) => {
   assert.ok(warnings.every((warning) => warning.includes(directory)))
 })
 
-test("repository omits unverified activity data and preserves the approved resume", async (t) => {
+test("repository omits unverified activity data and uses the approved resume release", async (t) => {
   const warn = console.warn
   console.warn = () => undefined
   t.after(() => { console.warn = warn })
   assert.deepEqual(await loadActivitySnapshot(), { available: false })
 
-  const resume = await readFile(join(process.cwd(), "public", "nikita-reshetnik-cv.pdf"))
-  assert.equal(createHash("sha256").update(resume).digest("hex"), "fa18c4537b8cba15039c04cd6a1f00e666dfa8ac97f9f75188c4bfbf04a709bf")
+  assert.equal(
+    home.hero.actions[0].href,
+    "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf",
+  )
+})
+
+test("one YAML document owns structured profile and approved home content", async () => {
+  const yaml = await readFile(join(process.cwd(), "content", "portfolio.yaml"), "utf8")
+  assert.match(yaml, /^profile:/m)
+  assert.match(yaml, /^home:/m)
+  assert.equal(profile.name, "Nikita Reshetnik")
+  assert.equal(profile.headline, "Shipping Agents at scale")
+  assert.deepEqual(profile.careerChapters, [
+    {
+      meta: "2024—Present · 2 roles",
+      title: "AI Engineering",
+      summary: "Designing and delivering production AI capabilities, evaluation systems, engineering enablement, and internal AI platforms.",
+    },
+    {
+      meta: "2021—2024 · 5 roles",
+      title: "Software Engineering",
+      summary: "Progressed from internships to end-to-end ownership across .NET APIs, microservices, monoliths, plugins, SQL, releases, and team practices.",
+    },
+  ])
+  assert.deepEqual(
+    profile.experience.map(({ logo, organization, role }) => ({ logo, organization, role })),
+    [
+      { logo: "/companies/draftkings.svg", organization: "DraftKings", role: "Senior AI Engineer" },
+      { logo: "/companies/eleks.svg", organization: "ELEKS", role: "AI Engineer" },
+      { logo: "/companies/eleks.svg", organization: "ELEKS", role: "Software Engineer" },
+      { logo: "/companies/eleks.svg", organization: "ELEKS", role: "Junior Software Engineer" },
+      { logo: "/companies/eleks.svg", organization: "ELEKS", role: "Trainee Software Engineer" },
+      { logo: "/companies/eleks.svg", organization: "ELEKS", role: "Software Engineer Intern" },
+      { logo: "/companies/sigma-software.svg", organization: "Sigma Software Group", role: "Software Engineer Intern" },
+    ],
+  )
+  assert.deepEqual(home.navigation, [
+    { label: "About", href: "#about" },
+    { label: "Experience", href: "#experience" },
+  ])
+  assert.deepEqual(home.mobileNavigation, {
+    closeLabel: "Close navigation",
+    triggerLabel: "Jump to section",
+    defaultSectionLabel: "About",
+    scrollThreshold: 260,
+  })
+  assert.deepEqual(home.hero.descriptors, [
+    "AI Engineer",
+    "Software Developer",
+    "UI Design Enthusiast",
+    "Open Source Contributor",
+  ])
+  assert.equal(home.hero.descriptorInterval, 3200)
+  assert.deepEqual(home.experience, {
+    sectionNumber: "02",
+    label: "Experience",
+    range: "7 roles · 2021—Present",
+    detailsLabel: "Details",
+  })
+  assert.deepEqual(home.accessibility, {
+    skipToContent: "Skip to content",
+    backToTop: "Back to top",
+    primaryNavigation: "Primary navigation",
+    mobileNavigation: "Mobile navigation",
+    compactNavigation: "Compact navigation",
+  })
+  assert.deepEqual(
+    home.hero.socialLinks.map(({ label, href }) => ({ label, href })),
+    [
+      { label: "LinkedIn", href: "https://www.linkedin.com/in/nikitareshetnik/" },
+      { label: "Telegram", href: "https://t.me/grafanaKibana" },
+      { label: "GitHub", href: "https://github.com/grafanaKibana" },
+      { label: "LeetCode", href: "https://leetcode.com/u/grafanaKibana/" },
+    ],
+  )
+  assert.deepEqual(home.footer, {
+    rights: "All rights reserved.",
+    localTimeLabel: "Local Time",
+    locale: "en-GB",
+    timeZone: "Europe/Kyiv",
+  })
 })

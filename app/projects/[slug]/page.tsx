@@ -54,7 +54,7 @@ export default async function ProjectPage({
   if (!project) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-20">
+    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 focus:outline-none">
       <article className="max-w-3xl">
         <header className="border-b pb-12">
           <Link
@@ -63,7 +63,7 @@ export default async function ProjectPage({
           >
             All projects
           </Link>
-          <p className="mt-8 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="tracking-route-kicker mt-8 font-mono text-xs uppercase text-muted-foreground">
             Case study
           </p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">

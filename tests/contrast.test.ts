@@ -63,3 +63,16 @@ test("text and primary button colors meet WCAG AA contrast", () => {
   assert.ok(contrast(token(".dark", "primary-text"), token(".dark", "background")) >= 4.5)
   assert.ok(contrast(token(".dark", "primary-foreground"), token(".dark", "primary")) >= 4.5)
 })
+
+test("light and dark neutral tokens match the supplied design system", () => {
+  assert.deepEqual(token(":root", "background"), [1, 0, 0])
+  assert.deepEqual(token(":root", "foreground"), [0, 0, 0])
+  assert.deepEqual(token(":root", "primary"), [0, 0, 0])
+  assert.deepEqual(token(":root", "primary-foreground"), [0.985, 0, 0])
+  assert.deepEqual(token(":root", "muted-foreground"), [0.556, 0, 0])
+  assert.deepEqual(token(".dark", "background"), [0.145, 0, 0])
+  assert.deepEqual(token(".dark", "foreground"), [0.985, 0, 0])
+  assert.deepEqual(token(".dark", "primary"), [0.922, 0, 0])
+  assert.deepEqual(token(".dark", "primary-foreground"), [0.205, 0, 0])
+  assert.deepEqual(token(".dark", "muted-foreground"), [0.708, 0, 0])
+})

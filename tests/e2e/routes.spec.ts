@@ -31,24 +31,32 @@ for (const family of missingRouteFamilies) {
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("core portfolio content and listing links remain usable", async ({ page }) => {
+  test("the corrected intro, shell anchors, and long-form routes remain usable", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await expect(page.getByRole("main")).toBeVisible();
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Hi, I’m Nikita Reshetnik." }),
-    ).toBeVisible();
-    await expect(page.getByText("Senior AI Engineer", { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: "Résumé" })).toHaveAttribute(
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Hi, I’m Nikita Reshetnik.Shipping Agents at scale.");
+    await expect(page.getByText("Open to work", { exact: false })).toBeVisible();
+    await expect(page.locator('[data-slot="hero-descriptor"]')).toHaveText("AI Engineer");
+    await expect(page.getByRole("link", { name: "Download Résumé" })).toHaveAttribute(
       "href",
-      "/nikita-reshetnik-cv.pdf",
+      "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf",
     );
-    for (const heading of ["Experience", "Selected work", "Writing"]) {
-      await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+    await expect(page.getByRole("contentinfo")).toContainText(
+      `© ${new Date().getFullYear()} Nikita Reshetnik. All rights reserved. · Local Time:`,
+    );
+    await expect(page.getByRole("navigation", {
+      name: "Compact navigation",
+      includeHidden: true,
+    })).toHaveCount(1);
+    expect(await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
+      links.map((link) => link.getAttribute("href")),
+    )).toEqual(["#top"]);
+    await expect(page.locator("#about")).toHaveCount(1);
+    await expect(page.locator("#experience")).toHaveCount(1);
+    for (const id of ["education", "skills", "projects", "code", "writing", "contact"]) {
+      await expect(page.locator(`#${id}`)).toHaveCount(0);
     }
-    const code = page.locator("#code");
-    await expect(code.getByText("Open-source work includes")).toBeVisible();
-    await expect(code.getByRole("link", { name: "github.com/grafanaKibana" })).toBeVisible();
-    await expect(code.locator("figure")).toHaveCount(0);
 
     await page.goto("/articles");
     await page

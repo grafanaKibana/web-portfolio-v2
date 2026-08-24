@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 /**
  * Shows a fail-open readiness indicator without blocking page content.
  *
+ * @param name - YAML-authored portfolio owner name.
  * @returns The readiness indicator while visible, otherwise `null`.
  */
-export function OpeningSplash() {
+export function OpeningSplash({ name }: { name: string }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export function OpeningSplash() {
       aria-hidden="true"
       className="pointer-events-none fixed bottom-6 right-6 z-30 rounded-md border bg-background/95 px-5 py-4 text-right shadow-sm"
     >
-      <p className="text-sm font-medium tracking-tight">Nikita Reshetnik</p>
+      <p className="text-sm font-medium tracking-tight">{name}</p>
       <div className="mt-3 h-px w-28 overflow-hidden bg-border">
         <span className="block h-full w-full animate-pulse bg-primary motion-reduce:animate-none motion-reduce:opacity-50" />
       </div>

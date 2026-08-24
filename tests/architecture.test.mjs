@@ -14,7 +14,7 @@ const ignored = new Set([
   "test-results",
   "tests",
 ])
-const extensions = new Set([".css", ".js", ".jsx", ".mdx", ".ts", ".tsx"])
+const extensions = new Set([".css", ".js", ".jsx", ".mdx", ".scss", ".ts", ".tsx"])
 const files = []
 
 /**
@@ -43,12 +43,22 @@ const importPattern = /(?:import\s+(?:[^"']+?\s+from\s+)?|export\s+[^"']+?\s+fro
 const sourceExtensions = ["", ".ts", ".tsx", ".js", ".jsx", ".mdx"]
 const longFormRoutes = ["articles", "projects"]
 const allowedClientEntries = new Set([
-  "app/_components/contact-form.tsx",
   "app/_components/descriptor-rotation.tsx",
+  "app/_components/contact-form.tsx",
   "app/theme.tsx",
+  "components/local-time.tsx",
   "components/mobile-navigation.tsx",
   "components/opening-splash.tsx",
 ])
+const skipTargetRoutes = [
+  "app/page.tsx",
+  "app/projects/page.tsx",
+  "app/projects/not-found.tsx",
+  "app/projects/[slug]/page.tsx",
+  "app/articles/page.tsx",
+  "app/articles/not-found.tsx",
+  "app/articles/[slug]/page.tsx",
+]
 
 /**
  * Converts an absolute source path to a portable repository-relative path.
@@ -97,9 +107,21 @@ function resolveLocalImport(file, specifier) {
 for (const [file, source] of sources) {
   const path = display(file)
   const dependencies = imports(source)
+  const classNames = [...source.matchAll(/\bclassName\s*=\s*(?:"([^"]*)"|'([^']*)'|{`([\s\S]*?)`})/g)]
+    .map((match) => (match[1] ?? match[2] ?? match[3] ?? "").replace(/\$\{[^}]*}/g, ""))
   const usesNodeContentApis = dependencies.some((specifier) =>
     /^(?:node:)?(?:fs|fs\/promises|path)$/.test(specifier),
   )
+
+  if (classNames.some((className) => className.includes("["))) {
+    failures.push(`${path}: arbitrary Tailwind syntax belongs in scoped SCSS or a named reusable utility`)
+  }
+
+  for (const match of source.matchAll(/box-shadow\s*:\s*([^;]+)/gi)) {
+    if (/(?:var\(--(?:background|foreground)\)|\bwhite\b|#fff(?:fff)?\b|oklch\(\s*1(?:\s|\/|\)))/i.test(match[1])) {
+      failures.push(`${path}: shadows must use neutral-black alpha instead of theme-dependent or light colors`)
+    }
+  }
 
   if (usesNodeContentApis && !dependencies.includes("server-only")) {
     failures.push(`${path}: Node content boundaries must import 'server-only'`)
@@ -150,6 +172,14 @@ for (const family of longFormRoutes) {
     .find((path) => new RegExp(`^app/${family}/\\[\\[?\\.\\.\\.[^\\]]+\\]\\]?/`).test(path))
   if (catchAll) {
     failures.push(`${catchAll}: catch-all routes are not allowed for static content families`)
+  }
+}
+
+for (const route of skipTargetRoutes) {
+  const source = sources.get(join(root, route)) ?? ""
+  const main = source.match(/<main\b[^>]*>/)?.[0] ?? ""
+  if (!/\bid=["']main["']/.test(main) || !/\btabIndex=\{-1\}/.test(main)) {
+    failures.push(`${route}: route main must be the global skip target`)
   }
 }
 
