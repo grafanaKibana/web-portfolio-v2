@@ -62,12 +62,12 @@
 
 ## Components
 
-- Reuse existing shell, theme toggle, mobile navigation, opening splash, descriptor rotation, contact form, native disclosure, route lists, and MDX typography before adding markup.
+- Reuse the application shell under `app/_shell`, Home sections and interactions under `app/(home)/_components`, native disclosure, route lists, and MDX typography before adding markup.
 - Preserve native `details`/`summary` for experience disclosure and native form controls/validation for contact.
 - Reuse semantic tokens from `app/globals.css`; raw `design/_ds/` primitives do not mandate shadcn components or a new design-system layer.
 - Keep `app/globals.css` limited to Tailwind imports, application-wide tokens, base element rules, and named utilities with at least two real consumers. Component-specific selectors, keyframes, states, and responsive rules must live in a scoped SCSS module beside their owning component.
 - Do not use Tailwind arbitrary-value or arbitrary-variant syntax in component markup. Use the closest standard utility when it stays within 5% of the approved design, a colocated SCSS module for a one-off customization, or a named reusable utility when the same customization has multiple consumers.
-- Keep route-specific section, index, article, and case-study rendering within its route slice. Promote a shared component only after two real consumers or for an intrinsically application-wide concern.
+- Keep route-specific section, index, article, and case-study rendering within its route slice. Home uses the URL-neutral `(home)` route group; its private components live in named folders with colocated SCSS. Promote a shared component only after two real consumers or for an intrinsically application-wide concern.
 - Required states belong to the owning component: default, hover, focus-visible, active/open, invalid, disabled, loading/readiness, success, and unavailable where relevant.
 
 ## Accessibility
@@ -109,7 +109,8 @@
 ## Implementation constraints
 
 - Preserve the route-oriented vertical-slice modular monolith: routes own routing, metadata, Server Components composition, static parameters, not-found decisions, route rendering, and route tests.
-- Server Components remain the default. Client leaves stay narrow: theme state/toggle, mobile navigation, opening splash, descriptor rotation, and contact form.
+- Server Components remain the default. The exact client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, and `app/(home)/_components/contact-form/contact-form.tsx`.
+- `app/layout.tsx` is the sole application layout. `app/(home)/page.tsx` owns `/`, and the `(home)` group has no layout or URL segment.
 - Keep structured portfolio data as typed TypeScript records and local repository-authored MDX as trusted executable content. Validate imported metadata, normalized slugs, and case-insensitive duplicates.
 - Project and article detail routes use static parameters with dynamic params disabled; optional activity cannot delay or remove curated content.
 - Prefer native HTML and CSS to JavaScript. Server-rendered content remains meaningful before hydration; client decoration must fail open.

@@ -16,6 +16,8 @@ Use a **route-oriented vertical-slice modular monolith**. Keep the implementatio
 
 - Route entries own routing, metadata, Server Component composition, static parameters, and not-found decisions.
 - Keep route-specific rendering, content mapping, interactions, styles, and tests with their route slice.
+- Keep application-shell implementation in named component folders under `app/_shell`; keep Home implementation under `app/(home)/_components`.
+- `app/(home)` is the only route group and has no layout; `app/layout.tsx` remains the sole application layout.
 - Route slices may import shared modules. Shared modules must not import route internals, and sibling slices must not import one another's private modules.
 - Promote code to shared only after two real consumers exist or when the concern is intrinsically application-wide.
 - Prefer small duplication to speculative abstractions.
@@ -25,7 +27,7 @@ Use a **route-oriented vertical-slice modular monolith**. Keep the implementatio
 
 - Pages, layouts, static UI, structured content, metadata, and MDX remain Server Components by default.
 - Add `"use client"` only for state, effects, event handlers, custom hooks, or browser APIs.
-- Approved client leaves are theme state/toggle, mobile navigation, opening splash, descriptor rotation, and contact form.
+- Approved client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, and `app/(home)/_components/contact-form/contact-form.tsx`.
 - Client modules may receive serializable props and browser-safe shared UI. They must not import `server-only`, Node filesystem/path APIs, MDX discovery, secrets, or server content loaders.
 - Prefer native HTML and CSS before JavaScript: `details/summary` for disclosures, native form validation, and CSS reduced-motion handling.
 - Keep server-rendered content meaningful without hydration. Client decoration must fail open and must never block, hide, or inert core content.
