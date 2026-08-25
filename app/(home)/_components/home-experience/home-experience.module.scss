@@ -16,13 +16,6 @@
   letter-spacing: inherit;
 }
 
-.timeline {
-  position: relative;
-  margin: 0;
-  padding: 0 0 0 1.375rem;
-  list-style: none;
-}
-
 .timeline::before {
   position: absolute;
   inset: 8.5px auto 0.5rem 0.25rem;
@@ -31,31 +24,9 @@
   content: "";
 }
 
-.experienceItem {
-  position: relative;
-  padding-bottom: 2.5rem;
-}
-
-.experienceItem:last-child {
-  padding-bottom: 0;
-}
-
 .experiencePeriod {
-  position: relative;
-  display: flex;
-  align-items: center;
-  column-gap: 0.5rem;
-  margin: 0 0 0.625rem;
   font-size: 0.6875rem;
   line-height: 1.5;
-}
-
-.periodPart {
-  white-space: nowrap;
-}
-
-.experienceBody {
-  position: relative;
 }
 
 .timelineDot {
@@ -75,37 +46,23 @@
 }
 
 .roleTitle {
-  margin: 0;
   font-size: 1rem;
-  font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.01em;
 }
 
 .organization {
-  margin: 0.1875rem 0 0;
   font-size: 0.75rem;
 }
 
 .roleSummary {
-  margin: 0.75rem 0 0;
   font-size: 0.875rem;
   line-height: 1.7;
 }
 
-.roleDetails {
-  margin-top: 0.625rem;
-}
-
 .roleDetails summary {
-  display: inline-flex;
-  min-height: 2.75rem;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
   font-size: 0.6875rem;
   letter-spacing: 0.12em;
-  list-style: none;
 }
 
 .roleDetails summary::-webkit-details-marker {
@@ -154,19 +111,9 @@
   transition-delay: 0s;
 }
 
-.highlights {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0.75rem 0 0;
-  list-style: none;
-}
-
 .highlights li {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.75rem;
   font-size: 0.875rem;
   line-height: 1.65;
 }
@@ -193,39 +140,17 @@
 }
 
 @media (min-width: 48rem) {
-  .timeline {
-    padding-left: 0;
-  }
-
   .timeline::before {
     inset: 1.5rem auto 0.625rem 8.75rem;
     background: linear-gradient(to bottom, var(--border) 82%, transparent);
   }
 
   .experienceItem {
-    display: grid;
     grid-template-columns: 8.75rem minmax(0, 1fr);
-    padding-bottom: 3.5rem;
   }
 
   .experiencePeriod {
-    flex-direction: column;
-    align-items: flex-end;
-    min-height: 3rem;
-    justify-content: center;
-    gap: 0;
-    margin: 0;
-    padding-right: 2rem;
     font-size: 0.8125rem;
-    text-align: right;
-  }
-
-  .periodSeparator {
-    display: none;
-  }
-
-  .experienceBody {
-    padding-left: 2rem;
   }
 
   .timelineDot {
@@ -238,22 +163,13 @@
   }
 
   .organization {
-    margin-top: 0.25rem;
     font-size: 0.8125rem;
   }
 
   .roleSummary {
-    margin-top: 1rem;
     font-size: 0.9375rem;
   }
 
-  .roleDetails {
-    margin-top: 0.75rem;
-  }
-
-  .highlights {
-    padding-top: 1rem;
-  }
 }
 
 @media (min-width: 64rem) {

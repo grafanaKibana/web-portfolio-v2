@@ -83,6 +83,9 @@ export interface HomeContent {
     degreeLabel: string;
     certificationsLabel: string;
   };
+  skills: {
+    label: string;
+  };
   footer: {
     rights: string;
     localTimeLabel: string;
@@ -263,6 +266,7 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
   const hero = record(sourceHome.hero, "home.hero");
   const experience = record(sourceHome.experience, "home.experience");
   const education = record(sourceHome.education, "home.education");
+  const skills = record(sourceHome.skills, "home.skills");
   const availability = record(hero.availability, "home.hero.availability");
   const footer = record(sourceHome.footer, "home.footer");
   const navigation = array(sourceHome.navigation, "home.navigation", link);
@@ -317,6 +321,9 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
         label: string(education.label, "home.education.label"),
         degreeLabel: string(education.degreeLabel, "home.education.degreeLabel"),
         certificationsLabel: string(education.certificationsLabel, "home.education.certificationsLabel"),
+      },
+      skills: {
+        label: string(skills.label, "home.skills.label"),
       },
       footer: {
         rights: string(footer.rights, "home.footer.rights"),

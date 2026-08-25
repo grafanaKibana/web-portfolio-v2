@@ -104,10 +104,10 @@ export function OpeningSplash({ name }: { name: string }) {
       data-slot="opening-splash"
       data-state={phase}
     >
-      <div className={styles.content}>
-        <p className={styles.name}>{name}</p>
-        <div className={styles.track}>
-          <span className={styles.progress} />
+      <div className="text-center">
+        <p className={clsx(styles.name, "text-xl font-medium max-md:text-lg")}>{name}</p>
+        <div className={clsx(styles.track, "relative mt-5 overflow-hidden")}>
+          <span className={clsx(styles.progress, "absolute inset-0")} />
         </div>
       </div>
     </div>

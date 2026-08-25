@@ -16,11 +16,11 @@ export function HomeAbout() {
       >
         About
       </h2>
-      <div className={styles.aboutContent}>
-        <div className={styles.summary}>
+      <div className="flex flex-col gap-12 lg:grid lg:grid-cols-2 lg:gap-0">
+        <div className={clsx(styles.summary, "flex flex-col")}>
           {profile.summary.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </div>
-        <div className={styles.careerChapters}>
+        <div className={clsx(styles.careerChapters, "flex flex-col")}>
           {profile.careerChapters.map((chapter) => (
             <div className={styles.careerChapter} key={chapter.title}>
               <p className={clsx(styles.chapterMeta, "font-mono text-muted-foreground")}>

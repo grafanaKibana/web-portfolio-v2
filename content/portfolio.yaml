@@ -87,9 +87,12 @@ profile:
     - { title: "IT Essentials: PC Hardware and Software", provider: Cisco Networking Academy }
     - { title: "CPA: Programming Essentials in C++", provider: Cisco Networking Academy }
   skills:
-    - { title: AI engineering, skills: [LLMs, Embeddings, Prompt evaluation, Semantic search, Retrieval evaluation] }
-    - { title: Software engineering, skills: [.NET, REST, Elasticsearch, Kafka, Microsoft SQL Server, CI/CD] }
-    - { title: Engineering enablement, skills: [Grafana, GitHub Copilot, Cursor, Technical documentation, Team leadership] }
+    - { title: AI / Machine Learning, skills: [Microsoft Agent Framework, Semantic Kernel, Microsoft.Extensions.AI, LLM Evaluation, RAG Systems, Azure AI Foundry, Langfuse] }
+    - { title: Programming Languages, skills: ["C#", Python, TypeScript, SQL] }
+    - { title: Backend & Data, skills: [.NET, ASP.NET Web API, Entity Framework, REST API, Postman, Microsoft SQL Server, PostgreSQL, MongoDB, Elasticsearch, Kafka] }
+    - { title: Cloud & DevOps, skills: [Microsoft Azure, Amazon Web Services, Vercel, Docker, Kubernetes, Argo CD, Jenkins] }
+    - { title: Observability & CI/CD, skills: [Grafana, Prometheus, Kibana, Azure DevOps, GitHub Actions, GitLab CI/CD] }
+    - { title: AI Development Tools, skills: [Claude Code, Claude Design, Codex, Pi, OpenCode, Cursor, CodeRabbit, GitHub Copilot] }
   links:
     - { label: LinkedIn, href: "https://www.linkedin.com/in/nikitareshetnik/" }
     - { label: Telegram, href: "https://t.me/grafanaKibana" }
@@ -112,6 +115,7 @@ home:
     - { label: About, href: "#about" }
     - { label: Experience, href: "#experience" }
     - { label: Education, href: "#education" }
+    - { label: Skills, href: "#skills" }
   mobileNavigation:
     closeLabel: Close navigation
     triggerLabel: Jump to section
@@ -138,6 +142,8 @@ home:
     label: Education
     degreeLabel: University degree
     certificationsLabel: Industry certifications
+  skills:
+    label: Skills
   footer:
     rights: All rights reserved.
     localTimeLabel: Local Time

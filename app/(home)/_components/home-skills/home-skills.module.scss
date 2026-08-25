@@ -1,0 +1,204 @@
+.skills {
+  min-height: 100svh;
+  scroll-margin-top: 0.25rem;
+  padding-block: 3.5rem;
+}
+
+.sectionLabel {
+  margin: 0 0 1.5rem;
+  padding-top: 0.75rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+}
+
+.skillGroup {
+  padding-bottom: 1.625rem;
+}
+
+.skillGroup + .skillGroup {
+  padding-top: 1.375rem;
+  border-top: 1px solid var(--border);
+}
+
+.groupLabel {
+  margin: 0;
+  text-align: center;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+}
+
+.brandIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.monoBrandIcon {
+  color: color-mix(in oklab, var(--icon-color) var(--icon-weight), var(--foreground));
+}
+
+.semanticGradientIcon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.semanticGradientIcon svg {
+  color: color-mix(in oklab, var(--icon-color) 72%, var(--foreground));
+  grid-area: 1 / 1;
+}
+
+.semanticGradientIcon svg:last-child {
+  color: color-mix(in oklab, var(--icon-accent) 72%, var(--foreground));
+  mask-image: linear-gradient(135deg, transparent 36%, #000 76%);
+}
+
+.monoBrandIcon {
+  --icon-weight: 78%;
+}
+
+.colorBrandIcon {
+  filter: saturate(0.86) brightness(0.93);
+}
+
+.codexIcon {
+  fill: url("#codex-icon-gradient");
+}
+
+.orchestration {
+  --icon-color: #7c3aed;
+  --icon-accent: #8b5cf6;
+}
+
+.evaluation {
+  --icon-color: #d97706;
+  --icon-accent: #f59e0b;
+}
+
+.retrieval {
+  --icon-color: #0f766e;
+  --icon-accent: #14b8a6;
+}
+
+.dotnetBadge {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.125rem;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, #512bd4 92%, var(--foreground)),
+    color-mix(in oklab, #6f42c1 92%, var(--foreground))
+  );
+  color: #fff;
+  font-size: 0.4375rem;
+  font-weight: 700;
+  line-height: 1;
+  place-items: center;
+}
+
+.azureIcon {
+  color: color-mix(in oklab, #0078d4 82%, var(--foreground));
+  fill: currentcolor;
+}
+
+.elasticsearch,
+.kibana {
+  --icon-color: #005571;
+}
+
+.kafka {
+  --icon-color: #231f20;
+  --icon-weight: 46%;
+}
+
+.aws {
+  --icon-color: #f90;
+}
+
+.docker {
+  --icon-color: #2496ed;
+}
+
+.kubernetes {
+  --icon-color: #326ce5;
+}
+
+.argoCd {
+  --icon-color: #ef7b4d;
+}
+
+.jenkins {
+  --icon-color: #d24939;
+}
+
+.grafana {
+  --icon-color: #f46800;
+}
+
+.prometheus {
+  --icon-color: #e6522c;
+}
+
+.githubActions {
+  --icon-color: #2088ff;
+}
+
+.gitlab {
+  --icon-color: #fc6d26;
+}
+
+.opencode {
+  --icon-color: var(--foreground);
+}
+
+.pi,
+.vercel {
+  --icon-color: var(--foreground);
+  --icon-weight: 100%;
+}
+
+.cursor,
+.githubCopilot {
+  --icon-color: #6b6b6b;
+}
+
+.codeRabbit {
+  --icon-color: #ff570a;
+}
+
+:global(.dark) .colorBrandIcon {
+  filter: saturate(0.78) brightness(1.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not(.light, .dark)) .colorBrandIcon {
+    filter: saturate(0.78) brightness(1.12);
+  }
+}
+
+@media (min-width: 64rem) {
+  .skills {
+    scroll-margin-top: -2.75rem;
+    padding-block: 6.5rem;
+  }
+
+  .sectionLabel {
+    margin-bottom: 3rem;
+    padding-top: 0.875rem;
+  }
+
+  .skillGroup {
+    padding-bottom: 2.375rem;
+  }
+
+  .skillGroup + .skillGroup {
+    padding-top: 1.875rem;
+  }
+
+}
+
+@media (min-width: 80rem) {
+  .skills {
+    scroll-margin-top: -1.75rem;
+  }
+}

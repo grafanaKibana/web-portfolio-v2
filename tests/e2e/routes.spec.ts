@@ -33,7 +33,7 @@ test("Home sections keep their semantic order", async ({ page }) => {
 
   expect(await page.locator("main#main > section").evaluateAll((sections) =>
     sections.map((section) => section.getAttribute("aria-labelledby") ?? section.id),
-  )).toEqual(["intro-heading", "about-heading", "experience-heading", "education-heading"]);
+  )).toEqual(["intro-heading", "about-heading", "experience-heading", "education-heading", "skills-heading"]);
 });
 
 test.describe("without JavaScript", () => {
@@ -63,6 +63,7 @@ test.describe("without JavaScript", () => {
     await expect(page.locator("#about")).toHaveCount(1);
     await expect(page.locator("#experience")).toHaveCount(1);
     await expect(page.locator("#education")).toHaveCount(1);
+    await expect(page.locator("#skills")).toHaveCount(1);
     const education = page.locator("#education");
     await expect(education.getByRole("heading", { level: 3 })).toHaveText([
       "University degree",
@@ -77,7 +78,18 @@ test.describe("without JavaScript", () => {
       "href",
       "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url",
     );
-    for (const id of ["skills", "projects", "code", "writing", "contact"]) {
+    const skills = page.locator("#skills");
+    await expect(skills.getByRole("heading", { level: 3 })).toHaveText([
+      "AI / Machine Learning",
+      "Programming Languages",
+      "Backend & Data",
+      "Cloud & DevOps",
+      "Observability & CI/CD",
+      "AI Development Tools",
+    ]);
+    await expect(skills.locator('[data-slot="skill"]')).toHaveCount(42);
+    await expect(skills.locator('[data-slot="skill-icon"]')).toHaveCount(42);
+    for (const id of ["projects", "code", "writing", "contact"]) {
       await expect(page.locator(`#${id}`)).toHaveCount(0);
     }
 

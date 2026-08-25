@@ -20,11 +20,6 @@
   letter-spacing: -0.03em;
 }
 
-.heading span {
-  display: block;
-  white-space: nowrap;
-}
-
 .descriptorSlot {
   margin-top: 1.5rem;
 }
@@ -55,7 +50,6 @@
 
 @media (min-width: 64rem) {
   .hero {
-    min-height: 100vh;
     padding-block: 6.25rem 12.25rem;
   }
 
@@ -93,5 +87,11 @@
 
   .socialLinks {
     margin-top: 3.375rem;
+  }
+}
+
+@media (min-width: 80rem) {
+  .hero {
+    min-height: calc(100vh - 4.75rem);
   }
 }

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const futureSectionIds = ["skills", "projects", "code", "writing", "contact"];
+const futureSectionIds = ["projects", "code", "writing", "contact"];
 
 test("desktop navigation and header match the corrected design contract", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 768 });
@@ -14,7 +14,7 @@ test("desktop navigation and header match the corrected design contract", async 
   await expect(page.locator("#about")).toHaveCSS("padding-left", "200px");
   expect(await navigation.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
-  )).toEqual(["#top", "#about", "#experience", "#education"]);
+  )).toEqual(["#top", "#about", "#experience", "#education", "#skills"]);
   await expect(page.getByRole("button", { name: "Jump to section" })).toHaveCount(0);
 
   const homeBox = await page.getByRole("link", { name: "Back to top" }).boundingBox();
@@ -48,6 +48,20 @@ test("the shell stays compact with tablet gutters through 1279px", async ({ page
       window.scrollTo(0, 320);
     });
     await expect(page.getByRole("button", { name: "Jump to section" })).toBeVisible();
+  }
+});
+
+test("Hero reserves the in-flow header height at compact and desktop widths", async ({ page }) => {
+  for (const viewport of [
+    { width: 1279, height: 844, headerHeight: 60 },
+    { width: 1280, height: 844, headerHeight: 76 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    const minHeight = await page.locator("main > section").first().evaluate((hero) =>
+      Number.parseFloat(getComputedStyle(hero).minHeight));
+    expect(minHeight).toBeCloseTo(viewport.height - viewport.headerHeight, 3);
   }
 });
 
@@ -138,7 +152,7 @@ test("compact selector opens as a content-height blurred header extension", asyn
     expect(openBox.x).toBeCloseTo(0, 1);
     expect(openBox.y).toBeCloseTo(headerBox.height, 1);
     expect(openBox.width).toBeCloseTo(viewport.width, 1);
-    expect(openBox.height).toBeLessThan(200);
+    expect(openBox.height).toBeLessThan(viewport.height / 2);
     expect(closeBox).toEqual(themeBox);
     await expect(dialog).toHaveCSS("box-shadow", "none");
     const surfaceBackground = await dialog.evaluate((element) => getComputedStyle(element).backgroundColor);
@@ -674,6 +688,144 @@ test("Education adapts its reference rows without overflow", async ({ page }) =>
   }
 });
 
+test("Skills renders every validated item with one consistent icon slot", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/#skills");
+  const skills = page.locator("#skills");
+
+  await expect(skills.getByRole("heading", { level: 2, name: "Skills" })).toHaveText("Skills");
+  await expect(skills.getByRole("heading", { level: 3 })).toHaveText([
+    "AI / Machine Learning",
+    "Programming Languages",
+    "Backend & Data",
+    "Cloud & DevOps",
+    "Observability & CI/CD",
+    "AI Development Tools",
+  ]);
+  await expect(skills.locator('[data-slot="skill-label"]')).toHaveText([
+    "Microsoft Agent Framework",
+    "Semantic Kernel",
+    "Microsoft.Extensions.AI",
+    "LLM Evaluation",
+    "RAG Systems",
+    "Azure AI Foundry",
+    "Langfuse",
+    "C#",
+    "Python",
+    "TypeScript",
+    "SQL",
+    ".NET",
+    "ASP.NET Web API",
+    "Entity Framework",
+    "REST API",
+    "Postman",
+    "Microsoft SQL Server",
+    "PostgreSQL",
+    "MongoDB",
+    "Elasticsearch",
+    "Kafka",
+    "Microsoft Azure",
+    "Amazon Web Services",
+    "Vercel",
+    "Docker",
+    "Kubernetes",
+    "Argo CD",
+    "Jenkins",
+    "Grafana",
+    "Prometheus",
+    "Kibana",
+    "Azure DevOps",
+    "GitHub Actions",
+    "GitLab CI/CD",
+    "Claude Code",
+    "Claude Design",
+    "Codex",
+    "Pi",
+    "OpenCode",
+    "Cursor",
+    "CodeRabbit",
+    "GitHub Copilot",
+  ]);
+  await expect(skills.locator('[data-slot="skill-icon"]')).toHaveCount(42);
+  await expect(skills.locator('[data-icon-kind="semantic-gradient"]')).toHaveCount(4);
+  await expect(skills.locator('[data-icon-kind="dotnet"]')).toHaveCount(4);
+  await expect(skills.locator('[data-icon-kind="gcp-api"]')).toHaveCount(1);
+  await expect(skills.locator('[data-icon-kind="microsoft-agent-framework"]')).toHaveCount(1);
+  await expect(skills.locator('[data-icon-kind="claude-code"]')).toHaveCount(1);
+  await expect(skills.locator('[data-icon-kind="claude-design"]')).toHaveCount(1);
+  await expect(skills.locator('[data-icon-kind="codex"]')).toHaveCount(1);
+  await expect(skills.getByText("Semantic Kernel", { exact: true }).locator("..").locator(".lucide-sparkles")).toHaveCount(2);
+  expect(await skills.locator('[data-icon-kind="semantic-gradient"]').evaluateAll((icons) =>
+    icons.every((icon) => {
+      const layers = icon.querySelectorAll("svg");
+      return layers.length === 2 && getComputedStyle(layers.item(1)).maskImage !== "none";
+    }),
+  )).toBe(true);
+  expect(await skills.locator('[data-icon-kind="dotnet"]').evaluateAll((icons) =>
+    new Set(icons.map((icon) => getComputedStyle(icon).backgroundImage)).size,
+  )).toBe(1);
+  await expect(skills.getByText("Jenkins", { exact: true }).locator("..").locator("svg")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  expect(await skills.locator('[data-slot="skill-icon"]').evaluateAll((icons) =>
+    icons.every((icon) =>
+      icon.getBoundingClientRect().width === 20
+      && icon.getBoundingClientRect().height === 20
+      && icon.querySelector('svg, img, [data-icon-kind="dotnet"]') !== null),
+  )).toBe(true);
+});
+
+test("Skills icons adapt their semantic or brand treatment to the selected theme", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/#skills");
+
+  /**
+   * Reads the rendered color treatment for every Skills icon.
+   *
+   * @returns Computed color and filter pairs in content order.
+   */
+  const iconStyles = () => page.locator('#skills [data-slot="skill-icon"]').evaluateAll((icons) => icons.map((icon) => {
+    const mark = icon.querySelector('svg, img, [data-icon-kind="dotnet"]');
+    if (!mark) throw new Error("Every skill must render a visual mark");
+    const style = getComputedStyle(mark);
+    return `${style.color}|${style.filter}|${style.backgroundImage}`;
+  }));
+
+  await page.evaluate(() => {
+    localStorage.setItem("theme", "light");
+  });
+  await page.reload();
+  const lightStyles = await iconStyles();
+  await page.evaluate(() => {
+    localStorage.setItem("theme", "dark");
+  });
+  await page.reload();
+  const darkStyles = await iconStyles();
+
+  expect(darkStyles).toHaveLength(42);
+  expect(darkStyles.every((style, index) => style !== lightStyles[index])).toBe(true);
+});
+
+test("Skills clears the header and wraps without horizontal overflow", async ({ page }) => {
+  for (const width of [195, 390, 768, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#skills");
+    const skills = page.locator("#skills");
+
+    expect(await skills.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
+    await expect(skills.locator('[data-slot="skill-group"]')).toHaveCount(6);
+    await expect(skills.locator("ul").first()).toHaveCSS("flex-wrap", "wrap");
+
+    if ([390, 768, 1280].includes(width)) {
+      const heading = await skills.getByRole("heading", { level: 2, name: "Skills" }).boundingBox();
+      const header = await page.locator('[data-slot="site-header"]').boundingBox();
+      if (!heading || !header) throw new Error("Skills heading must be measurable");
+      expect(Math.abs(heading.y - header.y - header.height)).toBeLessThanOrEqual(1);
+    }
+  }
+});
+
 test("descriptor follows the reference timing and reduced-motion animation", async ({ page }) => {
   await page.goto("/");
   const descriptor = page.locator('[data-slot="hero-descriptor"]');
@@ -843,12 +995,13 @@ test.describe("without JavaScript", () => {
       })).toHaveCount(1);
       expect(await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
         links.map((link) => link.getAttribute("href")),
-      )).toEqual(width >= 1280 ? ["#top", "#about", "#experience", "#education"] : ["#top"]);
+      )).toEqual(width >= 1280 ? ["#top", "#about", "#experience", "#education", "#skills"] : ["#top"]);
       await expect(page.locator('[data-slot="opening-splash"]')).toHaveCSS("visibility", "hidden");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect(page.getByRole("contentinfo")).toBeVisible();
       await expect(page.locator("#experience")).toHaveCount(1);
       await expect(page.locator("#education")).toHaveCount(1);
+      await expect(page.locator("#skills")).toHaveCount(1);
     });
   }
 
@@ -889,7 +1042,7 @@ test.describe("without JavaScript", () => {
     });
     const disclosure = page.locator("details").filter({ has: compactNavigation });
     await disclosure.locator("summary").click();
-    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience", "Education"]);
+    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience", "Education", "Skills"]);
     await compactNavigation.getByRole("link", { name: "About" }).click();
     await expect(page).toHaveURL(/#about$/);
     const headingBox = await page.getByRole("heading", { level: 2, name: "About" }).boundingBox();

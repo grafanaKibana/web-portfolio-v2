@@ -128,13 +128,13 @@ export function MobileNavigation({
           >
             <X aria-hidden="true" className="size-ui-icon" />
           </Dialog.Close>
-          <nav aria-label={navigationLabel} className={styles.menu}>
+          <nav aria-label={navigationLabel} className={clsx(styles.menu, "overflow-y-auto p-3")}>
             {items.map((item) => {
               const current = item.label === activeLabel;
               return (
                 <a
                   aria-current={current ? "location" : undefined}
-                  className={clsx(styles.link, "text-ui-xs flex items-center justify-between rounded-sm px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
+                  className={clsx(styles.link, "text-ui-xs flex min-h-11 items-center justify-between rounded-sm px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
                   data-current={current}
                   href={item.href}
                   key={item.href}

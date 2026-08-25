@@ -30,28 +30,17 @@
   transform: translateY(-0.5rem);
 }
 
-.content {
-  text-align: center;
-}
-
 .name {
-  font-size: 1.25rem;
-  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
 .track {
-  position: relative;
   width: 11.25rem;
   height: 1px;
-  margin-top: 1.25rem;
-  overflow: hidden;
   background: var(--border);
 }
 
 .progress {
-  position: absolute;
-  inset: 0;
   background: var(--accent-em);
   transform-origin: left;
   animation: readiness-line 1.4s ease-in-out infinite;
@@ -65,12 +54,6 @@
 
   50% {
     transform: scaleX(1);
-  }
-}
-
-@media (max-width: 47.999rem) {
-  .name {
-    font-size: 1.125rem;
   }
 }
 

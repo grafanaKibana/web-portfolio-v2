@@ -227,6 +227,7 @@ test("one YAML document owns structured profile and approved home content", asyn
     { label: "About", href: "#about" },
     { label: "Experience", href: "#experience" },
     { label: "Education", href: "#education" },
+    { label: "Skills", href: "#skills" },
   ])
   assert.deepEqual(home.mobileNavigation, {
     closeLabel: "Close navigation",
@@ -280,6 +281,49 @@ test("one YAML document owns structured profile and approved home content", asyn
     degreeLabel: "University degree",
     certificationsLabel: "Industry certifications",
   })
+  assert.deepEqual(home.skills, { label: "Skills" })
+  assert.deepEqual(profile.skills, [
+    {
+      title: "AI / Machine Learning",
+      skills: [
+        "Microsoft Agent Framework",
+        "Semantic Kernel",
+        "Microsoft.Extensions.AI",
+        "LLM Evaluation",
+        "RAG Systems",
+        "Azure AI Foundry",
+        "Langfuse",
+      ],
+    },
+    { title: "Programming Languages", skills: ["C#", "Python", "TypeScript", "SQL"] },
+    {
+      title: "Backend & Data",
+      skills: [
+        ".NET",
+        "ASP.NET Web API",
+        "Entity Framework",
+        "REST API",
+        "Postman",
+        "Microsoft SQL Server",
+        "PostgreSQL",
+        "MongoDB",
+        "Elasticsearch",
+        "Kafka",
+      ],
+    },
+    {
+      title: "Cloud & DevOps",
+      skills: ["Microsoft Azure", "Amazon Web Services", "Vercel", "Docker", "Kubernetes", "Argo CD", "Jenkins"],
+    },
+    {
+      title: "Observability & CI/CD",
+      skills: ["Grafana", "Prometheus", "Kibana", "Azure DevOps", "GitHub Actions", "GitLab CI/CD"],
+    },
+    {
+      title: "AI Development Tools",
+      skills: ["Claude Code", "Claude Design", "Codex", "Pi", "OpenCode", "Cursor", "CodeRabbit", "GitHub Copilot"],
+    },
+  ])
   assert.deepEqual(home.accessibility, {
     skipToContent: "Skip to content",
     backToTop: "Back to top",

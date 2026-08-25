@@ -10,15 +10,7 @@
   letter-spacing: 0.14em;
 }
 
-.aboutContent {
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
-}
-
 .summary {
-  display: flex;
-  flex-direction: column;
   gap: 1.125rem;
 }
 
@@ -30,11 +22,6 @@
 
 .summary p:not(:first-child) {
   color: var(--muted-foreground);
-}
-
-.careerChapters {
-  display: flex;
-  flex-direction: column;
 }
 
 .careerChapter + .careerChapter {
@@ -90,12 +77,6 @@
   .sectionLabel {
     margin-bottom: 4rem;
     padding-top: 0.875rem;
-  }
-
-  .aboutContent {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0;
   }
 
   .summary {
