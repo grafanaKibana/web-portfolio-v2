@@ -65,11 +65,27 @@ profile:
       highlights: []
   education:
     institution: State University of Information and Communication Technologies
-    qualification: Bachelor, Software Engineering
+    qualification: Bachelor of Software Engineering
     period: September 2019 — June 2023
+    location: Kyiv, Ukraine
   certifications:
-    - { label: Azure AI Fundamentals — Microsoft, August 2025 }
-    - { label: GitHub Copilot — GitHub, June 2025 }
+    - title: Azure AI Fundamentals
+      date: August 2025
+      icon: /certifications/microsoft-azure.svg
+      href: https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134
+    - title: GitHub Copilot
+      date: June 2025
+      icon: /certifications/github-copilot.svg
+      href: https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url
+  learning:
+    - { title: Multi AI Agent Systems with crewAI, provider: DeepLearning.AI }
+    - { title: Machine Learning in Production, provider: DeepLearning.AI }
+    - { title: "Docker and Kubernetes: The Big Picture", provider: Pluralsight }
+    - { title: Getting Started with Docker, provider: Pluralsight }
+    - { title: "F# Track", provider: Exercism }
+    - { title: .NET Camp, provider: ELEKS University }
+    - { title: "IT Essentials: PC Hardware and Software", provider: Cisco Networking Academy }
+    - { title: "CPA: Programming Essentials in C++", provider: Cisco Networking Academy }
   skills:
     - { title: AI engineering, skills: [LLMs, Embeddings, Prompt evaluation, Semantic search, Retrieval evaluation] }
     - { title: Software engineering, skills: [.NET, REST, Elasticsearch, Kafka, Microsoft SQL Server, CI/CD] }
@@ -95,6 +111,7 @@ home:
   navigation:
     - { label: About, href: "#about" }
     - { label: Experience, href: "#experience" }
+    - { label: Education, href: "#education" }
   mobileNavigation:
     closeLabel: Close navigation
     triggerLabel: Jump to section
@@ -115,10 +132,12 @@ home:
       - { label: GitHub, href: "https://github.com/grafanaKibana", icon: github }
       - { label: LeetCode, href: "https://leetcode.com/u/grafanaKibana/", icon: leetcode }
   experience:
-    sectionNumber: "02"
     label: Experience
-    range: 7 roles · 2021—Present
     detailsLabel: Details
+  education:
+    label: Education
+    degreeLabel: University degree
+    certificationsLabel: Industry certifications
   footer:
     rights: All rights reserved.
     localTimeLabel: Local Time

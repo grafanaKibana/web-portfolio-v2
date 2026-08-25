@@ -4,25 +4,16 @@
 }
 
 .experienceHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
   margin-bottom: 2.75rem;
   padding-top: 0.75rem;
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
 }
 
-.experienceHeader h2,
-.experienceHeader p {
+.experienceHeader h2 {
   margin: 0;
   font: inherit;
   letter-spacing: inherit;
-}
-
-.experienceHeader p {
-  text-align: right;
 }
 
 .timeline {

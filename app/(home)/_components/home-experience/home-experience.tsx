@@ -13,11 +13,7 @@ export function HomeExperience() {
   return (
     <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "page-shell-gutter w-full")}>
       <div className={clsx(styles.experienceHeader, "border-t font-mono uppercase text-muted-foreground")}>
-        <h2 id="experience-heading">
-          <span aria-hidden="true">{home.experience.sectionNumber} — </span>
-          {home.experience.label}
-        </h2>
-        <p>{home.experience.range}</p>
+        <h2 id="experience-heading">{home.experience.label}</h2>
       </div>
       <ol className={styles.timeline}>
         {profile.experience.map((experience, index) => {

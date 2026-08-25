@@ -33,7 +33,7 @@ test("Home sections keep their semantic order", async ({ page }) => {
 
   expect(await page.locator("main#main > section").evaluateAll((sections) =>
     sections.map((section) => section.getAttribute("aria-labelledby") ?? section.id),
-  )).toEqual(["intro-heading", "about-heading", "experience-heading"]);
+  )).toEqual(["intro-heading", "about-heading", "experience-heading", "education-heading"]);
 });
 
 test.describe("without JavaScript", () => {
@@ -62,7 +62,22 @@ test.describe("without JavaScript", () => {
     )).toEqual(["#top"]);
     await expect(page.locator("#about")).toHaveCount(1);
     await expect(page.locator("#experience")).toHaveCount(1);
-    for (const id of ["education", "skills", "projects", "code", "writing", "contact"]) {
+    await expect(page.locator("#education")).toHaveCount(1);
+    const education = page.locator("#education");
+    await expect(education.getByRole("heading", { level: 3 })).toHaveText([
+      "University degree",
+      "Industry certifications",
+    ]);
+    await expect(education.getByRole("heading", { level: 3, name: "Learning & training" })).toHaveCount(0);
+    await expect(education.getByRole("link", { name: "Azure AI Fundamentals" })).toHaveAttribute(
+      "href",
+      "https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134",
+    );
+    await expect(education.getByRole("link", { name: "GitHub Copilot" })).toHaveAttribute(
+      "href",
+      "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url",
+    );
+    for (const id of ["skills", "projects", "code", "writing", "contact"]) {
       await expect(page.locator(`#${id}`)).toHaveCount(0);
     }
 

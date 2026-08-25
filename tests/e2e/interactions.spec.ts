@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const futureSectionIds = ["education", "skills", "projects", "code", "writing", "contact"];
+const futureSectionIds = ["skills", "projects", "code", "writing", "contact"];
 
 test("desktop navigation and header match the corrected design contract", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 768 });
@@ -14,7 +14,7 @@ test("desktop navigation and header match the corrected design contract", async 
   await expect(page.locator("#about")).toHaveCSS("padding-left", "200px");
   expect(await navigation.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
-  )).toEqual(["#top", "#about", "#experience"]);
+  )).toEqual(["#top", "#about", "#experience", "#education"]);
   await expect(page.getByRole("button", { name: "Jump to section" })).toHaveCount(0);
 
   const homeBox = await page.getByRole("link", { name: "Back to top" }).boundingBox();
@@ -177,7 +177,7 @@ for (const path of ["/", "/articles/building-an-llm-evaluation-harness"]) {
   });
 }
 
-test("the home page contains the approved hero, About, and Phase 3 Experience sections", async ({ page }) => {
+test("the home page contains the approved hero through Phase 4 Education", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
@@ -227,7 +227,7 @@ test("the home page contains the approved hero, About, and Phase 3 Experience se
   expect(footerPadding).toEqual(["28px", "28px"]);
   const about = page.locator("#about");
   await expect(about).toHaveCSS("scroll-margin-top", "4px");
-  await expect(about.getByRole("heading", { level: 2, name: "About" })).toHaveCount(1);
+  await expect(about.getByRole("heading", { level: 2, name: "About" })).toHaveText("About");
   await expect(about.getByRole("heading", { level: 3 })).toHaveText([
     "AI Engineering",
     "Software Engineering",
@@ -243,8 +243,8 @@ test("the home page contains the approved hero, About, and Phase 3 Experience se
     "Europe",
   ]);
   const experience = page.locator("#experience");
-  await expect(experience.getByRole("heading", { level: 2, name: "Experience" })).toHaveCount(1);
-  await expect(experience.getByText("7 roles · 2021—Present", { exact: true })).toBeVisible();
+  await expect(experience.getByRole("heading", { level: 2, name: "Experience" })).toHaveText("Experience");
+  await expect(experience.getByText("7 roles · 2021—Present", { exact: true })).toHaveCount(0);
   await expect(experience.getByRole("heading", { level: 3 })).toHaveText([
     "Senior AI Engineer",
     "AI Engineer",
@@ -256,6 +256,34 @@ test("the home page contains the approved hero, About, and Phase 3 Experience se
   ]);
   await expect(experience.locator("article")).toHaveCount(7);
   await expect(experience.locator('[data-slot="company-logo"] img')).toHaveCount(7);
+  const education = page.locator("#education");
+  await expect(education.getByRole("heading", { level: 2, name: "Education" })).toHaveText("Education");
+  await expect(education.getByRole("heading", { level: 3 })).toHaveText([
+    "University degree",
+    "Industry certifications",
+  ]);
+  await expect(education.getByText("September 2019 — June 2023", { exact: true })).toHaveCount(0);
+  await expect(education.getByText("Bachelor of Software Engineering", { exact: true })).toBeVisible();
+  await expect(education.getByText("State University of Information and Communication Technologies", { exact: true })).toBeVisible();
+  await expect(education.getByText("Kyiv, Ukraine", { exact: true })).toBeVisible();
+  await expect(education.locator('[data-slot="certification"]')).toHaveText([
+    "Azure AI FundamentalsAugust 2025",
+    "GitHub CopilotJune 2025",
+  ]);
+  await expect(education.locator('[data-slot="certification-icon"] img')).toHaveCount(2);
+  await expect(education.getByRole("heading", { level: 3, name: "Learning & training" })).toHaveCount(0);
+  const azureCredential = education.getByRole("link", { name: "Azure AI Fundamentals" });
+  await expect(azureCredential).toHaveAttribute(
+    "href",
+    "https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134",
+  );
+  await expect(azureCredential.locator('[data-slot="certification-icon"]')).toHaveCount(1);
+  await azureCredential.hover();
+  await expect(azureCredential.locator("img")).toHaveCSS("transform", /matrix\(1\.05,/);
+  await expect(education.getByRole("link", { name: "GitHub Copilot" })).toHaveAttribute(
+    "href",
+    "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url",
+  );
   for (const id of futureSectionIds) {
     await expect(page.locator(`#${id}`)).toHaveCount(0);
   }
@@ -614,6 +642,38 @@ test("About clears the sticky header through direct, desktop, and modal navigati
   await expect(mobileColumns.nth(1)).toHaveCSS("border-left-width", "0px");
 });
 
+test("Education clears the sticky header at each shell layout", async ({ page }) => {
+  for (const width of [390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/#education");
+    const heading = await page.getByRole("heading", { level: 2, name: "Education" }).boundingBox();
+    const header = await page.locator('[data-slot="site-header"]').boundingBox();
+    if (!heading || !header) throw new Error("Education heading must be measurable");
+    expect(Math.abs(heading.y - header.y - header.height)).toBeLessThanOrEqual(1);
+  }
+});
+
+test("Education adapts its reference rows without overflow", async ({ page }) => {
+  for (const width of [195, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#education");
+    const education = page.locator("#education");
+    expect(await education.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
+
+    if (width === 390 || width === 1440) {
+      const rows = education.locator('[data-slot="education-row"]');
+      await expect(rows).toHaveCount(2);
+      for (const row of await rows.all()) {
+        const label = await row.locator('[data-slot="education-row-label"]').boundingBox();
+        const content = await row.locator('[data-slot="education-row-content"]').boundingBox();
+        if (!label || !content) throw new Error("Education rows must be measurable");
+        if (width === 390) expect(content.y).toBeGreaterThan(label.y + label.height);
+        else expect(content.x).toBeGreaterThanOrEqual(label.x + label.width);
+      }
+    }
+  }
+});
+
 test("descriptor follows the reference timing and reduced-motion animation", async ({ page }) => {
   await page.goto("/");
   const descriptor = page.locator('[data-slot="hero-descriptor"]');
@@ -774,7 +834,7 @@ test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
   for (const width of [390, 768, 1024, 1279, 1280]) {
-    test(`the Phase 3 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
+    test(`the Phase 4 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/");
       await expect(page.getByRole("navigation", {
@@ -783,11 +843,12 @@ test.describe("without JavaScript", () => {
       })).toHaveCount(1);
       expect(await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
         links.map((link) => link.getAttribute("href")),
-      )).toEqual(width >= 1280 ? ["#top", "#about", "#experience"] : ["#top"]);
+      )).toEqual(width >= 1280 ? ["#top", "#about", "#experience", "#education"] : ["#top"]);
       await expect(page.locator('[data-slot="opening-splash"]')).toHaveCSS("visibility", "hidden");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect(page.getByRole("contentinfo")).toBeVisible();
       await expect(page.locator("#experience")).toHaveCount(1);
+      await expect(page.locator("#education")).toHaveCount(1);
     });
   }
 
@@ -828,7 +889,7 @@ test.describe("without JavaScript", () => {
     });
     const disclosure = page.locator("details").filter({ has: compactNavigation });
     await disclosure.locator("summary").click();
-    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience"]);
+    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience", "Education"]);
     await compactNavigation.getByRole("link", { name: "About" }).click();
     await expect(page).toHaveURL(/#about$/);
     const headingBox = await page.getByRole("heading", { level: 2, name: "About" }).boundingBox();

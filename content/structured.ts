@@ -22,6 +22,7 @@ export interface Education {
   institution: string;
   qualification: string;
   period: string;
+  location: string;
 }
 
 export interface SkillGroup {
@@ -37,7 +38,8 @@ export interface PortfolioProfile {
   facts: readonly { label: string; value: string }[];
   experience: readonly Experience[];
   education: Education;
-  certifications: readonly { label: string; href?: string }[];
+  certifications: readonly { title: string; date: string; icon: string; href: string }[];
+  learning: readonly { title: string; provider: string }[];
   skills: readonly SkillGroup[];
   links: readonly ExternalLink[];
 }
@@ -73,10 +75,13 @@ export interface HomeContent {
     socialLinks: readonly (ExternalLink & { icon: string })[];
   };
   experience: {
-    sectionNumber: string;
     label: string;
-    range: string;
     detailsLabel: string;
+  };
+  education: {
+    label: string;
+    degreeLabel: string;
+    certificationsLabel: string;
   };
   footer: {
     rights: string;
@@ -215,12 +220,22 @@ function parseProfile(sourceProfile: RecordValue): PortfolioProfile {
       institution: string(education.institution, "profile.education.institution"),
       qualification: string(education.qualification, "profile.education.qualification"),
       period: string(education.period, "profile.education.period"),
+      location: string(education.location, "profile.education.location"),
     },
     certifications: array(sourceProfile.certifications, "profile.certifications", (value, path) => {
       const item = record(value, path);
       return {
-        label: string(item.label, `${path}.label`),
-        ...(item.href === undefined ? {} : { href: string(item.href, `${path}.href`) }),
+        title: string(item.title, `${path}.title`),
+        date: string(item.date, `${path}.date`),
+        icon: string(item.icon, `${path}.icon`),
+        href: string(item.href, `${path}.href`),
+      };
+    }),
+    learning: array(sourceProfile.learning, "profile.learning", (value, path) => {
+      const item = record(value, path);
+      return {
+        title: string(item.title, `${path}.title`),
+        provider: string(item.provider, `${path}.provider`),
       };
     }),
     skills: array(sourceProfile.skills, "profile.skills", (value, path) => {
@@ -247,6 +262,7 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
   const mobileNavigation = record(sourceHome.mobileNavigation, "home.mobileNavigation");
   const hero = record(sourceHome.hero, "home.hero");
   const experience = record(sourceHome.experience, "home.experience");
+  const education = record(sourceHome.education, "home.education");
   const availability = record(hero.availability, "home.hero.availability");
   const footer = record(sourceHome.footer, "home.footer");
   const navigation = array(sourceHome.navigation, "home.navigation", link);
@@ -294,10 +310,13 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
         socialLinks,
       },
       experience: {
-        sectionNumber: string(experience.sectionNumber, "home.experience.sectionNumber"),
         label: string(experience.label, "home.experience.label"),
-        range: string(experience.range, "home.experience.range"),
         detailsLabel: string(experience.detailsLabel, "home.experience.detailsLabel"),
+      },
+      education: {
+        label: string(education.label, "home.education.label"),
+        degreeLabel: string(education.degreeLabel, "home.education.degreeLabel"),
+        certificationsLabel: string(education.certificationsLabel, "home.education.certificationsLabel"),
       },
       footer: {
         rights: string(footer.rights, "home.footer.rights"),

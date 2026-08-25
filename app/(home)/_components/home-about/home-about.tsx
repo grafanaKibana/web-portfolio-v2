@@ -14,7 +14,7 @@ export function HomeAbout() {
         id="about-heading"
         className={clsx(styles.sectionLabel, "border-t font-mono font-normal uppercase text-muted-foreground")}
       >
-        <span aria-hidden="true">01 — </span>About
+        About
       </h2>
       <div className={styles.aboutContent}>
         <div className={styles.summary}>

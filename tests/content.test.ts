@@ -226,6 +226,7 @@ test("one YAML document owns structured profile and approved home content", asyn
   assert.deepEqual(home.navigation, [
     { label: "About", href: "#about" },
     { label: "Experience", href: "#experience" },
+    { label: "Education", href: "#education" },
   ])
   assert.deepEqual(home.mobileNavigation, {
     closeLabel: "Close navigation",
@@ -241,10 +242,43 @@ test("one YAML document owns structured profile and approved home content", asyn
   ])
   assert.equal(home.hero.descriptorInterval, 3200)
   assert.deepEqual(home.experience, {
-    sectionNumber: "02",
     label: "Experience",
-    range: "7 roles · 2021—Present",
     detailsLabel: "Details",
+  })
+  assert.deepEqual(profile.education, {
+    institution: "State University of Information and Communication Technologies",
+    qualification: "Bachelor of Software Engineering",
+    period: "September 2019 — June 2023",
+    location: "Kyiv, Ukraine",
+  })
+  assert.deepEqual(profile.certifications, [
+    {
+      title: "Azure AI Fundamentals",
+      date: "August 2025",
+      icon: "/certifications/microsoft-azure.svg",
+      href: "https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134",
+    },
+    {
+      title: "GitHub Copilot",
+      date: "June 2025",
+      icon: "/certifications/github-copilot.svg",
+      href: "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url",
+    },
+  ])
+  assert.deepEqual(profile.learning, [
+    { title: "Multi AI Agent Systems with crewAI", provider: "DeepLearning.AI" },
+    { title: "Machine Learning in Production", provider: "DeepLearning.AI" },
+    { title: "Docker and Kubernetes: The Big Picture", provider: "Pluralsight" },
+    { title: "Getting Started with Docker", provider: "Pluralsight" },
+    { title: "F# Track", provider: "Exercism" },
+    { title: ".NET Camp", provider: "ELEKS University" },
+    { title: "IT Essentials: PC Hardware and Software", provider: "Cisco Networking Academy" },
+    { title: "CPA: Programming Essentials in C++", provider: "Cisco Networking Academy" },
+  ])
+  assert.deepEqual(home.education, {
+    label: "Education",
+    degreeLabel: "University degree",
+    certificationsLabel: "Industry certifications",
   })
   assert.deepEqual(home.accessibility, {
     skipToContent: "Skip to content",
