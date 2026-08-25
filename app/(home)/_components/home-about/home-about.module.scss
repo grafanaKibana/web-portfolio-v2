@@ -83,7 +83,7 @@
 
 @media (min-width: 64rem) {
   .about {
-    scroll-margin-top: -1.75rem;
+    scroll-margin-top: -2.75rem;
     padding-block: 6.5rem;
   }
 
@@ -115,7 +115,7 @@
 
   .facts {
     grid-template-columns: repeat(4, auto);
-    justify-content: space-around;
+    justify-content: space-between;
     margin-top: 5rem;
     padding-top: 1.75rem;
   }
@@ -123,5 +123,11 @@
   .factValue {
     margin-top: 0.5rem;
     font-size: 0.9375rem;
+  }
+}
+
+@media (min-width: 80rem) {
+  .about {
+    scroll-margin-top: -1.75rem;
   }
 }

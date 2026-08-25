@@ -1,67 +1,114 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { clsx } from "clsx";
+import styles from "./opening-splash.module.scss";
 
-const MINIMUM_VISIBLE_MS = 1_000;
+const MINIMUM_VISIBLE_MS = 300;
+const READINESS_DEADLINE_MS = 3_000;
+const EXIT_DURATION_MS = 320;
+const REQUIRED_SELECTORS = ["[data-theme-root]", "header", "#intro-heading"] as const;
+
+type SplashPhase = "inactive" | "visible" | "exiting" | "hidden";
 
 /**
- * Shows a non-blocking readiness indicator for at least one second; `?debugSplash` keeps it visible.
+ * Waits for required shell markers, including markers inserted after hydration.
+ *
+ * @param onObserver - Receives the observer so the splash lifecycle can disconnect it.
+ * @returns A promise that settles when every required marker exists.
+ */
+function waitForRequiredMarkers(onObserver: (observer: MutationObserver) => void) {
+  return new Promise<void>((resolve) => {
+    if (REQUIRED_SELECTORS.every((selector) => document.querySelector(selector))) {
+      resolve();
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      if (REQUIRED_SELECTORS.every((selector) => document.querySelector(selector))) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+    onObserver(observer);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  });
+}
+
+/**
+ * Shows the client-activated opening surface until required shell content is ready.
  *
  * @param name - YAML-authored portfolio owner name.
- * @returns The readiness indicator while visible, otherwise `null`.
+ * @returns The decorative splash markup until its exit completes.
  */
 export function OpeningSplash({ name }: { name: string }) {
-  const [visible, setVisible] = useState(true);
+  const [phase, setPhase] = useState<SplashPhase>("inactive");
 
   useEffect(() => {
     let active = true;
-    let timeoutId: number | undefined;
+    let observer: MutationObserver | undefined;
+    let minimumTimer: number | undefined;
+    let deadlineTimer: number | undefined;
+    let exitTimer: number | undefined;
+    const activationFrame = window.requestAnimationFrame(() => {
+      setPhase("visible");
 
-    if (new URLSearchParams(window.location.search).has("debugSplash")) {
-      return () => {
-        active = false;
-      };
-    }
+      // Temporary presence-based visual-review mode; normal URLs always fail open.
+      if (new URLSearchParams(window.location.search).has("debugSplash")) return;
 
-    const minimumVisibility = new Promise<void>((resolve) => {
-      timeoutId = window.setTimeout(resolve, MINIMUM_VISIBLE_MS);
-    });
+      const minimumVisibility = new Promise<void>((resolve) => {
+        minimumTimer = window.setTimeout(resolve, MINIMUM_VISIBLE_MS);
+      });
+      const readiness = Promise.all([
+        waitForRequiredMarkers((value) => {
+          observer = value;
+        }),
+        "fonts" in document
+          ? document.fonts.ready
+          : Promise.reject(new Error("Font readiness unavailable")),
+      ]);
+      const deadline = new Promise<void>((resolve) => {
+        deadlineTimer = window.setTimeout(resolve, READINESS_DEADLINE_MS);
+      });
 
-    void Promise.allSettled([
-      minimumVisibility,
-      Promise.resolve(document.querySelector("[data-theme-root]")).then((element) => {
-        if (!element) throw new Error("Theme root unavailable");
-      }).catch(() => undefined),
-      ("fonts" in document
-        ? document.fonts.ready
-        : Promise.reject(new Error("Font readiness unavailable"))).catch(() => undefined),
-      Promise.resolve(document.querySelector("header")).then((element) => {
-        if (!element) throw new Error("Header unavailable");
-      }).catch(() => undefined),
-      Promise.resolve(document.querySelector("#intro-heading")).then((element) => {
-        if (!element) throw new Error("Hero unavailable");
-      }).catch(() => undefined),
-    ]).then(() => {
-      if (active) setVisible(false);
+      void Promise.race([
+        Promise.all([minimumVisibility, readiness]).catch(() => minimumVisibility),
+        deadline,
+      ]).then(() => {
+        if (!active) return;
+
+        observer?.disconnect();
+        setPhase("exiting");
+        exitTimer = window.setTimeout(() => {
+          setPhase("hidden");
+        }, EXIT_DURATION_MS);
+      });
     });
 
     return () => {
       active = false;
-      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      observer?.disconnect();
+      window.cancelAnimationFrame(activationFrame);
+      if (minimumTimer !== undefined) window.clearTimeout(minimumTimer);
+      if (deadlineTimer !== undefined) window.clearTimeout(deadlineTimer);
+      if (exitTimer !== undefined) window.clearTimeout(exitTimer);
     };
   }, []);
 
-  if (!visible) return null;
+  if (phase === "hidden") return null;
 
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed bottom-6 right-6 z-30 rounded-md border bg-background/95 px-5 py-4 text-right shadow-sm"
+      className={clsx(styles.splash, styles[phase])}
       data-slot="opening-splash"
+      data-state={phase}
     >
-      <p className="text-sm font-medium tracking-tight">{name}</p>
-      <div className="mt-3 h-px w-28 overflow-hidden bg-border">
-        <span className="block h-full w-full animate-pulse bg-primary motion-reduce:animate-none motion-reduce:opacity-50" />
+      <div className={styles.content}>
+        <p className={styles.name}>{name}</p>
+        <div className={styles.track}>
+          <span className={styles.progress} />
+        </div>
       </div>
     </div>
   );

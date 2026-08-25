@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const futureSectionIds = ["education", "skills", "projects", "code", "writing", "contact"];
 
 test("desktop navigation and header match the corrected design contract", async ({ page }) => {
-  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.setViewportSize({ width: 1280, height: 768 });
   await page.goto("/");
   const header = page.getByRole("banner");
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
@@ -11,6 +11,7 @@ test("desktop navigation and header match the corrected design contract", async 
   await expect(header).toHaveCSS("height", "76px");
   await expect(header).toHaveCSS("border-bottom-width", "0px");
   await expect(header).toHaveCSS("background-image", /linear-gradient/);
+  await expect(page.locator("#about")).toHaveCSS("padding-left", "200px");
   expect(await navigation.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
   )).toEqual(["#top", "#about", "#experience"]);
@@ -20,7 +21,34 @@ test("desktop navigation and header match the corrected design contract", async 
   const themeBox = await page.locator('[data-slot="theme-toggle"]').boundingBox();
   if (!homeBox || !themeBox) throw new Error("Header controls must be measurable");
   expect(homeBox).toMatchObject({ x: 200, width: 32, height: 32 });
-  expect(themeBox).toMatchObject({ x: 792, width: 32, height: 32 });
+  expect(themeBox).toMatchObject({ x: 1048, width: 32, height: 32 });
+});
+
+test("the shell stays compact with tablet gutters through 1279px", async ({ page }) => {
+  for (const width of [768, 1024, 1279]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/");
+
+    const header = page.getByRole("banner");
+    const navigation = page.getByRole("navigation", { name: "Primary navigation" });
+    const homeBox = await page.getByRole("link", { name: "Back to top" }).boundingBox();
+    const themeBox = await page.locator('[data-slot="theme-toggle"]').boundingBox();
+    if (!homeBox || !themeBox) throw new Error("Tablet header controls must be measurable");
+
+    await expect(header).toHaveCSS("height", "60px");
+    await expect(navigation).toHaveCSS("padding-left", "96px");
+    await expect(page.locator("#about")).toHaveCSS("padding-left", "96px");
+    expect(homeBox).toMatchObject({ x: 96, width: 44, height: 44 });
+    expect(themeBox).toMatchObject({ x: width - 140, width: 44, height: 44 });
+    expect(await navigation.getByRole("link").evaluateAll((links) =>
+      links.map((link) => link.getAttribute("href")),
+    )).toEqual(["#top"]);
+
+    await page.evaluate(() => {
+      window.scrollTo(0, 320);
+    });
+    await expect(page.getByRole("button", { name: "Jump to section" })).toBeVisible();
+  }
 });
 
 test("compact header and intro remain aligned without wrapping on narrow phones", async ({ page }) => {
@@ -40,6 +68,24 @@ test("compact header and intro remain aligned without wrapping on narrow phones"
     expect(await page.locator("#intro-heading > span").evaluateAll((spans) =>
       spans.every((span) => span.scrollWidth <= span.clientWidth && getComputedStyle(span).whiteSpace === "nowrap"),
     )).toBe(true);
+  }
+});
+
+test("Home reflows at 200 percent zoom equivalents", async ({ page }) => {
+  for (const width of [195, 384, 512, 720]) {
+    await page.setViewportSize({ width, height: 450 });
+    await page.goto("/");
+    await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0, { timeout: 5_000 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    if (width === 195) {
+      expect(await page.locator('[data-slot="experience-period"]').evaluateAll((periods) => periods.every((period) => {
+        const parts = Array.from(period.querySelectorAll<HTMLElement>('[data-slot="period-part"]'));
+        const separator = period.querySelector<HTMLElement>('[data-slot="period-separator"]');
+        return new Set(parts.map((part) => Math.round(part.getBoundingClientRect().top))).size === 2
+          && separator !== null
+          && getComputedStyle(separator).display === "none";
+      }))).toBe(true);
+    }
   }
 });
 
@@ -233,7 +279,11 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
     if (!compactPeriod || !compactDot || !compactRole || !compactLogo || !compactRoleHeading || !compactEleksImage) {
       throw new Error("Compact experience content must be measurable");
     }
-    expect(compactPeriod.y).toBeLessThan(compactRole.y);
+    if (width < 768) {
+      expect(compactPeriod.y).toBeLessThan(compactRole.y);
+    } else {
+      expect(Math.abs(compactRoleHeading.y + compactRoleHeading.height / 2 - compactDot.y - compactDot.height / 2)).toBeLessThanOrEqual(1);
+    }
     expect(Math.abs(compactPeriod.y + compactPeriod.height / 2 - compactDot.y - compactDot.height / 2)).toBeLessThanOrEqual(1);
     const compactRailCenter = await experience.locator("ol").evaluate((timeline) => {
       const rail = getComputedStyle(timeline, "::before");
@@ -260,7 +310,57 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
       }),
     );
     expect(compactPeriodLayouts.every(({ rowCount, separatorDisplay }) =>
-      rowCount === 1 && separatorDisplay !== "none"
+      width < 768
+        ? rowCount === 1 && separatorDisplay !== "none"
+        : rowCount === 2 && separatorDisplay === "none"
+    )).toBe(true);
+  }
+
+  for (const width of [1024, 1279, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#experience");
+    expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
+    const geometry = await experience.locator("ol").evaluate((timeline) => {
+      const timelineBox = timeline.getBoundingClientRect();
+      const rail = getComputedStyle(timeline, "::before");
+      const railCenter = timelineBox.x + Number.parseFloat(rail.left) + Number.parseFloat(rail.width) / 2;
+      const entries = Array.from(timeline.children).map((item) => {
+        const dot = item.querySelector<HTMLElement>('[data-slot="timeline-dot"]')?.getBoundingClientRect();
+        const period = item.querySelector<HTMLElement>('[data-slot="experience-period"]')?.getBoundingClientRect();
+        const heading = item.querySelector<HTMLElement>('[data-slot="role-heading"]')?.getBoundingClientRect();
+        const separator = item.querySelector<HTMLElement>('[data-slot="period-separator"]');
+        const periodRows = new Set(
+          Array.from(item.querySelectorAll<HTMLElement>('[data-slot="period-part"]')).map((part) =>
+            Math.round(part.getBoundingClientRect().top),
+          ),
+        ).size;
+        if (!dot || !period || !heading || !separator) throw new Error("Experience rail entries must be measurable");
+        return {
+          dotCenterX: dot.x + dot.width / 2,
+          dotCenterY: dot.y + dot.height / 2,
+          headingCenterY: heading.y + heading.height / 2,
+          periodCenterY: period.y + period.height / 2,
+          periodRows,
+          separatorDisplay: getComputedStyle(separator).display,
+        };
+      });
+      return {
+        entries,
+        railCenter,
+        railLeft: Number.parseFloat(rail.left),
+        railStart: timelineBox.y + Number.parseFloat(rail.top),
+      };
+    });
+    expect(geometry.railLeft).toBe(width < 1280 ? 140 : 200);
+    const firstEntry = geometry.entries[0];
+    if (!firstEntry) throw new Error("Experience timeline must contain at least one entry");
+    expect(Math.abs(geometry.railStart - firstEntry.dotCenterY)).toBeLessThanOrEqual(0.01);
+    expect(geometry.entries.every((entry) =>
+      Math.abs(entry.dotCenterX - geometry.railCenter) <= 0.01
+      && Math.abs(entry.periodCenterY - entry.dotCenterY) <= 0.5
+      && Math.abs(entry.headingCenterY - entry.dotCenterY) <= 0.5
+      && entry.periodRows === 2
+      && entry.separatorDisplay === "none"
     )).toBe(true);
   }
 
@@ -341,8 +441,67 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
   expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
 });
 
+test("Experience disclosure uses native keyboard behavior and in-flow motion", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.goto("/#experience");
+  const details = page.locator("#experience details");
+  const summary = details.locator("summary");
+  const content = details.locator('[data-slot="details-content"]');
+  const icon = summary.locator("svg");
+
+  expect(await details.evaluate((element) => getComputedStyle(element, "::details-content").transitionDuration))
+    .toContain("0.2s");
+  const closedNextTop = await details.evaluate((element) =>
+    element.closest("li")?.nextElementSibling?.getBoundingClientRect().top,
+  );
+  await summary.focus();
+  await page.keyboard.press("Space");
+  await expect(details).toHaveAttribute("open", "");
+  await page.waitForTimeout(100);
+  const openingNextTop = await details.evaluate((element) =>
+    element.closest("li")?.nextElementSibling?.getBoundingClientRect().top,
+  );
+  await page.waitForTimeout(140);
+  const openNextTop = await details.evaluate((element) =>
+    element.closest("li")?.nextElementSibling?.getBoundingClientRect().top,
+  );
+  if (closedNextTop === undefined || openingNextTop === undefined || openNextTop === undefined) {
+    throw new Error("Following Experience entry must be measurable");
+  }
+  expect(openingNextTop).toBeGreaterThan(closedNextTop);
+  expect(openingNextTop).toBeLessThan(openNextTop);
+  await expect(content).toHaveCSS("visibility", "visible");
+  await expect(icon).not.toHaveCSS("transform", "none");
+
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(40);
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(40);
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(40);
+  await page.keyboard.press("Space");
+  await expect(details).toHaveAttribute("open", "");
+  await page.waitForTimeout(240);
+  await expect(content).toHaveCSS("visibility", "visible");
+  await expect(icon).not.toHaveCSS("transform", "none");
+  expect(await details.evaluate((element) =>
+    element.closest("li")?.nextElementSibling?.getBoundingClientRect().top,
+  )).toBeCloseTo(openNextTop, 0);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload();
+  await expect(details).not.toHaveAttribute("open", "");
+  expect(await details.evaluate((element) => getComputedStyle(element, "::details-content").transitionDuration))
+    .toBe("0s");
+  await summary.focus();
+  await page.keyboard.press("Space");
+  await expect(details).toHaveAttribute("open", "");
+  await expect(content).toHaveCSS("visibility", "visible");
+  await expect(icon).toHaveCSS("transition-duration", "0s");
+});
+
 test("Experience is reachable through desktop and compact navigation", async ({ page }) => {
-  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.setViewportSize({ width: 1280, height: 768 });
   await page.goto("/");
   await page.getByRole("navigation", { name: "Primary navigation" })
     .getByRole("link", { name: "Experience" })
@@ -352,6 +511,22 @@ test("Experience is reachable through desktop and compact navigation", async ({ 
   const desktopHeading = await page.locator("#experience > div").first().boundingBox();
   if (!desktopHeader || !desktopHeading) throw new Error("Desktop Experience heading must be measurable");
   expect(Math.abs(desktopHeading.y - desktopHeader.y - desktopHeader.height)).toBeLessThanOrEqual(1);
+
+  for (const width of [1024, 1279]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/");
+    await page.evaluate(() => {
+      window.scrollTo(0, 320);
+    });
+    await page.getByRole("button", { name: "Jump to section" }).click();
+    await page.getByRole("navigation", { name: "Mobile navigation" })
+      .getByRole("link", { name: "Experience" })
+      .click();
+    const tabletHeader = await page.locator('[data-slot="site-header"]').boundingBox();
+    const tabletHeading = await page.locator("#experience > div").first().boundingBox();
+    if (!tabletHeader || !tabletHeading) throw new Error("Tablet Experience heading must be measurable");
+    expect(Math.abs(tabletHeading.y - tabletHeader.y - tabletHeader.height)).toBeLessThanOrEqual(1);
+  }
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -373,7 +548,7 @@ test("About clears the sticky header through direct, desktop, and modal navigati
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("/#about");
   const desktopHeading = page.getByRole("heading", { level: 2, name: "About" });
-  await expect(page.locator("#about")).toHaveCSS("scroll-margin-top", "-28px");
+  await expect(page.locator("#about")).toHaveCSS("scroll-margin-top", "-44px");
   const directBox = await desktopHeading.boundingBox();
   const directHeader = await page.locator('[data-slot="site-header"]').boundingBox();
   if (!directBox || !directHeader) throw new Error("About heading must be measurable");
@@ -398,9 +573,10 @@ test("About clears the sticky header through direct, desktop, and modal navigati
   );
   expect(new Set(factBoxes.map(({ top }) => top)).size).toBe(1);
   expect(factBoxes[3]?.width).toBeLessThan(factBoxes[1]?.width ?? 0);
-  await expect(facts).toHaveCSS("justify-content", "space-around");
+  await expect(facts).toHaveCSS("justify-content", "space-between");
   expect(await facts.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 
+  await page.setViewportSize({ width: 1280, height: 768 });
   await page.goto("/");
   await page.getByRole("navigation", { name: "Primary navigation" })
     .getByRole("link", { name: "About" })
@@ -480,22 +656,99 @@ test("splash fails open when a readiness dependency fails", async ({ page }) => 
   });
 
   await page.goto("/");
+  const splash = page.locator('[data-slot="opening-splash"]');
+  await expect(splash).toHaveAttribute("data-state", "visible");
+  const visibleAt = await page.evaluate(() => performance.now());
+  await expect(splash).toHaveCount(0, { timeout: 4_500 });
+  expect(await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt)).toBeLessThanOrEqual(4_500);
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hi, I’m Nikita Reshetnik.");
 });
 
 test("splash remains noticeable and supports an indefinite debug flag", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(document, "fonts", {
+      configurable: true,
+      value: { ready: Promise.resolve() },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/unbound-method -- The test intentionally patches this DOM prototype method.
+    const querySelector = Document.prototype.querySelector;
+    // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/no-unnecessary-type-parameters -- Preserve the DOM method's generic return contract while patching it.
+    Document.prototype.querySelector = function <ElementType extends Element = Element>(selector: string) {
+      if (["[data-theme-root]", "header", "#intro-heading"].includes(selector)) {
+        return document.documentElement as unknown as ElementType;
+      }
+      return querySelector.call(this, selector) as ElementType | null;
+    };
+  });
   await page.goto("/");
   const splash = page.locator('[data-slot="opening-splash"]');
-  await expect(splash).toBeVisible();
-  await page.waitForTimeout(500);
-  await expect(splash).toBeVisible();
-  await expect(splash).toBeHidden({ timeout: 2_000 });
+  await expect(splash).toHaveAttribute("data-state", "visible");
+  const visibleAt = await page.evaluate(() => performance.now());
+  await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 400 });
+  const exitElapsed = await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt);
+  expect(exitElapsed).toBeGreaterThanOrEqual(250);
+  expect(exitElapsed).toBeLessThanOrEqual(400);
+  await expect(splash).toHaveCount(0, { timeout: 400 });
+  expect(await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt)).toBeLessThanOrEqual(700);
 
   await page.goto("/?debugSplash");
   await expect(splash).toBeVisible();
-  await page.waitForTimeout(1_250);
+  await page.waitForTimeout(3_350);
   await expect(splash).toBeVisible();
+
+  await page.goto("/?debugSplash=0");
+  await page.waitForTimeout(3_350);
+  await expect(splash).toBeVisible();
+
+  await page.goto("/?foo=debugSplash");
+  await expect(splash).toHaveCount(0, { timeout: 1_000 });
+});
+
+test("splash waits for delayed readiness and fails open on stalled fonts", async ({ page }) => {
+  await page.addInitScript(() => {
+    let markerReady = false;
+    let markerTimerStarted = false;
+    // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/unbound-method -- The test intentionally patches this DOM prototype method.
+    const querySelector = Document.prototype.querySelector;
+    // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/no-unnecessary-type-parameters -- Preserve the DOM method's generic return contract while patching it.
+    Document.prototype.querySelector = function <ElementType extends Element = Element>(selector: string) {
+      if (selector === "#intro-heading" && !markerReady) {
+        if (!markerTimerStarted) {
+          markerTimerStarted = true;
+          window.setTimeout(() => {
+            markerReady = true;
+            document.documentElement.appendChild(document.createComment("readiness-marker"));
+          }, 700);
+        }
+        return null;
+      }
+      return querySelector.call(this, selector) as ElementType | null;
+    };
+  });
+  await page.goto("/");
+  const splash = page.locator('[data-slot="opening-splash"]');
+  await expect(splash).toHaveAttribute("data-state", "visible");
+  const delayedVisibleAt = await page.evaluate(() => performance.now());
+  await page.waitForTimeout(500);
+  await expect(splash).toHaveAttribute("data-state", "visible");
+  await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 400 });
+  const delayedExitElapsed = await page.evaluate((startedAt) => performance.now() - startedAt, delayedVisibleAt);
+  expect(delayedExitElapsed).toBeGreaterThanOrEqual(650);
+  expect(delayedExitElapsed).toBeLessThanOrEqual(850);
+  await expect(splash).toHaveCount(0, { timeout: 400 });
+
+  await page.addInitScript(() => {
+    Object.defineProperty(document, "fonts", {
+      configurable: true,
+      value: { ready: new Promise(() => {}) },
+    });
+  });
+  await page.goto("/");
+  await expect(splash).toHaveAttribute("data-state", "visible");
+  const stalledVisibleAt = await page.evaluate(() => performance.now());
+  await expect(splash).toHaveCount(0, { timeout: 4_500 });
+  expect(await page.evaluate((startedAt) => performance.now() - startedAt, stalledVisibleAt)).toBeLessThanOrEqual(4_500);
 });
 
 test("reduced motion disables the splash and availability translation", async ({ page }) => {
@@ -520,7 +773,7 @@ test("reduced motion disables the splash and availability translation", async ({
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  for (const width of [390, 768, 1024]) {
+  for (const width of [390, 768, 1024, 1279, 1280]) {
     test(`the Phase 3 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/");
@@ -530,10 +783,41 @@ test.describe("without JavaScript", () => {
       })).toHaveCount(1);
       expect(await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
         links.map((link) => link.getAttribute("href")),
-      )).toEqual(width >= 1024 ? ["#top", "#about", "#experience"] : ["#top"]);
+      )).toEqual(width >= 1280 ? ["#top", "#about", "#experience"] : ["#top"]);
+      await expect(page.locator('[data-slot="opening-splash"]')).toHaveCSS("visibility", "hidden");
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByRole("contentinfo")).toBeVisible();
       await expect(page.locator("#experience")).toHaveCount(1);
     });
   }
+
+  test("the server-rendered splash never paints at 1440px", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await expect(page.locator('[data-slot="opening-splash"]')).toHaveCSS("visibility", "hidden");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("contentinfo")).toBeVisible();
+  });
+
+  test.describe("with a dark system preference", () => {
+    test.use({ colorScheme: "dark" });
+
+    test("the no-JavaScript page uses dark tokens without painting the splash", async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto("/");
+      await expect(page.locator('[data-slot="opening-splash"]')).toHaveCSS("visibility", "hidden");
+      const systemBackground = await page.locator("html").evaluate((element) =>
+        getComputedStyle(element).getPropertyValue("--background").trim()
+      );
+      const explicitBackground = await page.locator("html").evaluate((element) => {
+        element.classList.add("dark");
+        return getComputedStyle(element).getPropertyValue("--background").trim();
+      });
+      expect(systemBackground).toBe(explicitBackground);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByRole("contentinfo")).toBeVisible();
+    });
+  });
 
   test("the compact disclosure navigates to About without JavaScript", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });

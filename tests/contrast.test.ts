@@ -66,8 +66,35 @@ function contrast(foreground: [number, number, number], background: [number, num
 
 test("text and primary button colors meet WCAG AA contrast", () => {
   assert.ok(contrast(token(":root", "muted-foreground"), token(":root", "background")) >= 4.5)
-  assert.ok(contrast(token(".dark", "primary-text"), token(".dark", "background")) >= 4.5)
+  assert.ok(contrast(token(".dark", "accent-em"), token(".dark", "background")) >= 4.5)
   assert.ok(contrast(token(".dark", "primary-foreground"), token(".dark", "primary")) >= 4.5)
+})
+
+test("semantic emerald and selection styles share the approved accent role", () => {
+  assert.deepEqual(token(":root", "accent-em"), [0.52, 0.1, 163])
+  assert.deepEqual(token(".dark", "accent-em"), [0.74, 0.11, 165])
+  assert.doesNotMatch(css, /primary-text/)
+  assert.match(css, /::selection\s*\{[\s\S]*background:\s*color-mix\([^;]*var\(--accent-em\)/)
+})
+
+test("no-JavaScript system dark tokens stay aligned with the explicit dark theme", () => {
+  const explicitDark = css.match(/\.dark \{([\s\S]*?)\n\}/)?.[1]
+  const systemDark = css.match(/:root:not\(\.light, \.dark\) \{([\s\S]*?)\n  \}/)?.[1]
+  assert.ok(explicitDark)
+  assert.ok(systemDark)
+  const explicitTokens: Record<string, string> = {}
+  const systemTokens: Record<string, string> = {}
+  for (const match of explicitDark.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
+    const [, name, value] = match
+    assert.ok(name && value)
+    explicitTokens[name] = value
+  }
+  for (const match of systemDark.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
+    const [, name, value] = match
+    assert.ok(name && value)
+    systemTokens[name] = value
+  }
+  assert.deepEqual(systemTokens, explicitTokens)
 })
 
 test("light and dark neutral tokens match the supplied design system", () => {

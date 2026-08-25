@@ -34,7 +34,7 @@
 
 .timeline::before {
   position: absolute;
-  inset: 0.5rem auto 0.5rem 0.25rem;
+  inset: 8.5px auto 0.5rem 0.25rem;
   width: 1px;
   background: var(--border);
   content: "";
@@ -79,8 +79,8 @@
 }
 
 .timelineDotCurrent {
-  border-color: var(--primary-text);
-  background: var(--primary-text);
+  border-color: var(--accent-em);
+  background: var(--accent-em);
 }
 
 .roleTitle {
@@ -132,6 +132,37 @@
   transform: rotate(90deg);
 }
 
+.roleDetails::details-content {
+  display: grid;
+  overflow: hidden;
+  content-visibility: visible;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-0.25rem);
+  transition:
+    grid-template-rows 200ms ease,
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+.roleDetails[open]::details-content {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.detailsContent {
+  visibility: hidden;
+  min-height: 0;
+  overflow: hidden;
+  transition: visibility 0s linear 200ms;
+}
+
+.roleDetails[open] .detailsContent {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
 .highlights {
   display: flex;
   flex-direction: column;
@@ -154,29 +185,35 @@
   content: "—";
 }
 
-@media (min-width: 64rem) {
-  .experience {
-    scroll-margin-top: -1.75rem;
-    padding-block: 6.5rem;
+@media (max-width: 20rem) {
+  .experiencePeriod {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
   }
 
-  .experienceHeader {
-    margin-bottom: 5rem;
-    padding-top: 0.875rem;
+  .periodSeparator {
+    display: none;
   }
 
+  .timelineDot {
+    top: calc(50% - 0.2813rem);
+  }
+}
+
+@media (min-width: 48rem) {
   .timeline {
     padding-left: 0;
   }
 
   .timeline::before {
-    inset: 1.5rem auto 0.625rem 12.5rem;
+    inset: 1.5rem auto 0.625rem 8.75rem;
     background: linear-gradient(to bottom, var(--border) 82%, transparent);
   }
 
   .experienceItem {
     display: grid;
-    grid-template-columns: 12.5rem minmax(0, 1fr);
+    grid-template-columns: 8.75rem minmax(0, 1fr);
     padding-bottom: 3.5rem;
   }
 
@@ -201,7 +238,7 @@
   }
 
   .timelineDot {
-    top: 1.25rem;
+    top: 19.5px;
     left: calc(100% - 0.25rem);
   }
 
@@ -228,8 +265,40 @@
   }
 }
 
+@media (min-width: 64rem) {
+  .experience {
+    scroll-margin-top: -2.75rem;
+    padding-block: 6.5rem;
+  }
+
+  .experienceHeader {
+    margin-bottom: 5rem;
+    padding-top: 0.875rem;
+  }
+}
+
+@media (min-width: 80rem) {
+  .experience {
+    scroll-margin-top: -1.75rem;
+  }
+
+  .timeline::before {
+    left: 12.5rem;
+  }
+
+  .experienceItem {
+    grid-template-columns: 12.5rem minmax(0, 1fr);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .detailsContent,
+  .roleDetails::details-content,
   .detailsIcon {
     transition: none;
+  }
+
+  .roleDetails::details-content {
+    transform: none;
   }
 }

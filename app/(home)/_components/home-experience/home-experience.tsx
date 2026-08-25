@@ -56,9 +56,11 @@ export function HomeExperience() {
                       <ChevronRight aria-hidden="true" className={styles.detailsIcon} />
                       {home.experience.detailsLabel}
                     </summary>
-                    <ul className={styles.highlights}>
-                      {experience.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}
-                    </ul>
+                    <div className={styles.detailsContent} data-slot="details-content">
+                      <ul className={styles.highlights}>
+                        {experience.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}
+                      </ul>
+                    </div>
                   </details>
                 )}
               </article>

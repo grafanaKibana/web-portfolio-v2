@@ -32,7 +32,7 @@ export function DescriptorRotation({ descriptors, interval }: {
     <span className="inline-grid">
       <span
         key={`${String(index)}-${phase}`}
-        className={clsx(styles.label, phaseClass, "col-start-1 row-start-1 inline-block font-mono text-xs font-medium uppercase text-primary-text")}
+        className={clsx(styles.label, phaseClass, "col-start-1 row-start-1 inline-block font-mono text-xs font-medium uppercase text-accent-em")}
         data-slot="hero-descriptor"
         data-state={phase}
         onAnimationEnd={() => {

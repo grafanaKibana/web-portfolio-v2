@@ -21,7 +21,7 @@ export function SiteHeader() {
       >
         <a
           aria-label={home.accessibility.backToTop}
-          className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:size-8"
+          className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:size-8"
           href="#top"
         >
           <House aria-hidden="true" className="size-ui-icon opacity-70" />
@@ -36,7 +36,7 @@ export function SiteHeader() {
               triggerLabel={home.mobileNavigation.triggerLabel}
               navigationLabel={home.accessibility.mobileNavigation}
             />
-            <div className="desktop-link-row-gap text-ui-xs absolute left-1/2 hidden -translate-x-1/2 items-center whitespace-nowrap text-muted-foreground lg:flex">
+            <div className="desktop-link-row-gap text-ui-xs absolute left-1/2 hidden -translate-x-1/2 items-center whitespace-nowrap text-muted-foreground xl:flex">
               {home.navigation.map((item) => (
                 <a
                   key={item.href}
@@ -53,7 +53,7 @@ export function SiteHeader() {
       </nav>
       {hasNavigation && (
         <noscript>
-          <details className="text-ui-xs absolute left-1/2 top-2 z-50 w-54 -translate-x-1/2 lg:hidden">
+          <details className="text-ui-xs absolute left-1/2 top-2 z-50 w-54 -translate-x-1/2 xl:hidden">
             <summary className={clsx(styles.summary, "flex min-h-11 cursor-pointer list-none items-center justify-center font-medium")}>
               {home.mobileNavigation.triggerLabel}
             </summary>

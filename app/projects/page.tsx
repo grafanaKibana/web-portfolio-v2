@@ -39,7 +39,7 @@ export default async function ProjectsPage() {
               ) : null}
               <h2 className="mt-3 text-2xl font-semibold tracking-tight">
                 <Link
-                  className="underline-offset-4 hover:text-primary-text hover:underline"
+                  className="underline-offset-4 hover:text-accent-em hover:underline"
                   href={`/projects/${slug}`}
                 >
                   {project.title}

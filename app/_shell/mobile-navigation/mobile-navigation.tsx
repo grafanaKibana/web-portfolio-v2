@@ -105,7 +105,7 @@ export function MobileNavigation({
     <Dialog.Root modal open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
         aria-label={triggerLabel}
-        className={clsx(styles.trigger, "text-ui-xs invisible absolute left-1/2 inline-flex h-11 -translate-x-1/2 items-center rounded-sm bg-transparent pl-1.5 pr-1 font-medium opacity-0 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:hidden")}
+        className={clsx(styles.trigger, "text-ui-xs invisible absolute left-1/2 inline-flex h-11 -translate-x-1/2 items-center rounded-sm bg-transparent pl-1.5 pr-1 font-medium opacity-0 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:hidden")}
         data-visible={visible}
       >
         {activeLabel}
@@ -113,13 +113,13 @@ export function MobileNavigation({
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop
-          className={clsx(styles.backdrop, "fixed z-40 lg:hidden")}
+          className={clsx(styles.backdrop, "fixed z-40 xl:hidden")}
           data-slot="mobile-navigation-backdrop"
         />
         <Dialog.Popup
           data-slot="mobile-navigation-popup"
           finalFocus
-          className={clsx(styles.popup, "fixed z-50 flex flex-col lg:hidden")}
+          className={clsx(styles.popup, "fixed z-50 flex flex-col xl:hidden")}
         >
           <Dialog.Title className="sr-only">{triggerLabel}</Dialog.Title>
           <Dialog.Close
