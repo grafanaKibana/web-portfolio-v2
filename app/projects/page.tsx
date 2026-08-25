@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { loadProjects } from "@/content/projects/server";
+import { home } from "@/content/structured";
 
 export const metadata: Metadata = {
-  title: "Projects",
-  description: "Projects by Nikita Reshetnik across AI and software engineering.",
+  title: home.projects.indexTitle,
+  description: home.projects.indexDescription,
 };
 
 /**
@@ -17,38 +18,31 @@ export default async function ProjectsPage() {
   const projects = await loadProjects();
 
   return (
-    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 focus:outline-none">
-      <header className="max-w-2xl">
-        <p className="tracking-route-kicker font-mono text-xs uppercase text-muted-foreground">
-          Selected work
-        </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight">Projects</h1>
-        <p className="mt-5 text-lg leading-8 text-muted-foreground">
-          Software, learning systems, and applied AI work.
-        </p>
-      </header>
-
-      <ul className="mt-14 divide-y">
+    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
+      <h1 className="text-4xl font-semibold tracking-tight">{home.projects.indexTitle}</h1>
+      <ul className="mt-10 divide-y">
         {projects.map(({ slug, metadata: project }) => (
           <li key={slug}>
-            <article className="py-8">
-              {project.tags?.length ? (
-                <p className="font-mono text-xs text-muted-foreground">
-                  {project.tags.join(" · ")}
-                </p>
-              ) : null}
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-                <Link
-                  className="underline-offset-4 hover:text-accent-em hover:underline"
-                  href={`/projects/${slug}`}
-                >
+            <Link
+              aria-labelledby={`${slug}-project-title`}
+              className="group block rounded-sm py-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              data-slot="project-row"
+              href={`/projects/${slug}`}
+            >
+              <article>
+                <h2 id={`${slug}-project-title`} className="text-2xl font-semibold tracking-tight">
                   {project.title}
-                </Link>
-              </h2>
-              <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-                {project.description}
-              </p>
-            </article>
+                </h2>
+                <p className="mt-3 max-w-3xl leading-7 text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+                  {project.description}
+                </p>
+                {project.tags?.length ? (
+                  <p className="mt-3 font-mono text-xs text-muted-foreground" data-slot="project-technologies">
+                    {project.tags.join(" · ")}
+                  </p>
+                ) : null}
+              </article>
+            </Link>
           </li>
         ))}
       </ul>

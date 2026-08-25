@@ -1,6 +1,7 @@
 import type {
   ArticleMetadata,
   ContentMetadata,
+  ProjectLink,
   ProjectMetadata,
 } from "./types";
 
@@ -123,6 +124,41 @@ function tags(value: unknown, source: string): readonly string[] | undefined {
 }
 
 /**
+ * Validates optional project actions as unique labeled HTTPS links.
+ *
+ * @param value - Unknown project links value.
+ * @param source - Content source used in diagnostics.
+ * @returns The validated links, or `undefined` when omitted.
+ * @throws Error when links are malformed, unsupported, insecure, or duplicated.
+ */
+function projectLinks(value: unknown, source: string): readonly ProjectLink[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) fail(source, "links", "must be an array");
+
+  const normalized = value.map((value, index) => {
+    const path = `links[${String(index)}]`;
+    const link = record(value, `${source}: metadata.${path}`);
+    for (const field of Object.keys(link)) {
+      if (field !== "label" && field !== "href") fail(source, `${path}.${field}`, "is not supported");
+    }
+    const href = text(link.href, source, `${path}.href`);
+    let url: URL;
+    try {
+      url = new URL(href);
+    } catch {
+      fail(source, `${path}.href`, "must be a valid HTTPS URL");
+    }
+    if (url.protocol !== "https:") fail(source, `${path}.href`, "must use HTTPS");
+    return { label: text(link.label, source, `${path}.label`), href };
+  });
+
+  if (new Set(normalized.map((link) => link.href)).size !== normalized.length) {
+    fail(source, "links", "must not contain duplicate URLs");
+  }
+  return normalized;
+}
+
+/**
  * Validates shared and kind-specific metadata for local MDX content.
  *
  * @param value - Unknown metadata exported by an MDX module.
@@ -141,8 +177,9 @@ export function validateContentMetadata(
     fail(source, "kind", 'must be "article" or "project"');
   }
 
-  const allowedFields =
-    kind === "article" ? new Set([...commonFields, "published"]) : commonFields;
+  const allowedFields = kind === "article"
+    ? new Set([...commonFields, "published"])
+    : new Set([...commonFields, "links"]);
   for (const field of Object.keys(input)) {
     if (!allowedFields.has(field)) fail(source, field, "is not supported");
   }
@@ -164,5 +201,10 @@ export function validateContentMetadata(
     } satisfies ArticleMetadata;
   }
 
-  return { ...common, kind: "project" } satisfies ProjectMetadata;
+  const links = projectLinks(input.links, source);
+  return {
+    ...common,
+    kind: "project",
+    ...(links === undefined ? {} : { links }),
+  } satisfies ProjectMetadata;
 }

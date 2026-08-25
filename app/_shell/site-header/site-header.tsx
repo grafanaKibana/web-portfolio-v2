@@ -1,4 +1,5 @@
 import { House } from "lucide-react";
+import Link from "next/link";
 import { home } from "@/content/structured";
 import { clsx } from "clsx";
 import { MobileNavigation } from "../mobile-navigation/mobile-navigation";
@@ -19,13 +20,13 @@ export function SiteHeader() {
         aria-label={home.accessibility.primaryNavigation}
         className={clsx(styles.navigation, "relative mx-auto flex h-full w-full items-center justify-between")}
       >
-        <a
+        <Link
           aria-label={home.accessibility.backToTop}
           className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:size-8"
-          href="#top"
+          href="/#top"
         >
           <House aria-hidden="true" className="size-ui-icon opacity-70" />
-        </a>
+        </Link>
         {hasNavigation && (
           <>
             <MobileNavigation
@@ -36,44 +37,33 @@ export function SiteHeader() {
               triggerLabel={home.mobileNavigation.triggerLabel}
               navigationLabel={home.accessibility.mobileNavigation}
             />
-            <div className="desktop-link-row-gap text-ui-xs absolute left-1/2 hidden -translate-x-1/2 items-center whitespace-nowrap text-muted-foreground xl:flex">
-              {home.navigation.map((item) => (
-                <a
-                  key={item.href}
-                  className="rounded-sm py-3 transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                  href={item.href}
+            <noscript>
+              <details className="text-ui-xs absolute left-1/2 top-2 z-50 w-54 -translate-x-1/2 xl:hidden">
+                <summary
+                  className={clsx(styles.summary, "flex min-h-11 cursor-pointer list-none items-center justify-center font-medium")}
                 >
-                  {item.label}
-                </a>
-              ))}
-            </div>
+                  {home.mobileNavigation.triggerLabel}
+                </summary>
+                <nav
+                  aria-label={home.accessibility.compactNavigation}
+                  className="floating-menu-shadow rounded-md border bg-popover p-1.5"
+                >
+                  {home.navigation.map((item) => (
+                    <a
+                      key={item.href}
+                      className="flex min-h-11 items-center rounded-sm px-2.5 text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                      href={`/${item.href}`}
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </nav>
+              </details>
+            </noscript>
           </>
         )}
         <ThemeToggle labels={home.theme} />
       </nav>
-      {hasNavigation && (
-        <noscript>
-          <details className="text-ui-xs absolute left-1/2 top-2 z-50 w-54 -translate-x-1/2 xl:hidden">
-            <summary className={clsx(styles.summary, "flex min-h-11 cursor-pointer list-none items-center justify-center font-medium")}>
-              {home.mobileNavigation.triggerLabel}
-            </summary>
-            <nav
-              aria-label={home.accessibility.compactNavigation}
-              className="floating-menu-shadow rounded-md border bg-popover p-1.5"
-            >
-              {home.navigation.map((item) => (
-                <a
-                  key={item.href}
-                  className="flex min-h-11 items-center rounded-sm px-2.5 text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                  href={item.href}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-          </details>
-        </noscript>
-      )}
     </header>
   );
 }

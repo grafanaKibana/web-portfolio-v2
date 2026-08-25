@@ -9,16 +9,17 @@
   opacity: 0;
   pointer-events: none;
   transform: translateY(0.5rem);
-  transition:
-    opacity 320ms ease,
-    transform 320ms ease,
-    visibility 0s linear 320ms;
 }
 
 .visible,
 .exiting {
   visibility: visible;
-  transition-delay: 0s;
+}
+
+:global(html[data-splash-pending="true"]) .inactive {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
 }
 
 .visible {
@@ -28,48 +29,14 @@
 
 .exiting {
   transform: translateY(-0.5rem);
-}
-
-.name {
-  letter-spacing: -0.02em;
-}
-
-.track {
-  width: 11.25rem;
-  height: 1px;
-  background: var(--border);
-}
-
-.progress {
-  background: var(--accent-em);
-  transform-origin: left;
-  animation: readiness-line 1.4s ease-in-out infinite;
-}
-
-@keyframes readiness-line {
-  0%,
-  100% {
-    transform: scaleX(0);
-  }
-
-  50% {
-    transform: scaleX(1);
-  }
+  transition:
+    opacity 320ms ease,
+    transform 320ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .splash {
+  .exiting {
     transform: none;
     transition: opacity 320ms ease;
-  }
-
-  .track {
-    width: 7.5rem;
-    background: transparent;
-  }
-
-  .progress {
-    opacity: 0.5;
-    animation: none;
   }
 }

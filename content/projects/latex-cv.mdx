@@ -1,0 +1,29 @@
+export const metadata = {
+  kind: "project",
+  title: "LatexCV",
+  description:
+    "A customized Awesome CV fork that compiles a résumé, CV, and cover letter with XeLaTeX and publishes fresh PDFs through GitHub Actions.",
+  tags: ["LaTeX", "XeLaTeX", "Awesome CV", "GitHub Actions", "Docker"],
+  links: [
+    { label: "Latest PDFs", href: "https://github.com/grafanaKibana/LatexCV/releases/latest" },
+    { label: "Source", href: "https://github.com/grafanaKibana/LatexCV" },
+  ],
+}
+
+LatexCV keeps a résumé, full CV, and cover letter in one modular LaTeX repository based on the Awesome CV template.
+
+## Outcome
+
+Every content change can produce fresh PDF artifacts, while merges to the main branch publish the current documents through a GitHub Release.
+
+## Role
+
+Maintainer of the personal content, build workflow, document structure, and customizations layered over the upstream Awesome CV fork.
+
+## Document system
+
+Shared personal information and experience content feed separate résumé, CV, and cover-letter entry points. XeLaTeX provides the typography and PDF output, with a Makefile and Docker path for local builds.
+
+## Automation
+
+GitHub Actions compiles the documents for pushes and pull requests. Content changes merged to the main branch also publish versioned release assets, including the résumé consumed by this portfolio.

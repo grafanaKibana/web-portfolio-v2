@@ -1,0 +1,29 @@
+export const metadata = {
+  kind: "project",
+  title: "Colsdown",
+  description:
+    "An Obsidian plugin that turns fenced Markdown into responsive columns and stacks while preserving readable source and mobile reflow.",
+  tags: ["Obsidian API", "TypeScript", "Markdown", "CSS", "Vitest"],
+  links: [
+    { label: "Store page", href: "https://obsidian.md/plugins?id=colsdown" },
+    { label: "Source", href: "https://github.com/grafanaKibana/obsidian-colsdown" },
+  ],
+}
+
+Colsdown adds responsive multi-column and stacked layouts to Obsidian without replacing the underlying Markdown.
+
+## Outcome
+
+Fenced `colsdown` and `stack` blocks render as adaptive layouts in Reading View, then collapse below a configurable container width without horizontal overflow.
+
+## Role
+
+Creator and maintainer of the parser, renderer, editor commands, responsive behavior, release workflow, and documentation.
+
+## Content model
+
+Column separators support percentages, fractional tracks, automatic widths, and nested code fences. Notes remain readable in source form, and every insertion is an ordinary undoable editor change.
+
+## Runtime
+
+The plugin runs on desktop and mobile, uses Obsidian's renderer, and makes no network requests or telemetry calls.

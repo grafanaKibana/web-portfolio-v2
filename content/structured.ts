@@ -86,6 +86,17 @@ export interface HomeContent {
   skills: {
     label: string;
   };
+  projects: {
+    label: string;
+    featuredSlugs: readonly string[];
+    indexTitle: string;
+    indexDescription: string;
+    caseStudyLabel: string;
+    moreWorkLabel: string;
+    navigationLabel: string;
+    backLabel: string;
+    homeLabel: string;
+  };
   footer: {
     rights: string;
     localTimeLabel: string;
@@ -267,6 +278,7 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
   const experience = record(sourceHome.experience, "home.experience");
   const education = record(sourceHome.education, "home.education");
   const skills = record(sourceHome.skills, "home.skills");
+  const projects = record(sourceHome.projects, "home.projects");
   const availability = record(hero.availability, "home.hero.availability");
   const footer = record(sourceHome.footer, "home.footer");
   const navigation = array(sourceHome.navigation, "home.navigation", link);
@@ -277,7 +289,6 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
   if (!descriptors.length) throw new Error("content/portfolio.yaml: home.hero.descriptors must not be empty");
   if (actions.length !== 2) throw new Error("content/portfolio.yaml: home.hero.actions must contain two actions");
   if (descriptorInterval <= 0) throw new Error("content/portfolio.yaml: home.hero.descriptorInterval must be positive");
-
   return {
     profile: parseProfile(sourceProfile),
     home: {
@@ -322,8 +333,15 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
         degreeLabel: string(education.degreeLabel, "home.education.degreeLabel"),
         certificationsLabel: string(education.certificationsLabel, "home.education.certificationsLabel"),
       },
-      skills: {
-        label: string(skills.label, "home.skills.label"),
+      skills: { label: string(skills.label, "home.skills.label") },
+      projects: {
+        label: string(projects.label, "home.projects.label"),
+        featuredSlugs: array(projects.featuredSlugs, "home.projects.featuredSlugs", string),
+        indexTitle: string(projects.indexTitle, "home.projects.indexTitle"),
+        indexDescription: string(projects.indexDescription, "home.projects.indexDescription"),
+        caseStudyLabel: string(projects.caseStudyLabel, "home.projects.caseStudyLabel"),
+        moreWorkLabel: string(projects.moreWorkLabel, "home.projects.moreWorkLabel"),
+        navigationLabel: string(projects.navigationLabel, "home.projects.navigationLabel"), backLabel: string(projects.backLabel, "home.projects.backLabel"), homeLabel: string(projects.homeLabel, "home.projects.homeLabel"),
       },
       footer: {
         rights: string(footer.rights, "home.footer.rights"),

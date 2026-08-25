@@ -26,17 +26,19 @@ test("valid article and project metadata is accepted", () => {
   assert.equal(article.published, "2026-08-21")
   assert.deepEqual(article.tags, ["testing", "llm"])
 
-  assert.equal(
-    validateContentMetadata(
-      {
-        kind: "project",
-        title: "DevBook",
-        description: "A source-controlled technical knowledge base.",
-      },
-      "project fixture",
-    ).kind,
-    "project",
+  const project = validateContentMetadata(
+    {
+      kind: "project",
+      title: "DevBook",
+      description: "A source-controlled technical knowledge base.",
+      links: [{ label: "Source", href: "https://github.com/grafanaKibana/devbook.zip" }],
+    },
+    "project fixture",
   )
+  assert.equal(project.kind, "project")
+  assert.deepEqual(project.links, [
+    { label: "Source", href: "https://github.com/grafanaKibana/devbook.zip" },
+  ])
 })
 
 test("malformed required metadata fails with its source and field", () => {
@@ -67,6 +69,18 @@ test("malformed required metadata fails with its source and field", () => {
       "image-project.mdx",
     ),
     /image-project\.mdx.*image.*not supported/i,
+  )
+  assert.throws(
+    () => validateContentMetadata(
+      {
+        kind: "project",
+        title: "Insecure link",
+        description: "Unsupported protocol",
+        links: [{ label: "Source", href: "http://example.com/project" }],
+      },
+      "insecure-project.mdx",
+    ),
+    /insecure-project\.mdx.*links\[0\]\.href.*https/i,
   )
 })
 
@@ -127,7 +141,16 @@ test("representative repository content is discoverable", () => {
   )
   assert.deepEqual(
     discoverMdxSlugs(join(process.cwd(), "content/projects"), "projects"),
-    ["devbook"],
+    [
+      "devbook",
+      "latex-cv",
+      "lifeos",
+      "obsidian-colsdown",
+      "obsidian-tabsdown",
+      "quartz-tabsdown",
+      "web-portfolio-v1",
+      "web-portfolio-v2",
+    ],
   )
 })
 
@@ -228,6 +251,7 @@ test("one YAML document owns structured profile and approved home content", asyn
     { label: "Experience", href: "#experience" },
     { label: "Education", href: "#education" },
     { label: "Skills", href: "#skills" },
+    { label: "Projects", href: "#projects" },
   ])
   assert.deepEqual(home.mobileNavigation, {
     closeLabel: "Close navigation",
@@ -242,6 +266,17 @@ test("one YAML document owns structured profile and approved home content", asyn
     "Open Source Contributor",
   ])
   assert.equal(home.hero.descriptorInterval, 3200)
+  assert.deepEqual(home.projects, {
+    label: "Selected work",
+    featuredSlugs: ["devbook", "obsidian-tabsdown", "web-portfolio-v1"],
+    indexTitle: "Projects",
+    indexDescription: "Projects by Nikita Reshetnik across AI and software engineering.",
+    caseStudyLabel: "Read case study",
+    moreWorkLabel: "See other work",
+    navigationLabel: "Project navigation",
+    backLabel: "Back to all projects",
+    homeLabel: "Home",
+  })
   assert.deepEqual(home.experience, {
     label: "Experience",
     detailsLabel: "Details",

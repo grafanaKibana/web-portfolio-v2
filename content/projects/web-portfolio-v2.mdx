@@ -1,0 +1,28 @@
+export const metadata = {
+  kind: "project",
+  title: "web-portfolio-v2",
+  description:
+    "A Next.js editorial portfolio built from typed YAML and local MDX, statically generated long-form routes, narrow client islands, and browser-level verification.",
+  tags: ["Next.js", "TypeScript", "MDX", "Tailwind CSS", "Playwright"],
+  links: [
+    { label: "Source", href: "https://github.com/grafanaKibana/web-portfolio-v2" },
+  ],
+}
+
+web-portfolio-v2 is the current generation of this site, rebuilt as a restrained editorial portfolio rather than a dashboard or product shell.
+
+## Outcome
+
+The site keeps identity, experience, selected work, and long-form content readable as statically rendered HTML while preserving focused interactive behavior where it is necessary.
+
+## Role
+
+Designer, author, and maintainer of the content model, application architecture, responsive implementation, interaction contracts, and verification workflow.
+
+## Architecture
+
+Next.js Server Components own static composition. Typed YAML centralizes structured portfolio content, local MDX supplies trusted articles and project case studies, and narrow client islands own theme, navigation, splash, time, and descriptor behavior.
+
+## Verification
+
+Repository checks cover linting, types, content validation, contrast, documentation, SEO, static generation, and browser behavior in Chromium and WebKit.

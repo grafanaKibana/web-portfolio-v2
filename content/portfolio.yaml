@@ -116,6 +116,7 @@ home:
     - { label: Experience, href: "#experience" }
     - { label: Education, href: "#education" }
     - { label: Skills, href: "#skills" }
+    - { label: Projects, href: "#projects" }
   mobileNavigation:
     closeLabel: Close navigation
     triggerLabel: Jump to section
@@ -144,6 +145,16 @@ home:
     certificationsLabel: Industry certifications
   skills:
     label: Skills
+  projects:
+    label: Selected work
+    featuredSlugs: [devbook, obsidian-tabsdown, web-portfolio-v1]
+    indexTitle: Projects
+    indexDescription: Projects by Nikita Reshetnik across AI and software engineering.
+    caseStudyLabel: Read case study
+    moreWorkLabel: See other work
+    navigationLabel: Project navigation
+    backLabel: Back to all projects
+    homeLabel: Home
   footer:
     rights: All rights reserved.
     localTimeLabel: Local Time

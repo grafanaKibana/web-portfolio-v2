@@ -50,30 +50,53 @@
   min-width: 0;
 }
 
+.certificationIcon {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
 .certificationIcon img {
   width: 1.375rem;
   height: 1.375rem;
   opacity: 0.8;
-  transition: transform 150ms ease;
+  transition: opacity 150ms ease;
+}
+
+.certificationLink:is(:hover, :focus-visible) .certificationIcon {
+  border-color: var(--ring);
+  background: var(--accent);
 }
 
 .certificationLink:is(:hover, :focus-visible) .certificationIcon img {
-  transform: scale(1.05);
+  opacity: 1;
 }
 
 :global(.dark) .certificationIcon img {
   filter: invert(1);
 }
 
+:global(.dark) .certificationLink:is(:hover, :focus-visible) .certificationIcon {
+  border-color: var(--border);
+  background: color-mix(in oklab, var(--accent) 25%, var(--background));
+}
+
+:global(.dark) .certificationLink:is(:hover, :focus-visible) .certificationIcon img {
+  opacity: 0.88;
+}
+
 @media (prefers-color-scheme: dark) {
   :global(:root:not(.light, .dark)) .certificationIcon img {
     filter: invert(1);
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .certificationIcon img {
-    transition: none;
+  :global(:root:not(.light, .dark)) .certificationLink:is(:hover, :focus-visible) .certificationIcon {
+    border-color: var(--border);
+    background: color-mix(in oklab, var(--accent) 25%, var(--background));
+  }
+
+  :global(:root:not(.light, .dark)) .certificationLink:is(:hover, :focus-visible) .certificationIcon img {
+    opacity: 0.88;
   }
 }
 

@@ -1,0 +1,91 @@
+.projects {
+  scroll-margin-top: 0.25rem;
+  padding-block: 3.5rem;
+}
+
+.sectionLabel {
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+}
+
+.project {
+  padding-block: 1.625rem;
+}
+
+.projectTitle {
+  font-size: 1.375rem;
+}
+
+.projectDescription {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.projectTags {
+  margin-top: 0.875rem;
+  font-size: 0.6875rem;
+  line-height: 1.6;
+}
+
+.projectTags li:not(:last-child)::after {
+  margin-left: 0.5rem;
+  content: "·";
+}
+
+@media (min-width: 64rem) {
+  .projects {
+    scroll-margin-top: -2.75rem;
+    padding-block: 6.5rem;
+  }
+
+  .project {
+    padding-block: 2rem;
+  }
+
+  .project:first-child {
+    padding-top: 0;
+  }
+
+  .projectBody {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    column-gap: 4.5rem;
+  }
+
+  .projectTitle,
+  .projectDescription,
+  .projectActions {
+    grid-column: 1;
+  }
+
+  .project:first-child .projectTitle {
+    font-size: 1.625rem;
+  }
+
+  .projectDescription {
+    max-width: 40rem;
+    line-height: 1.65;
+  }
+
+  .projectActions {
+    margin-top: 1.125rem;
+  }
+
+  .projectTags {
+    grid-row: 1 / span 3;
+    grid-column: 2;
+    margin-top: 0;
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+
+  .projectTags li:not(:last-child)::after {
+    content: none;
+  }
+}
+
+@media (min-width: 80rem) {
+  .projects {
+    scroll-margin-top: -1.75rem;
+  }
+}

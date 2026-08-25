@@ -1,0 +1,28 @@
+export const metadata = {
+  kind: "project",
+  title: "Quartz Tabsdown",
+  description:
+    "A Quartz transformer that publishes the Tabsdown syntax as rendered tabs while preserving downstream Markdown processing.",
+  tags: ["Quartz", "TypeScript", "Unified", "Markdown", "Sass"],
+  links: [
+    { label: "Source", href: "https://github.com/grafanaKibana/quartz-tabsdown" },
+  ],
+}
+
+Quartz Tabsdown lets the same fenced tab syntax render in both an Obsidian vault and a Quartz-published website.
+
+## Outcome
+
+Published notes show interactive tabs instead of raw `tabsdown` fences, while links, embeds, callouts, math, and syntax highlighting inside tab bodies continue through Quartz's normal pipeline.
+
+## Role
+
+Creator and maintainer of the Quartz transformer, shared syntax behavior, style options, validation, upstream compatibility checks, tests, and package releases.
+
+## Pipeline decision
+
+The transformer runs before Obsidian Flavored Markdown. It parses tab bodies into the syntax tree first so later Quartz transformers can process their content normally.
+
+## Configuration
+
+Appearance options are optional and validated with source-specific paths. Invalid names, values, colors, ranges, and slider steps fail the build instead of silently producing inconsistent output.

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 import styles from "./opening-splash.module.scss";
 
-const MINIMUM_VISIBLE_MS = 300;
+const MINIMUM_VISIBLE_MS = 1_800;
 const READINESS_DEADLINE_MS = 3_000;
 const EXIT_DURATION_MS = 320;
 const REQUIRED_SELECTORS = ["[data-theme-root]", "header", "#intro-heading"] as const;
@@ -36,13 +36,15 @@ function waitForRequiredMarkers(onObserver: (observer: MutationObserver) => void
 }
 
 /**
- * Shows the client-activated opening surface until required shell content is ready.
+ * Completes the pre-paint opening surface after required shell content is ready.
  *
  * @param name - YAML-authored portfolio owner name.
+ * @param role - YAML-authored primary role.
  * @returns The decorative splash markup until its exit completes.
  */
-export function OpeningSplash({ name }: { name: string }) {
+export function OpeningSplash({ name, role }: { name: string; role: string }) {
   const [phase, setPhase] = useState<SplashPhase>("inactive");
+  const surname = name.trim().split(/\s+/).at(-1) ?? name;
 
   useEffect(() => {
     let active = true;
@@ -50,11 +52,18 @@ export function OpeningSplash({ name }: { name: string }) {
     let minimumTimer: number | undefined;
     let deadlineTimer: number | undefined;
     let exitTimer: number | undefined;
+    const debug = new URLSearchParams(window.location.search).has("debugSplash");
     const activationFrame = window.requestAnimationFrame(() => {
+      const preactivated = document.documentElement.dataset.splashPending === "true";
+      if (!debug && !preactivated) {
+        setPhase("hidden");
+        return;
+      }
+
       setPhase("visible");
 
       // Temporary presence-based visual-review mode; normal URLs always fail open.
-      if (new URLSearchParams(window.location.search).has("debugSplash")) return;
+      if (debug) return;
 
       const minimumVisibility = new Promise<void>((resolve) => {
         minimumTimer = window.setTimeout(resolve, MINIMUM_VISIBLE_MS);
@@ -65,7 +74,7 @@ export function OpeningSplash({ name }: { name: string }) {
         }),
         "fonts" in document
           ? document.fonts.ready
-          : Promise.reject(new Error("Font readiness unavailable")),
+          : Promise.resolve(),
       ]);
       const deadline = new Promise<void>((resolve) => {
         deadlineTimer = window.setTimeout(resolve, READINESS_DEADLINE_MS);
@@ -78,6 +87,7 @@ export function OpeningSplash({ name }: { name: string }) {
         if (!active) return;
 
         observer?.disconnect();
+        delete document.documentElement.dataset.splashPending;
         setPhase("exiting");
         exitTimer = window.setTimeout(() => {
           setPhase("hidden");
@@ -105,10 +115,8 @@ export function OpeningSplash({ name }: { name: string }) {
       data-state={phase}
     >
       <div className="text-center">
-        <p className={clsx(styles.name, "text-xl font-medium max-md:text-lg")}>{name}</p>
-        <div className={clsx(styles.track, "relative mt-5 overflow-hidden")}>
-          <span className={clsx(styles.progress, "absolute inset-0")} />
-        </div>
+        <p className="m-0 text-7xl font-medium uppercase tracking-tight max-md:text-5xl">{surname}</p>
+        <p className="m-0 mt-4 font-mono text-xs tracking-widest text-muted-foreground">{role}</p>
       </div>
     </div>
   );

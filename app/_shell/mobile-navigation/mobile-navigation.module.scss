@@ -44,11 +44,6 @@
   max-height: calc(100dvh - 3.75rem);
 }
 
-.link[data-current="true"] {
-  color: var(--foreground);
-  font-weight: 500;
-}
-
 :global(body):has(.popup) {
   --mobile-navigation-background: var(--background);
 }

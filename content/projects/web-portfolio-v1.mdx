@@ -1,0 +1,28 @@
+export const metadata = {
+  kind: "project",
+  title: "web-portfolio-v1",
+  description:
+    "The Angular generation of this portfolio, combining data-driven résumé sections, a Markdown blog, responsive layouts, and an animated WebGL background.",
+  tags: ["Angular", "TypeScript", "SCSS", "WebGL", "Markdown"],
+  links: [
+    { label: "Source", href: "https://github.com/grafanaKibana/web-portfolio-v1" },
+  ],
+}
+
+web-portfolio-v1 is the earlier Angular implementation of this personal CV, portfolio, and writing site.
+
+## Outcome
+
+One responsive application presents résumé data, project navigation, a Markdown-authored blog, downloadable CV assets, and a distinctive animated background.
+
+## Role
+
+Creator and maintainer of the application architecture, content model, visual effects, responsive styling, blog pipeline, and deployment.
+
+## Architecture
+
+Angular routes separate the home, blog, and portfolio surfaces. A single JSON source owns résumé content, while Markdown files with front matter feed the blog.
+
+## Visual system
+
+A custom WebGL mesh gradient provides the animated background and theme reflections. The intro sequence and route transitions respect reduced-motion preferences.

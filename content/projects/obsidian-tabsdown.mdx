@@ -1,0 +1,29 @@
+export const metadata = {
+  kind: "project",
+  title: "Tabsdown",
+  description:
+    "An Obsidian plugin that turns fenced Markdown into accessible, theme-native tabs across Reading View and Live Preview.",
+  tags: ["Obsidian API", "TypeScript", "Markdown", "CSS", "Vitest"],
+  links: [
+    { label: "Store page", href: "https://obsidian.md/plugins?id=tabsdown" },
+    { label: "Source", href: "https://github.com/grafanaKibana/obsidian-tabsdown" },
+  ],
+}
+
+Tabsdown keeps tabbed content in readable fenced Markdown while using Obsidian's renderer for the content inside each tab.
+
+## Outcome
+
+Tabs can contain notes, queries, embeds, callouts, math, Mermaid diagrams, and compatible plugin blocks without turning the note into plugin-owned data.
+
+## Role
+
+Creator and maintainer of the syntax, parser, Reading View and Live Preview rendering, context-menu configuration, styling system, tests, releases, and documentation.
+
+## Interaction model
+
+The first tab starts active, keyboard behavior remains accessible, and nested tab sets keep independent state. Responsive density and overflow behavior adapt to mobile and narrow containers.
+
+## Compatibility
+
+The plugin uses Obsidian's Markdown renderer, matches the active theme, works on desktop and mobile, and provides Style Settings and CSS customization without network requests or telemetry.

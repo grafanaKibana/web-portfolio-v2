@@ -2,6 +2,7 @@ import { HomeAbout } from "./_components/home-about/home-about";
 import { HomeEducation } from "./_components/home-education/home-education";
 import { HomeExperience } from "./_components/home-experience/home-experience";
 import { HomeHero } from "./_components/home-hero/home-hero";
+import { HomeProjects } from "./_components/home-projects/home-projects";
 import { HomeSkills } from "./_components/home-skills/home-skills";
 
 /**
@@ -17,6 +18,7 @@ export default function Home() {
       <HomeExperience />
       <HomeEducation />
       <HomeSkills />
+      <HomeProjects />
     </main>
   );
 }

@@ -6,6 +6,13 @@ const knownRoutes = [
     heading: "Building an LLM Evaluation Harness with Microsoft.Extensions.AI",
   },
   { path: "/projects/devbook", heading: "DevBook" },
+  { path: "/projects/latex-cv", heading: "LatexCV" },
+  { path: "/projects/lifeos", heading: "LifeOS" },
+  { path: "/projects/obsidian-colsdown", heading: "Colsdown" },
+  { path: "/projects/obsidian-tabsdown", heading: "Tabsdown" },
+  { path: "/projects/quartz-tabsdown", heading: "Quartz Tabsdown" },
+  { path: "/projects/web-portfolio-v1", heading: "web-portfolio-v1" },
+  { path: "/projects/web-portfolio-v2", heading: "web-portfolio-v2" },
 ];
 const missingRouteFamilies = ["articles", "projects"];
 
@@ -28,12 +35,110 @@ for (const family of missingRouteFamilies) {
   });
 }
 
+test("project case studies use the route-aware header and hero actions", async ({ page }) => {
+  await page.goto("/projects/devbook");
+
+  await expect(page.locator('[data-slot="site-header"]')).toBeHidden();
+  const header = page.locator('[data-slot="project-header"]');
+  const navigation = header.getByRole("navigation", { name: "Project navigation" });
+  await expect(header.getByRole("heading")).toHaveCount(0);
+  await expect(navigation.getByRole("link", { name: "Back to all projects" })).toHaveAttribute("href", "/projects");
+  await expect(navigation.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+
+  const hero = page.locator('[data-slot="project-hero"]');
+  await expect(hero.getByRole("heading", { level: 1, name: "DevBook" })).toBeVisible();
+  await expect(hero.getByRole("link", { name: "Live" })).toHaveAttribute("href", "https://devbook.zip");
+  await expect(hero.getByRole("link", { name: "Source" })).toHaveAttribute(
+    "href",
+    "https://github.com/grafanaKibana/devbook.zip",
+  );
+  await expect(page.getByText("All projects", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Case study", { exact: true })).toHaveCount(0);
+  await expect(page.locator("article").getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.locator("article").getByRole("heading", { name: "Links" })).toHaveCount(0);
+  await expect(page.locator("article").getByRole("heading", { name: "Stack" })).toHaveCount(0);
+});
+
+test("web-portfolio-v1 omits the unavailable live destination", async ({ page }) => {
+  await page.goto("/projects/web-portfolio-v1");
+
+  const actions = page.locator('[data-slot="project-hero"] [data-slot="project-actions"] a');
+  await expect(actions).toHaveCount(1);
+  await expect(actions.first()).toHaveAccessibleName("Source");
+  await expect(actions.first()).toHaveAttribute(
+    "href",
+    "https://github.com/grafanaKibana/web-portfolio-v1",
+  );
+});
+
+for (const plugin of [
+  {
+    path: "/projects/obsidian-colsdown",
+    store: "https://obsidian.md/plugins?id=colsdown",
+    source: "https://github.com/grafanaKibana/obsidian-colsdown",
+  },
+  {
+    path: "/projects/obsidian-tabsdown",
+    store: "https://obsidian.md/plugins?id=tabsdown",
+    source: "https://github.com/grafanaKibana/obsidian-tabsdown",
+  },
+]) {
+  test(`${plugin.path} leads with its Obsidian store link`, async ({ page }) => {
+    await page.goto(plugin.path);
+
+    const links = page.locator('[data-slot="project-hero"] [data-slot="project-actions"] a');
+    await expect(links).toHaveCount(2);
+    await expect(links.nth(0)).toHaveAttribute("href", plugin.store);
+    await expect(links.nth(0).locator('[data-slot="obsidian-icon"]')).toHaveCount(1);
+    await expect(links.nth(1)).toHaveAttribute("href", plugin.source);
+  });
+}
+
+test("the project index keeps each complete row as one ordered case-study link", async ({ page }) => {
+  await page.goto("/projects");
+
+  const header = page.locator('[data-slot="site-header"]');
+  await expect(header).toBeVisible();
+  await expect(page.locator('[data-slot="project-header"]')).toHaveCount(0);
+  await expect(header.getByRole("link", { name: "Back to top" })).toHaveAttribute("href", "/#top");
+  expect(await header.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
+    links.map((link) => link.getAttribute("href")),
+  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects"]);
+  await expect(page.locator("main").getByRole("heading", { level: 1, name: "Projects" })).toBeVisible();
+  await expect(page.getByText("Selected work", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Software, learning systems, and applied AI work.", { exact: true })).toHaveCount(0);
+
+  const rows = page.locator('[data-slot="project-row"]');
+  await expect(rows).toHaveCount(8);
+  await expect(rows.first()).toHaveAttribute("href", "/projects/devbook");
+  expect(await rows.first().locator("article > *").evaluateAll((elements) =>
+    elements.map((element) => element.tagName),
+  )).toEqual(["H2", "P", "P"]);
+});
+
+test("project case-study headers leave their center empty on narrow screens", async ({ page }) => {
+  for (const width of [280, 320, 344]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/projects/quartz-tabsdown");
+
+    const header = page.locator('[data-slot="project-header"]');
+    const homeLink = header.getByRole("link", { name: "Home" });
+    await expect(header.getByRole("heading")).toHaveCount(0);
+    await expect(page.locator('[data-slot="project-hero"]').getByRole("heading", {
+      level: 1,
+      name: "Quartz Tabsdown",
+    })).toBeVisible();
+    await homeLink.click();
+    await expect(page).toHaveURL("/");
+  }
+});
+
 test("Home sections keep their semantic order", async ({ page }) => {
   await page.goto("/");
 
   expect(await page.locator("main#main > section").evaluateAll((sections) =>
     sections.map((section) => section.getAttribute("aria-labelledby") ?? section.id),
-  )).toEqual(["intro-heading", "about-heading", "experience-heading", "education-heading", "skills-heading"]);
+  )).toEqual(["intro-heading", "about-heading", "experience-heading", "education-heading", "skills-heading", "projects-heading"]);
 });
 
 test.describe("without JavaScript", () => {
@@ -59,11 +164,14 @@ test.describe("without JavaScript", () => {
     })).toHaveCount(1);
     expect(await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
       links.map((link) => link.getAttribute("href")),
-    )).toEqual(["#top"]);
+    )).toEqual(["/#top"]);
     await expect(page.locator("#about")).toHaveCount(1);
     await expect(page.locator("#experience")).toHaveCount(1);
     await expect(page.locator("#education")).toHaveCount(1);
     await expect(page.locator("#skills")).toHaveCount(1);
+    await expect(page.locator("#projects")).toHaveCount(1);
+    await expect(page.locator('#projects [data-slot="home-project"]')).toHaveCount(3);
+    await expect(page.getByRole("link", { name: "See other work" })).toHaveAttribute("href", "/projects");
     const education = page.locator("#education");
     await expect(education.getByRole("heading", { level: 3 })).toHaveText([
       "University degree",
@@ -89,7 +197,7 @@ test.describe("without JavaScript", () => {
     ]);
     await expect(skills.locator('[data-slot="skill"]')).toHaveCount(42);
     await expect(skills.locator('[data-slot="skill-icon"]')).toHaveCount(42);
-    for (const id of ["projects", "code", "writing", "contact"]) {
+    for (const id of ["code", "writing", "contact"]) {
       await expect(page.locator(`#${id}`)).toHaveCount(0);
     }
 
@@ -107,6 +215,9 @@ test.describe("without JavaScript", () => {
     await page.goto("/projects");
     await page.getByRole("link", { name: "DevBook" }).click();
     await expect(page).toHaveURL(/\/projects\/devbook$/);
+    await expect(page.getByRole("navigation", { name: "Project navigation" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to all projects" })).toHaveAttribute("href", "/projects");
+    await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
     await expect(
       page.getByRole("heading", { level: 2, name: "One source, different uses" }),
     ).toBeVisible();

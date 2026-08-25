@@ -28,6 +28,13 @@ test("metadata routes include every known static content route", () => {
       "https://portfolio.example.test/projects",
       "https://portfolio.example.test/articles/building-an-llm-evaluation-harness",
       "https://portfolio.example.test/projects/devbook",
+      "https://portfolio.example.test/projects/latex-cv",
+      "https://portfolio.example.test/projects/lifeos",
+      "https://portfolio.example.test/projects/obsidian-colsdown",
+      "https://portfolio.example.test/projects/obsidian-tabsdown",
+      "https://portfolio.example.test/projects/quartz-tabsdown",
+      "https://portfolio.example.test/projects/web-portfolio-v1",
+      "https://portfolio.example.test/projects/web-portfolio-v2",
     ]);
     assert.equal(robots().sitemap, "https://portfolio.example.test/sitemap.xml");
   } finally {

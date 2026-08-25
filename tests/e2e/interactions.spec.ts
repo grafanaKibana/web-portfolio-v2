@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const futureSectionIds = ["projects", "code", "writing", "contact"];
+const futureSectionIds = ["code", "writing", "contact"];
 
 test("desktop navigation and header match the corrected design contract", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 768 });
@@ -14,7 +14,7 @@ test("desktop navigation and header match the corrected design contract", async 
   await expect(page.locator("#about")).toHaveCSS("padding-left", "200px");
   expect(await navigation.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
-  )).toEqual(["#top", "#about", "#experience", "#education", "#skills"]);
+  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects"]);
   await expect(page.getByRole("button", { name: "Jump to section" })).toHaveCount(0);
 
   const homeBox = await page.getByRole("link", { name: "Back to top" }).boundingBox();
@@ -22,6 +22,29 @@ test("desktop navigation and header match the corrected design contract", async 
   if (!homeBox || !themeBox) throw new Error("Header controls must be measurable");
   expect(homeBox).toMatchObject({ x: 200, width: 32, height: 32 });
   expect(themeBox).toMatchObject({ x: 1048, width: 32, height: 32 });
+
+  await page.locator("#about").evaluate((section) => {
+    section.scrollIntoView();
+  });
+  await page.getByRole("link", { name: "Back to top" }).click();
+  await expect(page).toHaveURL(/\/#top$/);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1);
+});
+
+test("desktop navigation highlights the section at the sticky-header edge", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 768 });
+  await page.goto("/");
+  const navigation = page.getByRole("navigation", { name: "Primary navigation" });
+
+  await expect(navigation.locator('a[aria-current="location"]')).toHaveCount(0);
+  for (const id of ["about", "experience", "education", "skills", "projects"]) {
+    const href = `/#${id}`;
+    await page.locator(`#${id}`).evaluate((section) => {
+      section.scrollIntoView();
+    });
+    await expect(navigation.locator(`a[href="${href}"]`)).toHaveAttribute("aria-current", "location");
+    await expect(navigation.locator('a[aria-current="location"]')).toHaveCount(1);
+  }
 });
 
 test("the shell stays compact with tablet gutters through 1279px", async ({ page }) => {
@@ -42,10 +65,10 @@ test("the shell stays compact with tablet gutters through 1279px", async ({ page
     expect(themeBox).toMatchObject({ x: width - 140, width: 44, height: 44 });
     expect(await navigation.getByRole("link").evaluateAll((links) =>
       links.map((link) => link.getAttribute("href")),
-    )).toEqual(["#top"]);
+    )).toEqual(["/#top"]);
 
-    await page.evaluate(() => {
-      window.scrollTo(0, 320);
+    await page.locator("#about").evaluate((section) => {
+      section.scrollIntoView();
     });
     await expect(page.getByRole("button", { name: "Jump to section" })).toBeVisible();
   }
@@ -119,8 +142,8 @@ test("compact selector opens as a content-height blurred header extension", asyn
       localStorage.setItem("theme", theme);
     }, viewport.theme);
     await page.reload();
-    await page.evaluate(() => {
-      window.scrollTo(0, 320);
+    await page.locator("#about").evaluate((section) => {
+      section.scrollIntoView();
     });
 
     const trigger = page.getByRole("button", { name: "Jump to section" });
@@ -191,7 +214,7 @@ for (const path of ["/", "/articles/building-an-llm-evaluation-harness"]) {
   });
 }
 
-test("the home page contains the approved hero through Phase 4 Education", async ({ page }) => {
+test("the home page contains approved content through Phase 6 Selected Work", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
@@ -291,13 +314,67 @@ test("the home page contains the approved hero through Phase 4 Education", async
     "href",
     "https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134",
   );
-  await expect(azureCredential.locator('[data-slot="certification-icon"]')).toHaveCount(1);
+  const azureIcon = azureCredential.locator('[data-slot="certification-icon"]');
+  await expect(azureIcon).toHaveCount(1);
+  const restingIconColors = await azureIcon.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return [style.backgroundColor, style.borderColor];
+  });
   await azureCredential.hover();
-  await expect(azureCredential.locator("img")).toHaveCSS("transform", /matrix\(1\.05,/);
+  await expect(azureCredential.locator("img")).toHaveCSS("transform", "none");
+  await expect(azureCredential.locator("img")).toHaveCSS("opacity", "1");
+  await expect.poll(() => azureIcon.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return [style.backgroundColor, style.borderColor];
+  })).not.toEqual(restingIconColors);
   await expect(education.getByRole("link", { name: "GitHub Copilot" })).toHaveAttribute(
     "href",
     "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url",
   );
+  await page.evaluate(() => {
+    localStorage.setItem("theme", "dark");
+  });
+  await page.reload();
+  const darkAzureCredential = page.locator("#education").getByRole("link", { name: "Azure AI Fundamentals" });
+  const darkAzureIcon = darkAzureCredential.locator('[data-slot="certification-icon"]');
+  const darkRestingBorder = await darkAzureIcon.evaluate((element) => getComputedStyle(element).borderColor);
+  await darkAzureCredential.hover();
+  await expect(darkAzureIcon.locator("img")).toHaveCSS("opacity", "0.88");
+  await expect(darkAzureIcon).toHaveCSS("border-color", darkRestingBorder);
+  const projects = page.locator("#projects");
+  await expect(projects.getByRole("heading", { level: 2, name: "Selected work" })).toBeVisible();
+  await expect(projects.locator('[data-slot="home-project"]')).toHaveCount(3);
+  await expect(projects.getByRole("heading", { level: 3 })).toHaveText([
+    "DevBook",
+    "Tabsdown",
+    "web-portfolio-v1",
+  ]);
+  expect(await projects.getByRole("link", { name: "Read case study" }).evaluateAll((links) =>
+    links.map((link) => link.getAttribute("href")),
+  )).toEqual([
+    "/projects/devbook",
+    "/projects/obsidian-tabsdown",
+    "/projects/web-portfolio-v1",
+  ]);
+  await expect(projects.getByRole("link", { name: "See other work" })).toHaveAttribute("href", "/projects");
+  await expect(projects.getByRole("link", { name: "Live" })).toHaveAttribute("href", "https://devbook.zip");
+  await expect(projects.getByRole("link", { name: "Live demo" })).toHaveCount(0);
+  await expect(projects.getByRole("heading", { level: 3, name: "Tabsdown" })
+    .locator("xpath=ancestor::li").getByRole("link", { name: "Store page" })
+    .locator('[data-slot="obsidian-icon"]')).toHaveCount(1);
+  await expect(projects.getByRole("link", { name: "Source" }).first()).toHaveAttribute(
+    "href",
+    "https://github.com/grafanaKibana/devbook.zip",
+  );
+  await expect(projects.getByRole("list", { name: "DevBook technologies" }).getByRole("listitem")).toHaveText([
+    "Obsidian",
+    "Quartz",
+    ".NET",
+    "RAG",
+    "Embeddings",
+    "Vector search",
+    "Retrieval evaluation",
+  ]);
   for (const id of futureSectionIds) {
     await expect(page.locator(`#${id}`)).toHaveCount(0);
   }
@@ -826,6 +903,81 @@ test("Skills clears the header and wraps without horizontal overflow", async ({ 
   }
 });
 
+test("Selected work reflows without overflow and clears the sticky header", async ({ page }) => {
+  for (const width of [390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#projects");
+    const projects = page.locator("#projects");
+    const project = projects.locator('[data-slot="home-project"]').first();
+
+    expect(await projects.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
+    await expect(project.locator("article")).toHaveCSS("display", width >= 1024 ? "grid" : "block");
+    expect(await projects.getByRole("list", { name: "DevBook technologies" }).getByRole("listitem").first().evaluate((tag) =>
+      getComputedStyle(tag, "::after").content,
+    )).toBe(width >= 1024 ? "none" : '"·"');
+
+    const heading = await projects.getByRole("heading", { level: 2, name: "Selected work" }).boundingBox();
+    const header = await page.locator('[data-slot="site-header"]').boundingBox();
+    if (!heading || !header) throw new Error("Selected work heading must be measurable");
+    expect(Math.abs(heading.y - header.y - header.height)).toBeLessThanOrEqual(1);
+  }
+
+  const projectAction = page.locator("#projects").getByRole("link", { name: "Read case study" }).first();
+  const restingActionColor = await projectAction.evaluate((element) => getComputedStyle(element).color);
+  await projectAction.hover();
+  await expect.poll(() => projectAction.evaluate((element) => getComputedStyle(element).color))
+    .toBe(await page.locator("#projects").getByRole("heading", { level: 3 }).first().evaluate((element) =>
+      getComputedStyle(element).color,
+    ));
+  expect(await projectAction.evaluate((element) => getComputedStyle(element).color)).not.toBe(restingActionColor);
+  await expect(projectAction.locator("svg")).toHaveCSS("transform", "none");
+  await expect(projectAction.locator("svg")).toHaveCSS("translate", "none");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator("#projects").getByRole("link", { name: "Read case study" }).first().locator("svg"))
+    .toHaveCSS("transition-duration", "0s");
+});
+
+test("project rows keep the approved static and color-only hover treatments", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  await page.goto("/projects");
+  const indexRow = page.locator('[data-slot="project-row"]').first();
+  const indexTitle = indexRow.getByRole("heading", { level: 2 });
+  const indexDescription = indexRow.locator("p").first();
+  const indexTitleStart = await indexTitle.boundingBox();
+  await indexRow.hover();
+  const indexTitleHover = await indexTitle.boundingBox();
+  if (!indexTitleStart || !indexTitleHover) throw new Error("Project title must be measurable");
+  expect(indexTitleHover.x).toBe(indexTitleStart.x);
+  await expect.poll(async () => indexDescription.evaluate((element) => getComputedStyle(element).color))
+    .toBe(await indexTitle.evaluate((element) => getComputedStyle(element).color));
+
+  const indexRowBox = await indexRow.boundingBox();
+  if (!indexRowBox) throw new Error("Project row must be measurable");
+  await indexRow.click({ position: { x: indexRowBox.width - 8, y: indexRowBox.height - 8 } });
+  await expect(page).toHaveURL(/\/projects\/devbook$/);
+
+  await page.goto("/#projects");
+  const homeRow = page.locator('[data-slot="home-project"]').first();
+  const homeTitle = homeRow.getByRole("heading", { level: 3 });
+  const homeDescription = homeRow.locator("p").first();
+  const homeTitleStart = await homeTitle.boundingBox();
+  const homeDescriptionStart = await homeDescription.evaluate((element) => getComputedStyle(element).color);
+  await homeRow.hover();
+  if (!homeTitleStart) throw new Error("Home project title must be measurable");
+  expect((await homeTitle.boundingBox())?.x).toBe(homeTitleStart.x);
+  expect(await homeDescription.evaluate((element) => getComputedStyle(element).color)).toBe(homeDescriptionStart);
+
+  await page.goto("/projects/devbook");
+  const sourceAction = page.locator('[data-slot="project-hero"]').getByRole("link", { name: "Source" });
+  const restingSourceColor = await sourceAction.evaluate((element) => getComputedStyle(element).color);
+  await sourceAction.hover();
+  await expect.poll(() => sourceAction.evaluate((element) => getComputedStyle(element).color))
+    .not.toBe(restingSourceColor);
+  await expect(sourceAction.locator("svg")).toHaveCSS("transform", "none");
+});
+
 test("descriptor follows the reference timing and reduced-motion animation", async ({ page }) => {
   await page.goto("/");
   const descriptor = page.locator('[data-slot="hero-descriptor"]');
@@ -879,9 +1031,17 @@ test("splash fails open when a readiness dependency fails", async ({ page }) => 
 
 test("splash remains noticeable and supports an indefinite debug flag", async ({ page }) => {
   await page.addInitScript(() => {
+    const timingWindow = window as typeof window & { __splashVisibleAt?: number };
+    const observer = new MutationObserver(() => {
+      const splash = document.querySelector<HTMLElement>('[data-slot="opening-splash"]');
+      if (splash?.dataset.state !== "visible") return;
+      timingWindow.__splashVisibleAt = performance.now();
+      observer.disconnect();
+    });
+    observer.observe(document, { attributes: true, childList: true, subtree: true });
     Object.defineProperty(document, "fonts", {
       configurable: true,
-      value: { ready: Promise.resolve() },
+      value: { ready: Promise.resolve(), status: "loading" },
     });
     // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/unbound-method -- The test intentionally patches this DOM prototype method.
     const querySelector = Document.prototype.querySelector;
@@ -896,13 +1056,31 @@ test("splash remains noticeable and supports an indefinite debug flag", async ({
   await page.goto("/");
   const splash = page.locator('[data-slot="opening-splash"]');
   await expect(splash).toHaveAttribute("data-state", "visible");
-  const visibleAt = await page.evaluate(() => performance.now());
-  await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 400 });
+  const surname = splash.getByText("Reshetnik", { exact: true });
+  const role = splash.getByText("AI Engineer", { exact: true });
+  await expect(surname).toBeVisible();
+  await expect(role).toBeVisible();
+  await expect(splash).toHaveCSS("transition-duration", "0s");
+  await expect(surname).toHaveCSS("text-transform", "uppercase");
+  expect(Number.parseFloat(await surname.evaluate((element) => getComputedStyle(element).fontSize)))
+    .toBeGreaterThan(Number.parseFloat(await role.evaluate((element) => getComputedStyle(element).fontSize)) * 3);
+  await expect(splash.locator("span")).toHaveCount(0);
+  const visibleAt = await page.evaluate(() =>
+    (window as typeof window & { __splashVisibleAt?: number }).__splashVisibleAt ?? performance.now());
+  await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 2_000 });
   const exitElapsed = await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt);
-  expect(exitElapsed).toBeGreaterThanOrEqual(250);
-  expect(exitElapsed).toBeLessThanOrEqual(400);
+  expect(exitElapsed).toBeGreaterThanOrEqual(1_700);
+  expect(exitElapsed).toBeLessThanOrEqual(2_000);
   await expect(splash).toHaveCount(0, { timeout: 400 });
-  expect(await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt)).toBeLessThanOrEqual(700);
+  expect(await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt)).toBeLessThanOrEqual(2_400);
+
+  await page.reload();
+  await expect(splash).toHaveCount(0, { timeout: 500 });
+  await page.goto("/projects/devbook");
+  await expect(splash).toHaveCount(0, { timeout: 500 });
+  await page.getByRole("link", { name: "Home" }).click();
+  await expect(page).toHaveURL("/");
+  await expect(splash).toHaveCount(0, { timeout: 500 });
 
   await page.goto("/?debugSplash");
   await expect(splash).toBeVisible();
@@ -915,6 +1093,37 @@ test("splash remains noticeable and supports an indefinite debug flag", async ({
 
   await page.goto("/?foo=debugSplash");
   await expect(splash).toHaveCount(0, { timeout: 1_000 });
+});
+
+test("splash covers the first painted frames before hydration", async ({ page }) => {
+  await page.addInitScript(() => {
+    const probeWindow = window as typeof window & {
+      __openingSplashFrames?: Array<{ opacity: string; visibility: string }>;
+    };
+    probeWindow.__openingSplashFrames = [];
+
+    const inspect = () => {
+      const splash = document.querySelector<HTMLElement>('[data-slot="opening-splash"]');
+      const frames = probeWindow.__openingSplashFrames;
+      if (splash && frames && frames.length < 4) {
+        const style = getComputedStyle(splash);
+        frames.push({ opacity: style.opacity, visibility: style.visibility });
+      }
+      if (!frames || frames.length < 4) requestAnimationFrame(inspect);
+    };
+    requestAnimationFrame(inspect);
+  });
+
+  await page.goto("/");
+  const splash = page.locator('[data-slot="opening-splash"]');
+  await expect(splash).toHaveAttribute("data-state", "visible");
+  expect(await page.evaluate(() => sessionStorage.getItem("portfolio-opening-splash-seen"))).toBe("true");
+  const frames = await page.evaluate(() =>
+    (window as typeof window & {
+      __openingSplashFrames?: Array<{ opacity: string; visibility: string }>;
+    }).__openingSplashFrames ?? []);
+  expect(frames).toHaveLength(4);
+  expect(frames.every(({ opacity, visibility }) => opacity === "1" && visibility === "visible")).toBe(true);
 });
 
 test("splash waits for delayed readiness and fails open on stalled fonts", async ({ page }) => {
@@ -931,7 +1140,7 @@ test("splash waits for delayed readiness and fails open on stalled fonts", async
           window.setTimeout(() => {
             markerReady = true;
             document.documentElement.appendChild(document.createComment("readiness-marker"));
-          }, 700);
+          }, 2_100);
         }
         return null;
       }
@@ -942,18 +1151,21 @@ test("splash waits for delayed readiness and fails open on stalled fonts", async
   const splash = page.locator('[data-slot="opening-splash"]');
   await expect(splash).toHaveAttribute("data-state", "visible");
   const delayedVisibleAt = await page.evaluate(() => performance.now());
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1_800);
   await expect(splash).toHaveAttribute("data-state", "visible");
-  await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 400 });
+  await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 500 });
   const delayedExitElapsed = await page.evaluate((startedAt) => performance.now() - startedAt, delayedVisibleAt);
-  expect(delayedExitElapsed).toBeGreaterThanOrEqual(650);
-  expect(delayedExitElapsed).toBeLessThanOrEqual(850);
+  expect(delayedExitElapsed).toBeGreaterThanOrEqual(2_000);
+  expect(delayedExitElapsed).toBeLessThanOrEqual(2_300);
   await expect(splash).toHaveCount(0, { timeout: 400 });
 
+  await page.evaluate(() => {
+    sessionStorage.removeItem("portfolio-opening-splash-seen");
+  });
   await page.addInitScript(() => {
     Object.defineProperty(document, "fonts", {
       configurable: true,
-      value: { ready: new Promise(() => {}) },
+      value: { ready: new Promise(() => {}), status: "loading" },
     });
   });
   await page.goto("/");
@@ -968,14 +1180,15 @@ test("reduced motion disables the splash and availability translation", async ({
   await page.addInitScript(() => {
     Object.defineProperty(document, "fonts", {
       configurable: true,
-      value: { ready: new Promise(() => {}) },
+      value: { ready: new Promise(() => {}), status: "loading" },
     });
   });
 
   await page.goto("/");
-  const splash = page.locator("[aria-hidden=true]").filter({ hasText: "Nikita Reshetnik" });
+  const splash = page.locator("[aria-hidden=true]").filter({ hasText: "Reshetnik" });
   await expect(splash).toBeVisible();
-  await expect(splash.locator("span")).toHaveCSS("animation-name", "none");
+  await expect(splash).toHaveCSS("transform", "none");
+  await expect(splash.getByText("AI Engineer", { exact: true })).toBeVisible();
   await expect(page.locator('[data-slot="availability-dot"]')).toHaveCSS("animation-name", "none");
   const primaryAction = page.getByRole("link", { name: "Download Résumé" });
   await primaryAction.hover();
@@ -986,7 +1199,7 @@ test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
   for (const width of [390, 768, 1024, 1279, 1280]) {
-    test(`the Phase 4 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
+    test(`the Phase 6 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/");
       await expect(page.getByRole("navigation", {
@@ -995,13 +1208,14 @@ test.describe("without JavaScript", () => {
       })).toHaveCount(1);
       expect(await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
         links.map((link) => link.getAttribute("href")),
-      )).toEqual(width >= 1280 ? ["#top", "#about", "#experience", "#education", "#skills"] : ["#top"]);
+      )).toEqual(width >= 1280 ? ["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects"] : ["/#top"]);
       await expect(page.locator('[data-slot="opening-splash"]')).toHaveCSS("visibility", "hidden");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect(page.getByRole("contentinfo")).toBeVisible();
       await expect(page.locator("#experience")).toHaveCount(1);
       await expect(page.locator("#education")).toHaveCount(1);
       await expect(page.locator("#skills")).toHaveCount(1);
+      await expect(page.locator("#projects")).toHaveCount(1);
     });
   }
 
@@ -1042,7 +1256,7 @@ test.describe("without JavaScript", () => {
     });
     const disclosure = page.locator("details").filter({ has: compactNavigation });
     await disclosure.locator("summary").click();
-    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience", "Education", "Skills"]);
+    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience", "Education", "Skills", "Projects"]);
     await compactNavigation.getByRole("link", { name: "About" }).click();
     await expect(page).toHaveURL(/#about$/);
     const headingBox = await page.getByRole("heading", { level: 2, name: "About" }).boundingBox();

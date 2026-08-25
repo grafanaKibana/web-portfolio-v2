@@ -70,6 +70,22 @@
     letter-spacing: 0.18em;
   }
 
+  .project-action-link {
+    @apply inline-flex min-h-11 items-center gap-2 text-sm font-normal text-muted-foreground transition-colors;
+  }
+
+  .project-action-link:first-child {
+    @apply font-medium text-foreground;
+  }
+
+  .project-action-link:is(:hover, :focus-visible) {
+    @apply text-foreground;
+  }
+
+  .project-action-link:focus-visible {
+    @apply outline outline-2 outline-offset-2;
+  }
+
   @media (min-width: 48rem) {
     .page-shell-gutter {
       padding-inline: 6rem;

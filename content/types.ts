@@ -9,6 +9,11 @@ interface BaseMetadata {
   tags?: readonly string[];
 }
 
+export interface ProjectLink {
+  label: string;
+  href: string;
+}
+
 export interface ArticleMetadata extends BaseMetadata {
   kind: "article";
   published: string;
@@ -16,6 +21,7 @@ export interface ArticleMetadata extends BaseMetadata {
 
 export interface ProjectMetadata extends BaseMetadata {
   kind: "project";
+  links?: readonly ProjectLink[];
 }
 
 export type ContentMetadata = ArticleMetadata | ProjectMetadata;

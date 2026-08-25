@@ -19,6 +19,26 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const splashPreflight = `
+(() => {
+  const debug = new URLSearchParams(window.location.search).has("debugSplash");
+  if (!debug) {
+    try {
+      const key = "portfolio-opening-splash-seen";
+      if (window.sessionStorage.getItem(key) === "true") return;
+      window.sessionStorage.setItem(key, "true");
+    } catch {
+      return;
+    }
+  }
+  document.documentElement.dataset.splashPending = "true";
+  if (!debug) {
+    window.setTimeout(() => {
+      delete document.documentElement.dataset.splashPending;
+    }, 3320);
+  }
+})();`;
+
 export const metadata: Metadata = {
   title: {
     default: profile.name,
@@ -40,9 +60,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={clsx(geistSans.variable, geistMono.variable, "h-full antialiased")}
       suppressHydrationWarning
     >
+      <head>
+        <script id="opening-splash-preflight" dangerouslySetInnerHTML={{ __html: splashPreflight }} />
+      </head>
       <body id="top" className="flex min-h-full flex-col">
         <ThemeProvider>
-          <OpeningSplash name={profile.name} />
+          <OpeningSplash name={profile.name} role={home.hero.descriptors[0] ?? ""} />
           <a
             className={clsx(styles.skipLink, "sr-only fixed left-4 top-4 rounded-md bg-background px-4 py-3 font-medium shadow-md focus:not-sr-only focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
             href="#main"
