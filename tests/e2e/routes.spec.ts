@@ -103,7 +103,7 @@ test("the project index keeps each complete row as one ordered case-study link",
   await expect(header.getByRole("link", { name: "Back to top" })).toHaveAttribute("href", "/#top");
   expect(await header.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
-  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects"]);
+  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code"]);
   await expect(page.locator("main").getByRole("heading", { level: 1, name: "Projects" })).toBeVisible();
   await expect(page.getByText("Selected work", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Software, learning systems, and applied AI work.", { exact: true })).toHaveCount(0);
@@ -138,7 +138,7 @@ test("Home sections keep their semantic order", async ({ page }) => {
 
   expect(await page.locator("main#main > section").evaluateAll((sections) =>
     sections.map((section) => section.getAttribute("aria-labelledby") ?? section.id),
-  )).toEqual(["intro-heading", "about-heading", "experience-heading", "education-heading", "skills-heading", "projects-heading"]);
+  )).toEqual(["intro-heading", "about-heading", "experience-heading", "education-heading", "skills-heading", "projects-heading", "code-heading"]);
 });
 
 test.describe("without JavaScript", () => {
@@ -197,7 +197,8 @@ test.describe("without JavaScript", () => {
     ]);
     await expect(skills.locator('[data-slot="skill"]')).toHaveCount(42);
     await expect(skills.locator('[data-slot="skill-icon"]')).toHaveCount(42);
-    for (const id of ["code", "writing", "contact"]) {
+    await expect(page.locator("#code").getByRole("link", { name: "github.com/grafanaKibana" })).toBeVisible();
+    for (const id of ["writing", "contact"]) {
       await expect(page.locator(`#${id}`)).toHaveCount(0);
     }
 

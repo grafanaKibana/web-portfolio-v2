@@ -22,7 +22,7 @@ export function HomeAbout() {
         </div>
         <div className={clsx(styles.careerChapters, "flex flex-col")}>
           {profile.careerChapters.map((chapter) => (
-            <div className={styles.careerChapter} key={chapter.title}>
+            <div className={styles.careerChapter} key={chapter.id}>
               <p className={clsx(styles.chapterMeta, "font-mono text-muted-foreground")}>
                 {chapter.meta}
               </p>

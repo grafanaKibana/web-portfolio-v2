@@ -6,7 +6,7 @@
 - Last refreshed: 2026-08-25
 - This document explains the intended look, feel, and design behavior. It is not a token registry and does not depend on `design/` to remain complete or available.
 - Authority is divided by domain: code owns every exact design token and implementation value; `DESIGN.md` owns qualitative design direction; `AGENTS.md`, application code, and tests govern technical behavior, accessibility, architecture, and safety; validated records and local MDX under `content/` govern production facts.
-- Optional supporting snapshots and evidence inspected during authoring include `design/Home Desktop.dc.html`, `design/Home Mobile.dc.html`, `design/Project Case Study.dc.html`, `design/Article.dc.html`, `design/States and System.dc.html`, and `design/_ds/`. They are not live dependencies or governing authority. `design/github.md` is historical provenance inspected during authoring and is currently absent; it is not an active source dependency.
+- Optional supporting snapshots and evidence inspected during authoring include `design/Home Desktop.dc.html`, `design/Home Mobile.dc.html`, `design/Project Case Study.dc.html`, `design/Article.dc.html`, `design/States and System.dc.html`, and `design/_ds/`. They are not live dependencies or governing authority. GitHub's validated live responses are the Code section's factual source, not the illustrative prototype data.
 - Prototype copy and remote CDN assets are illustrative, not production facts or dependencies. Global tokens and base rules belong in `app/globals.css`; component values belong in Tailwind utilities or a colocated `*.module.scss` file when custom CSS is necessary. Tests including `tests/e2e/interactions.spec.ts` govern observable behavior.
 - Token-value changes alone do not require a documentation update. Refresh this document only when the qualitative direction, token ownership, behavior, or constraints change.
 
@@ -58,7 +58,7 @@
 - Measure and rhythm: favor generous outer whitespace, narrow readable prose, clear pauses between sections, and tighter spacing inside related content groups. Long-form pages should feel focused rather than stretched. Exact widths, gutters, and spacing come from code tokens.
 - Shape and depth: keep page surfaces flat, use dividers for structure, and reserve radius or shadow for controls and overlays that need affordance or separation. Shadows use neutral-black alpha in both themes and never derive elevation from foreground or other light colors. Sections are not cards.
 - Iconography: use Lucide interface icons with consistent outline weight and a subtle theme-aware semantic gradient. Technology and brand marks use a theme-aware solid brand color, a restrained two-color gradient when it suits the mark, or theSVG color variant only when the simpler treatments harm recognition. No emoji or unrelated substitute marks. Exact icon sizing comes from code tokens.
-- Motion: keep transitions brief, subtle, and purposeful. Movement should clarify readiness, disclosure, navigation, or state change without becoming a visual event. Home project rows remain static; project-index rows may promote the description to foreground color, while project-action icons remain static. Nothing parallaxes or animates on scroll; exact timing and easing come from code tokens.
+- Motion: keep transitions brief, subtle, and purposeful. Movement should clarify readiness, disclosure, navigation, or state change without becoming a visual event. Home project rows and contribution-calendar squares remain static; project-index and pull-request rows may promote the description to foreground color, while project-action icons remain static. Nothing parallaxes or animates on scroll; exact timing and easing come from code tokens.
 
 ## Components
 
@@ -94,7 +94,7 @@
 - Navigation: transparent/quiet at rest, separated by a border when scrolled; highlight the desktop and compact link whose section top has reached the sticky-header edge. Keep the closed compact selector unchanged while its content-height phone and tablet sheet shares one continuous background, typography, color, width, and flat styling with the open header. Omit a redundant visible menu title, and replace the header theme control with the dialog close control while open. Preserve the blurred backdrop, selected-section state, Escape, focus containment, and focus return without a floating-modal treatment.
 - Disclosure: collapsed and expanded in document flow with native keyboard semantics; avoid overlaying or hiding its content.
 - Contact: empty, focused, invalid, ready, and native mail-app handoff states. Keep the direct `mailto:` address as fallback; do not imply server delivery.
-- Optional activity: show a visualization only when cached data resolves. On empty, error, slow, or offline states, keep curated links/content and render no broken or empty frame.
+- Optional activity: derive PR counts, PR rows, summaries, dates, and the contribution graph from validated live GitHub responses with bounded revalidation. On empty, error, slow, or offline states, keep the profile link and render no stale fixture, broken row, or empty graph.
 - Content collections: omit unavailable optional fields; provide a quiet empty explanation only when an entire index has no entries.
 - Errors: invalid known content fails validation/build; unknown routes use the relevant static 404 with a route back to valid content.
 - Success and disabled: acknowledge completed local actions without celebratory decoration; disabled controls remain visibly unavailable and are not the sole route to core content.
@@ -104,7 +104,7 @@
 - Write as a concise technical peer: specific, calm, factual, and editorial rather than sales-led.
 - Prefer concrete responsibilities, outcomes, technologies, and dates to adjectives or self-ratings.
 - Use sentence case, short labels, active verbs, and unrounded factual values. Avoid hype, fake urgency, generic endorsements, emoji, and invented metrics.
-- Production biography, activity, credentials, canonical origin, projects, articles, dates, and links must come from `content/` or another explicitly validated local source. Omit unavailable facts rather than displaying placeholders or borrowing illustrative canvas copy.
+- Production biography, credentials, canonical origin, projects, articles, dates, and links come from validated repository sources. Code activity comes from validated live GitHub responses. Omit unavailable facts rather than displaying placeholders, cached fixtures, or illustrative canvas copy.
 
 ## Implementation constraints
 

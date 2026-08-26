@@ -4,7 +4,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import test from "node:test"
 
-import { loadActivitySnapshot } from "../content/activity"
+import {
+  loadGitHubActivity,
+  parseContributionCalendar,
+  parsePullRequestSearch,
+  type GitHubFetch,
+} from "../content/activity"
 import { discoverMdxSlugs } from "../content/discovery"
 import { validateMdxModule } from "../content/load"
 import { validateContentMetadata } from "../content/metadata"
@@ -154,60 +159,120 @@ test("representative repository content is discoverable", () => {
   )
 })
 
-test("activity snapshot parser accepts valid data", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "portfolio-activity-"))
-  t.after(() => rm(directory, { force: true, recursive: true }))
-  const source = join(directory, "activity.json")
-  const months = Array.from({ length: 12 }, (_, index) => ({
-    period: `2026-${String(index + 1).padStart(2, "0")}`,
-    value: index / 12,
-  })).reverse()
+/**
+ * Creates one valid GitHub Search API fixture.
+ *
+ * @param state - Pull-request state represented by the fixture.
+ * @returns A valid search response.
+ */
+function pullRequestSearch(state: "open" | "closed") {
+  const merged = state === "closed";
+  return {
+    incomplete_results: false,
+    items: [{
+      number: merged ? 801 : 1092,
+      title: merged ? "feat: add content base directory" : "fix: enhance RGB to RGBW conversion",
+      body_text: "Summary\nAdds a sufficiently detailed live pull-request summary for the portfolio list.",
+      html_url: merged
+        ? "https://github.com/oleeskild/obsidian-digital-garden/pull/801"
+        : "https://github.com/Dygmalab/Bazecor/pull/1092",
+      repository_url: merged
+        ? "https://api.github.com/repos/oleeskild/obsidian-digital-garden"
+        : "https://api.github.com/repos/Dygmalab/Bazecor",
+      state,
+      created_at: "2026-07-03T17:38:50Z",
+      pull_request: { merged_at: merged ? "2026-07-17T12:52:49Z" : null },
+    }],
+  }
+}
 
-  await writeFile(source, JSON.stringify({ months }))
-
-  assert.deepEqual(await loadActivitySnapshot(source), {
-    available: true,
-    months: months.toSorted((left, right) => left.period.localeCompare(right.period)),
+/**
+ * Creates consecutive public GitHub contribution cells beginning on Sunday.
+ *
+ * @param dayCount - Number of calendar cells to create.
+ * @returns Valid public contribution-calendar markup.
+ */
+function contributionCalendar(dayCount = 350): string {
+  const start = Date.UTC(2025, 0, 5)
+  const days = Array.from({ length: dayCount }, (_, index) => {
+    const date = new Date(start + index * 86_400_000).toISOString().slice(0, 10)
+    const count = index % 7
+    const label = count === 0 ? "No contributions" : `${String(count)} ${count === 1 ? "contribution" : "contributions"}`
+    return {
+      cell: `<td id="day-${String(index)}" data-date="${date}" data-level="${String(index % 5)}" class="ContributionCalendar-day">`,
+      tooltip: `<tool-tip for="day-${String(index)}">${label} on January 1st.</tool-tip>`,
+    }
   })
+  return `${days.toReversed().map(({ cell }) => cell).join("")} ${days.map(({ tooltip }) => tooltip).join("")}`
+}
+
+test("live GitHub parsers validate PRs and the public contribution calendar", () => {
+  assert.deepEqual(parsePullRequestSearch(pullRequestSearch("closed"), "merged"), [{
+    repository: "oleeskild/obsidian-digital-garden",
+    number: 801,
+    date: "2026-07-17T12:52:49Z",
+    title: "feat: add content base directory",
+    summary: "Adds a sufficiently detailed live pull-request summary for the portfolio list.",
+    href: "https://github.com/oleeskild/obsidian-digital-garden/pull/801",
+  }])
+  assert.equal(parsePullRequestSearch(pullRequestSearch("open"), "merged"), null)
+  assert.equal(parsePullRequestSearch({ incomplete_results: true, items: [] }, "under-review"), null)
+
+  const calendar = parseContributionCalendar(contributionCalendar())
+  assert.equal(calendar?.length, 350)
+  assert.deepEqual(calendar[0], { date: "2025-01-05", level: 0, count: 0 })
+  assert.equal(parseContributionCalendar(contributionCalendar(349)), null)
+  assert.equal(parseContributionCalendar("<td>changed markup</td>"), null)
 })
 
-test("activity snapshot parser fails open", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "portfolio-activity-"))
-  t.after(() => rm(directory, { force: true, recursive: true }))
-  const malformed = join(directory, "malformed.json")
-  const invalid = join(directory, "invalid.json")
-  const duplicate = join(directory, "duplicate.json")
-  await Promise.all([
-    writeFile(malformed, "{"),
-    writeFile(invalid, JSON.stringify({
-      months: Array.from({ length: 12 }, (_, index) => ({
-        period: `2026-${String(index + 1).padStart(2, "0")}`,
-        value: index === 0 ? 1.1 : 0.5,
-      })),
-    })),
-    writeFile(duplicate, JSON.stringify({
-      months: Array.from({ length: 12 }, () => ({ period: "2026-01", value: 0.5 })),
-    })),
-  ])
+test("live GitHub loading caches requests and fails open independently", async (t) => {
+  const requests: Array<{ input: string; init: Parameters<GitHubFetch>[1] }> = []
+  /**
+   * Returns deterministic GitHub responses while recording request options.
+   *
+   * @param input - Requested GitHub URL.
+   * @param init - Request options passed by the loader.
+   * @returns The matching fixture response.
+   */
+  const fetcher: GitHubFetch = (input, init) => {
+    requests.push({ input, init })
+    if (input.includes("/contributions")) return Promise.resolve(new Response(contributionCalendar()))
+    const query = new URL(input).searchParams.get("q") ?? ""
+    return Promise.resolve(Response.json(pullRequestSearch(query.includes("is:merged") ? "closed" : "open")))
+  }
+  const activity = await loadGitHubActivity("grafanaKibana", fetcher, "secret")
+  assert.equal(activity.pullRequestsAvailable, true)
+  assert.equal(activity.merged.length, 1)
+  assert.equal(activity.underReview.length, 1)
+  assert.equal(activity.calendarAvailable, true)
+  assert.equal(activity.calendar.length, 350)
+  assert.equal(requests.length, 3)
+  assert.ok(requests.slice(0, 2).every(({ input }) => new URL(input).searchParams.get("q")?.includes("-user:grafanaKibana")))
+  assert.ok(requests.every(({ init }) => init.next.revalidate === 300))
+  assert.equal(new Headers(requests[0]?.init.headers).get("Authorization"), "Bearer secret")
 
   const warnings: string[] = []
   const warn = console.warn
   console.warn = (message) => warnings.push(String(message))
   t.after(() => { console.warn = warn })
-
-  for (const source of [join(directory, "missing.json"), directory, malformed, invalid, duplicate]) {
-    assert.deepEqual(await loadActivitySnapshot(source), { available: false })
-  }
-  assert.equal(warnings.length, 5)
-  assert.ok(warnings.every((warning) => warning.includes(directory)))
+  const unavailable = await loadGitHubActivity(
+    "grafanaKibana",
+    () => Promise.resolve(new Response(null, { status: 503 })),
+  )
+  assert.deepEqual(unavailable, {
+    pullRequestsAvailable: false,
+    merged: [],
+    underReview: [],
+    calendarAvailable: false,
+    calendar: [],
+  })
+  assert.equal(warnings.length, 2)
 })
 
-test("repository omits unverified activity data and uses the approved resume release", async (t) => {
-  const warn = console.warn
-  console.warn = () => undefined
-  t.after(() => { console.warn = warn })
-  assert.deepEqual(await loadActivitySnapshot(), { available: false })
-
+test("repository keeps live activity out of YAML and uses the approved resume release", async () => {
+  const yaml = await readFile(join(process.cwd(), "content", "portfolio.yaml"), "utf8")
+  assert.doesNotMatch(yaml, /github\.com\/.+\/pull\/\d+/)
+  assert.doesNotMatch(yaml, /\d+ merged · \d+ under review/)
   const [primaryAction] = home.hero.actions
   assert.ok(primaryAction)
   assert.equal(
@@ -224,11 +289,13 @@ test("one YAML document owns structured profile and approved home content", asyn
   assert.equal(profile.headline, "Shipping Agents at scale")
   assert.deepEqual(profile.careerChapters, [
     {
+      id: "ai",
       meta: "2024—Present · 2 roles",
       title: "AI Engineering",
       summary: "Designing and delivering production AI capabilities, evaluation systems, engineering enablement, and internal AI platforms.",
     },
     {
+      id: "software",
       meta: "2021—2024 · 5 roles",
       title: "Software Engineering",
       summary: "Progressed from internships to end-to-end ownership across .NET APIs, microservices, monoliths, plugins, SQL, releases, and team practices.",
@@ -252,6 +319,7 @@ test("one YAML document owns structured profile and approved home content", asyn
     { label: "Education", href: "#education" },
     { label: "Skills", href: "#skills" },
     { label: "Projects", href: "#projects" },
+    { label: "Code", href: "#code" },
   ])
   assert.deepEqual(home.mobileNavigation, {
     closeLabel: "Close navigation",

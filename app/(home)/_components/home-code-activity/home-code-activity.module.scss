@@ -1,0 +1,168 @@
+.code {
+  scroll-margin-top: 0.25rem;
+  padding-block: 3.5rem;
+}
+
+.sectionLabel,
+.groupLabel {
+  font-size: 0.6875rem;
+}
+
+.sectionLabel {
+  letter-spacing: 0.14em;
+}
+
+.groupLabel {
+  letter-spacing: 0.12em;
+}
+
+.group + .group {
+  margin-top: 1.75rem;
+}
+
+.contribution {
+  color: var(--foreground);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  font-size: 0.6875rem;
+}
+
+.statusDot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent-em);
+}
+
+.statusDot[data-status="under-review"] {
+  border: 1px solid var(--muted-foreground);
+  background: transparent;
+}
+
+.repository {
+  overflow-wrap: anywhere;
+  color: var(--foreground);
+}
+
+.period {
+  margin-left: auto;
+}
+
+.title {
+  font-size: 1rem;
+}
+
+.summary {
+  max-width: 45rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.activity {
+  margin-top: 3.5rem;
+}
+
+.chartScroll {
+  margin-top: 1.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chartScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.chart {
+  width: 39.625rem;
+}
+
+.chartMonths,
+.chartDays {
+  display: grid;
+  grid-template-columns: repeat(53, minmax(0, 1fr));
+  gap: 0.1875rem;
+}
+
+.chartMonths {
+  margin-bottom: 0.3125rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.5rem;
+  color: var(--muted-foreground);
+}
+
+.chartDays {
+  grid-template-rows: repeat(7, auto);
+  grid-auto-flow: column;
+}
+
+.chartDay {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 0.125rem;
+  background: var(--border);
+}
+
+.chartDay[data-level="1"] {
+  background: color-mix(in oklab, var(--accent-em) 28%, var(--background));
+}
+
+.chartDay[data-level="2"] {
+  background: color-mix(in oklab, var(--accent-em) 48%, var(--background));
+}
+
+.chartDay[data-level="3"] {
+  background: color-mix(in oklab, var(--accent-em) 70%, var(--background));
+}
+
+.chartDay[data-level="4"] {
+  background: var(--accent-em);
+}
+
+.profileLink {
+  width: 100%;
+  min-width: 0;
+  margin-top: 3.5rem;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 64rem) {
+  .code {
+    scroll-margin-top: -2.75rem;
+    padding-block: 6.5rem;
+  }
+
+  .group + .group {
+    margin-top: 3.5rem;
+  }
+
+  .meta {
+    gap: 0.625rem;
+    font-size: 0.75rem;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .activity,
+  .profileLink {
+    margin-top: 5rem;
+  }
+
+  .chart {
+    width: 100%;
+  }
+}
+
+@media (min-width: 80rem) {
+  .code {
+    scroll-margin-top: -1.75rem;
+  }
+}

@@ -48,6 +48,7 @@ Use a **route-oriented vertical-slice modular monolith**. Keep the implementatio
 - The mobile navigation remains modal and restores focus to its trigger.
 - The opening splash remains decorative, `aria-hidden`, non-focusable, pointer-transparent, and terminal on readiness success or failure.
 - Contact remains a native-validating `mailto:` flow unless a backend is explicitly approved.
+- Use standard Tailwind utilities before adding custom CSS. Keep component-specific custom CSS in its colocated module only when Tailwind has no close utility, and promote repeated custom styling to a named reusable utility.
 
 ## Documentation and tests
 

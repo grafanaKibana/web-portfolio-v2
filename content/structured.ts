@@ -13,9 +13,17 @@ export interface Experience {
   organization: string;
   logo: string;
   role: string;
+  chapter: string;
   period: string;
   summary: string;
   highlights: readonly string[];
+}
+
+export interface CareerChapter {
+  id: string;
+  meta: string;
+  title: string;
+  summary: string;
 }
 
 export interface Education {
@@ -34,7 +42,7 @@ export interface PortfolioProfile {
   name: string;
   headline: string;
   summary: readonly string[];
-  careerChapters: readonly { meta: string; title: string; summary: string }[];
+  careerChapters: readonly CareerChapter[];
   facts: readonly { label: string; value: string }[];
   experience: readonly Experience[];
   education: Education;
@@ -97,6 +105,13 @@ export interface HomeContent {
     backLabel: string;
     homeLabel: string;
   };
+  codeActivity: {
+    label: string;
+    activityLabel: string;
+    username: string;
+    mergedLabel: string;
+    underReviewLabel: string;
+  };
   footer: {
     rights: string;
     localTimeLabel: string;
@@ -153,6 +168,41 @@ function number(value: unknown, path: string): number {
 }
 
 /**
+ * Reads the start and end years from an experience period.
+ *
+ * @param period - Validated experience-period text.
+ * @param path - Human-readable field path.
+ * @returns The inclusive year range, with a null end for a current role.
+ * @throws When the period cannot produce a valid ordered range.
+ */
+function roleYears(period: string, path: string): { start: number; end: number | null } {
+  const match = /^\p{L}+ (\d{4}) — (?:(?:\p{L}+ )?(\d{4})|Present)$/u.exec(period);
+  if (!match?.[1]) throw new Error(`content/portfolio.yaml: ${path} must use "Month YYYY — Month YYYY" or "Month YYYY — Present"`);
+
+  const start = Number(match[1]);
+  const end = match[2] ? Number(match[2]) : null;
+  if (end !== null && end < start) throw new Error(`content/portfolio.yaml: ${path} must end after it starts`);
+  return { start, end };
+}
+
+/**
+ * Calculates a chapter's year span and role count from its experience records.
+ *
+ * @param roles - Experience records assigned to one career chapter.
+ * @param path - Human-readable chapter path.
+ * @returns A compact derived chapter summary.
+ * @throws When the chapter has no assigned roles.
+ */
+function careerChapterMeta(roles: readonly Experience[], path: string): string {
+  if (!roles.length) throw new Error(`content/portfolio.yaml: ${path} must have at least one matching experience`);
+  const periods = roles.map((role, index) => roleYears(role.period, `${path}.experience[${String(index)}].period`));
+  const start = Math.min(...periods.map((period) => period.start));
+  const present = periods.some((period) => period.end === null);
+  const end = present ? "Present" : String(Math.max(...periods.map((period) => period.end ?? period.start)));
+  return `${String(start)}—${end} · ${String(roles.length)} ${roles.length === 1 ? "role" : "roles"}`;
+}
+
+/**
  * Maps an array field or throws a source-specific content error.
  *
  * @typeParam T - Parsed array item type.
@@ -202,34 +252,49 @@ function iconLink(value: unknown, path: string) {
  */
 function parseProfile(sourceProfile: RecordValue): PortfolioProfile {
   const education = record(sourceProfile.education, "profile.education");
+  const chapterDefinitions = array(sourceProfile.careerChapters, "profile.careerChapters", (value, path) => {
+    const item = record(value, path);
+    return {
+      id: string(item.id, `${path}.id`),
+      title: string(item.title, `${path}.title`),
+      summary: string(item.summary, `${path}.summary`),
+    };
+  });
+  const chapterIds = new Set(chapterDefinitions.map(({ id }) => id));
+  if (chapterIds.size !== chapterDefinitions.length) {
+    throw new Error("content/portfolio.yaml: profile.careerChapters ids must be unique");
+  }
+  const experience = array(sourceProfile.experience, "profile.experience", (value, path) => {
+    const item = record(value, path);
+    const chapter = string(item.chapter, `${path}.chapter`);
+    if (!chapterIds.has(chapter)) throw new Error(`content/portfolio.yaml: ${path}.chapter must match a career chapter id`);
+    return {
+      organization: string(item.organization, `${path}.organization`),
+      logo: string(item.logo, `${path}.logo`),
+      role: string(item.role, `${path}.role`),
+      chapter,
+      period: string(item.period, `${path}.period`),
+      summary: string(item.summary, `${path}.summary`),
+      highlights: array(item.highlights, `${path}.highlights`, string),
+    };
+  });
 
   return {
     name: string(sourceProfile.name, "profile.name"),
     headline: string(sourceProfile.headline, "profile.headline"),
     summary: array(sourceProfile.summary, "profile.summary", string),
-    careerChapters: array(sourceProfile.careerChapters, "profile.careerChapters", (value, path) => {
-      const item = record(value, path);
-      return {
-        meta: string(item.meta, `${path}.meta`),
-        title: string(item.title, `${path}.title`),
-        summary: string(item.summary, `${path}.summary`),
-      };
-    }),
+    careerChapters: chapterDefinitions.map((chapter, index) => ({
+      ...chapter,
+      meta: careerChapterMeta(
+        experience.filter((role) => role.chapter === chapter.id),
+        `profile.careerChapters[${String(index)}]`,
+      ),
+    })),
     facts: array(sourceProfile.facts, "profile.facts", (value, path) => {
       const item = record(value, path);
       return { label: string(item.label, `${path}.label`), value: string(item.value, `${path}.value`) };
     }),
-    experience: array(sourceProfile.experience, "profile.experience", (value, path) => {
-      const item = record(value, path);
-      return {
-        organization: string(item.organization, `${path}.organization`),
-        logo: string(item.logo, `${path}.logo`),
-        role: string(item.role, `${path}.role`),
-        period: string(item.period, `${path}.period`),
-        summary: string(item.summary, `${path}.summary`),
-        highlights: array(item.highlights, `${path}.highlights`, string),
-      };
-    }),
+    experience,
     education: {
       institution: string(education.institution, "profile.education.institution"),
       qualification: string(education.qualification, "profile.education.qualification"),
@@ -279,6 +344,7 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
   const education = record(sourceHome.education, "home.education");
   const skills = record(sourceHome.skills, "home.skills");
   const projects = record(sourceHome.projects, "home.projects");
+  const codeActivity = record(sourceHome.codeActivity, "home.codeActivity");
   const availability = record(hero.availability, "home.hero.availability");
   const footer = record(sourceHome.footer, "home.footer");
   const navigation = array(sourceHome.navigation, "home.navigation", link);
@@ -342,6 +408,13 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
         caseStudyLabel: string(projects.caseStudyLabel, "home.projects.caseStudyLabel"),
         moreWorkLabel: string(projects.moreWorkLabel, "home.projects.moreWorkLabel"),
         navigationLabel: string(projects.navigationLabel, "home.projects.navigationLabel"), backLabel: string(projects.backLabel, "home.projects.backLabel"), homeLabel: string(projects.homeLabel, "home.projects.homeLabel"),
+      },
+      codeActivity: {
+        label: string(codeActivity.label, "home.codeActivity.label"),
+        activityLabel: string(codeActivity.activityLabel, "home.codeActivity.activityLabel"),
+        username: string(codeActivity.username, "home.codeActivity.username"),
+        mergedLabel: string(codeActivity.mergedLabel, "home.codeActivity.mergedLabel"),
+        underReviewLabel: string(codeActivity.underReviewLabel, "home.codeActivity.underReviewLabel"),
       },
       footer: {
         rights: string(footer.rights, "home.footer.rights"),

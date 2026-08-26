@@ -1,9 +1,12 @@
 import { HomeAbout } from "./_components/home-about/home-about";
+import { HomeCodeActivity } from "./_components/home-code-activity/home-code-activity";
 import { HomeEducation } from "./_components/home-education/home-education";
 import { HomeExperience } from "./_components/home-experience/home-experience";
 import { HomeHero } from "./_components/home-hero/home-hero";
 import { HomeProjects } from "./_components/home-projects/home-projects";
 import { HomeSkills } from "./_components/home-skills/home-skills";
+
+export const revalidate = 300;
 
 /**
  * Composes the ordered sections of the portfolio Home route.
@@ -19,6 +22,7 @@ export default function Home() {
       <HomeEducation />
       <HomeSkills />
       <HomeProjects />
+      <HomeCodeActivity />
     </main>
   );
 }

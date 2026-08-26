@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const futureSectionIds = ["code", "writing", "contact"];
+const futureSectionIds = ["writing", "contact"];
 
 test("desktop navigation and header match the corrected design contract", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 768 });
@@ -14,7 +14,7 @@ test("desktop navigation and header match the corrected design contract", async 
   await expect(page.locator("#about")).toHaveCSS("padding-left", "200px");
   expect(await navigation.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
-  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects"]);
+  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code"]);
   await expect(page.getByRole("button", { name: "Jump to section" })).toHaveCount(0);
 
   const homeBox = await page.getByRole("link", { name: "Back to top" }).boundingBox();
@@ -37,7 +37,7 @@ test("desktop navigation highlights the section at the sticky-header edge", asyn
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
 
   await expect(navigation.locator('a[aria-current="location"]')).toHaveCount(0);
-  for (const id of ["about", "experience", "education", "skills", "projects"]) {
+  for (const id of ["about", "experience", "education", "skills", "projects", "code"]) {
     const href = `/#${id}`;
     await page.locator(`#${id}`).evaluate((section) => {
       section.scrollIntoView();
@@ -214,7 +214,7 @@ for (const path of ["/", "/articles/building-an-llm-evaluation-harness"]) {
   });
 }
 
-test("the home page contains approved content through Phase 6 Selected Work", async ({ page }) => {
+test("the home page contains approved content through Phase 7 Code activity", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
@@ -978,6 +978,63 @@ test("project rows keep the approved static and color-only hover treatments", as
   await expect(sourceAction.locator("svg")).toHaveCSS("transform", "none");
 });
 
+test("Code activity renders live GitHub data and fails open without empty UI", async ({ page }) => {
+  for (const width of [390, 768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#code");
+    const code = page.locator("#code");
+
+    await expect(code.getByRole("heading", { level: 2, name: "Code activity" })).toBeVisible();
+    await expect(code.getByRole("link", { name: "github.com/grafanaKibana" })).toHaveAttribute(
+      "href",
+      "https://github.com/grafanaKibana",
+    );
+
+    const summary = code.locator('[data-slot="activity-summary"]');
+    if (await summary.count()) {
+      const merged = code.getByRole("list", { name: "Merged contributions" }).getByRole("link");
+      const underReview = code.getByRole("list", { name: "Under review contributions" }).getByRole("link");
+      await expect(summary).toHaveText(`${String(await merged.count())} merged · ${String(await underReview.count())} under review`);
+      for (const href of await code.locator('[data-slot="pull-request-group"] a').evaluateAll((links) =>
+        links.map((link) => link.getAttribute("href")),
+      )) expect(href).toMatch(/^https:\/\/github\.com\/.+\/pull\/\d+$/);
+    } else {
+      await expect(code.locator('[data-slot="pull-request-group"]')).toHaveCount(0);
+    }
+
+    const graph = code.locator('[data-slot="activity-visualization"]');
+    if (await graph.count()) {
+      const dayCount = await graph.locator('[data-slot="contribution-day"]').count();
+      expect(dayCount).toBeGreaterThanOrEqual(350);
+      expect(dayCount).toBeLessThanOrEqual(371);
+    }
+    expect(await code.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
+  }
+
+  const firstPullRequest = page.locator('[data-slot="pull-request-row"]').first();
+  const firstPullRequestSummary = firstPullRequest.locator('[data-slot="pull-request-summary"]');
+  if (await firstPullRequestSummary.count()) {
+    const title = firstPullRequest.locator('[data-slot="pull-request-title"]');
+    const titleStart = await title.boundingBox();
+    await firstPullRequest.hover();
+    if (!titleStart) throw new Error("Pull-request title must be measurable");
+    expect((await title.boundingBox())?.x).toBe(titleStart.x);
+    await expect.poll(() => firstPullRequestSummary.evaluate((element) => getComputedStyle(element).color))
+      .toBe(await title.evaluate((element) => getComputedStyle(element).color));
+  }
+
+  const contributionDay = page.locator('[data-slot="contribution-day"]').first();
+  if (await contributionDay.count()) {
+    await expect(contributionDay).toHaveAttribute(
+      "title",
+      /^(?:No contributions|\d+ contributions?) on \w+ \d{1,2}, \d{4}$/,
+    );
+    await contributionDay.hover();
+    await expect(contributionDay).toHaveCSS("scale", "none");
+    await expect(contributionDay).toHaveCSS("box-shadow", "none");
+  }
+});
+
 test("descriptor follows the reference timing and reduced-motion animation", async ({ page }) => {
   await page.goto("/");
   const descriptor = page.locator('[data-slot="hero-descriptor"]');
@@ -1102,6 +1159,7 @@ test("splash covers the first painted frames before hydration", async ({ page })
     };
     probeWindow.__openingSplashFrames = [];
 
+    /** Captures the first rendered splash frames before hydration settles. */
     const inspect = () => {
       const splash = document.querySelector<HTMLElement>('[data-slot="opening-splash"]');
       const frames = probeWindow.__openingSplashFrames;
@@ -1118,6 +1176,9 @@ test("splash covers the first painted frames before hydration", async ({ page })
   const splash = page.locator('[data-slot="opening-splash"]');
   await expect(splash).toHaveAttribute("data-state", "visible");
   expect(await page.evaluate(() => sessionStorage.getItem("portfolio-opening-splash-seen"))).toBe("true");
+  await expect.poll(() => page.evaluate(() =>
+    (window as typeof window & { __openingSplashFrames?: unknown[] }).__openingSplashFrames?.length ?? 0,
+  )).toBe(4);
   const frames = await page.evaluate(() =>
     (window as typeof window & {
       __openingSplashFrames?: Array<{ opacity: string; visibility: string }>;
@@ -1199,7 +1260,7 @@ test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
   for (const width of [390, 768, 1024, 1279, 1280]) {
-    test(`the Phase 6 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
+    test(`the Phase 7 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/");
       await expect(page.getByRole("navigation", {
@@ -1208,7 +1269,7 @@ test.describe("without JavaScript", () => {
       })).toHaveCount(1);
       expect(await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
         links.map((link) => link.getAttribute("href")),
-      )).toEqual(width >= 1280 ? ["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects"] : ["/#top"]);
+      )).toEqual(width >= 1280 ? ["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code"] : ["/#top"]);
       await expect(page.locator('[data-slot="opening-splash"]')).toHaveCSS("visibility", "hidden");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect(page.getByRole("contentinfo")).toBeVisible();
@@ -1216,6 +1277,7 @@ test.describe("without JavaScript", () => {
       await expect(page.locator("#education")).toHaveCount(1);
       await expect(page.locator("#skills")).toHaveCount(1);
       await expect(page.locator("#projects")).toHaveCount(1);
+      await expect(page.locator("#code").getByRole("link", { name: "github.com/grafanaKibana" })).toBeVisible();
     });
   }
 
@@ -1256,7 +1318,7 @@ test.describe("without JavaScript", () => {
     });
     const disclosure = page.locator("details").filter({ has: compactNavigation });
     await disclosure.locator("summary").click();
-    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience", "Education", "Skills", "Projects"]);
+    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience", "Education", "Skills", "Projects", "Code"]);
     await compactNavigation.getByRole("link", { name: "About" }).click();
     await expect(page).toHaveURL(/#about$/);
     const headingBox = await page.getByRole("heading", { level: 2, name: "About" }).boundingBox();
