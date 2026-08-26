@@ -3,6 +3,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { clsx } from "clsx";
 import { Check, ChevronDown, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "./mobile-navigation.module.scss";
 
@@ -25,17 +26,21 @@ interface MobileNavigationProps {
  *
  * @param items - Section anchors observed in the document.
  * @param scrollThreshold - Scroll offset that reveals the selector.
+ * @param activeRouteHref - Section represented by a non-Home collection route.
  * @returns The current navigation state and modal setter.
  */
 function useSectionNavigationState(
   items: readonly NavigationItem[],
   scrollThreshold: number,
+  activeRouteHref?: string,
 ) {
-  const [activeLabel, setActiveLabel] = useState<string>();
+  const [observedActiveLabel, setObservedActiveLabel] = useState<string>();
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (activeRouteHref) return;
+
     const sections = items
       .map((item) => document.getElementById(item.href.slice(1)))
       .filter((section): section is HTMLElement => section !== null);
@@ -57,7 +62,7 @@ function useSectionNavigationState(
       const item = reachedSection
         ? items.find(({ href }) => href === `#${reachedSection.id}`)
         : undefined;
-      setActiveLabel(item?.label);
+      setObservedActiveLabel(item?.label);
     };
 
     updateNavigation();
@@ -67,9 +72,18 @@ function useSectionNavigationState(
       window.removeEventListener("resize", updateNavigation);
       window.removeEventListener("scroll", updateNavigation);
     };
-  }, [items, scrollThreshold]);
+  }, [activeRouteHref, items, scrollThreshold]);
 
-  return { activeLabel, open, setOpen, visible };
+  const activeLabel = activeRouteHref
+    ? items.find(({ href }) => href === activeRouteHref)?.label
+    : observedActiveLabel;
+
+  return {
+    activeLabel,
+    open,
+    setOpen,
+    visible: activeRouteHref ? false : visible,
+  };
 }
 
 /**
@@ -91,7 +105,17 @@ export function MobileNavigation({
   scrollThreshold,
   triggerLabel,
 }: MobileNavigationProps) {
-  const { activeLabel, open, setOpen, visible } = useSectionNavigationState(items, scrollThreshold);
+  const pathname = usePathname();
+  const activeRouteHref = pathname.startsWith("/projects")
+    ? "#projects"
+    : pathname.startsWith("/articles")
+      ? "#writing"
+      : undefined;
+  const { activeLabel, open, setOpen, visible } = useSectionNavigationState(
+    items,
+    scrollThreshold,
+    activeRouteHref,
+  );
 
   return (
     <>

@@ -1,13 +1,27 @@
 import "server-only";
 
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { discoverMdxSlugs } from "../discovery";
 import { validateMdxModule } from "../load";
 import { validateSlug } from "../slugs";
-import type { ArticleMetadata, LoadedContent } from "../types";
+import type { LoadedArticle } from "../types";
 
 const directory = join(process.cwd(), "content", "articles");
+const wordsPerMinute = 210;
+
+/**
+ * Estimates reading time from repository-authored MDX body text.
+ *
+ * @param source - Complete MDX source including its metadata export.
+ * @returns Whole reading minutes, with a minimum of one minute.
+ */
+function estimateReadingMinutes(source: string): number {
+  const body = source.replace(/^export const metadata = \{[\s\S]*?\n\}\n+/u, "");
+  const words = body.trim().split(/\s+/u).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / wordsPerMinute));
+}
 
 /**
  * Discovers validated article slugs in deterministic order.
@@ -28,22 +42,30 @@ export function getArticleSlugs(): string[] {
  */
 export async function loadArticle(
   slug: string,
-): Promise<LoadedContent<ArticleMetadata> | undefined> {
+): Promise<LoadedArticle | undefined> {
   validateSlug(slug, "articles");
   if (!getArticleSlugs().includes(slug)) return undefined;
 
-  const loadedModule: unknown = await import(`./${slug}.mdx`);
+  const sourcePath = join(directory, `${slug}.mdx`);
+  const [loadedModule, source] = await Promise.all([
+    import(`./${slug}.mdx`) as Promise<unknown>,
+    readFile(sourcePath, "utf8"),
+  ]);
   const content = validateMdxModule(
     loadedModule,
     slug,
-    join(directory, `${slug}.mdx`),
+    sourcePath,
   );
 
   if (content.metadata.kind !== "article") {
-    throw new Error(`${join(directory, `${slug}.mdx`)}: metadata.kind must be "article"`);
+    throw new Error(`${sourcePath}: metadata.kind must be "article"`);
   }
 
-  return { ...content, metadata: content.metadata };
+  return {
+    ...content,
+    metadata: content.metadata,
+    readingMinutes: estimateReadingMinutes(source),
+  };
 }
 
 /**
@@ -52,7 +74,7 @@ export async function loadArticle(
  * @returns All validated articles.
  * @throws Error when discovered content cannot be loaded or validated.
  */
-export async function loadArticles(): Promise<LoadedContent<ArticleMetadata>[]> {
+export async function loadArticles(): Promise<LoadedArticle[]> {
   return Promise.all(
     getArticleSlugs().map(async (slug) => {
       const content = await loadArticle(slug);

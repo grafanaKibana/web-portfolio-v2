@@ -1,0 +1,131 @@
+export const metadata = {
+  kind: "article",
+  title: "How I Fixed 14 Frontend Bugs in One Day Without Writing CSS",
+  description:
+    "A practical AI-assisted development loop using Jira, Figma, and Chrome DevTools MCPs to plan, implement, and verify 14 frontend fixes in one day.",
+  published: "2025-12-05",
+  tags: ["AI-assisted development","MCP","Frontend"],
+}
+
+My team asked me to fix critical bugs in the React front-end. I have zero commercial React experience. The product doesn't care — it needs to be fixed yesterday.
+
+I decided to try something more sophisticated than chatting with an agent, describing what to fix, and explaining where it failed. Instead, I built a **feedback loop** using MCPs that lets the agent see the designs, interact with the running app, and verify its own work.
+
+Two sessions over one day. 14 tasks completed. Zero lines of CSS written manually.
+
+Here's the workflow.
+
+## The setup
+
+I had three things going for me:
+- A **Jira ticket** with proper acceptance criteria and steps to reproduce
+- **Figma designs** with a dev seat (important — viewer seats don't expose spacing/color values)
+- **Cursor** with near-unlimited usage and the latest models
+
+The key enabler was MCPs. I connected three:
+- **Jira MCP** — so the agent could read the ticket directly
+- **Figma MCP** — so the agent could pull actual design specs (padding, colors, radii)
+- **Chrome DevTools MCP** — so the agent could navigate the running app, take screenshots, inspect elements, and run performance profiling
+
+That last one is what makes the whole workflow possible. Without it, the agent writes code blind.
+
+## Step 1: Plan before you execute
+
+The quality of AI-assisted development is proportional to how well you set up context. Before any code changes, I create a **detailed plan** using a high-thinking model (Claude Opus or GPT Codex with extended thinking).
+
+The prompt is simple: ask for a human-in-the-loop multi-stage plan to fix ticket X. The critical addition is a statement in the prompt (or agent instructions) that **forces the agent to ask you questions** iteratively until it has enough context to proceed.
+
+The agent reads the Jira ticket, screenshots the Figma designs, asks clarifying questions, and produces a plan. You review and adjust.
+
+A good plan breaks down into **atomic tasks with clear acceptance criteria**:
+
+```markdown
+### Task 1.4: Fix Experience/Education row padding asymmetry
+- **Location**: `home.scss`, `experience-section.component.scss`
+- **Description**: Adjust `.section-item` so left and right padding
+  feel balanced. Current left is border-left + `--spacing-4`,
+  while right is `var(--spacing-8)`.
+- **Acceptance Criteria**:
+  - Consistent left/right padding at all breakpoints
+  - No horizontal overflow; date column alignment correct
+- **Validation**: Check at 1440px, 768px, 576px, 375px
+```
+
+Each task has a location, a description, acceptance criteria, and validation steps. This is what the agent references during execution.
+
+If you're unhappy with any part of the plan, ask the agent to research and re-plan that specific phase — with another questionnaire round. The plan is a living document, not a contract.
+
+## Step 2: Execute one task at a time
+
+The worst thing you can do is say "execute the plan." Dump 15 tasks on the agent at once and it will hallucinate, lose context, and you'll spend more time reverting than you saved.
+
+Instead, hand off **one task at a time** with an explicit validation step:
+
+> Execute Task 1.4: Fix the padding asymmetry. After the changes, navigate to the home page at 1440px, 768px, and 375px in Chrome DevTools and take a screenshot of the Experience section at each width.
+
+This gives the agent a clear scope **and a reason to use the DevTools MCP** before reporting "done."
+
+### Figma MCP: the design source of truth
+
+When the agent says "I think this looks right," that's not enough. You need a reference.
+
+With the Figma MCP, the agent pulls **actual design specs** — spacing values, color tokens, border radii — directly from the file. When I was fixing the padding asymmetry, I prompted:
+
+> Look at the Experience section in Figma for mobile (375px). What are the left and right paddings? Compare with what's rendered in Chrome DevTools.
+
+The agent pulled the specs, screenshotted the running app, and identified the exact deviation. A 3-hour guessing game became a 20-minute fix.
+
+**One caveat**: you need a Figma **dev seat**, not just viewer access. Without it, the MCP reads structure but not detailed specs.
+
+### Chrome DevTools MCP: the agent's eyes
+
+This is where it gets interesting. The DevTools MCP lets the agent:
+
+- **Navigate** to any page and screenshot at specific viewport widths
+- **Inspect elements** — computed styles, box model, layout
+- **Run JavaScript** in the page context
+- **Profile performance** — memory snapshots, traces, network requests
+- **Check the console** for errors
+
+For the iOS safe-area bug, I had the agent emulate an iPhone viewport and screenshot the edges. It immediately spotted the black bar bleeding through behind the status area.
+
+For the memory leak, the agent took heap snapshots before and after idle time, counted detached DOM nodes, and identified accumulating canvases — all through the MCP. No manual profiling session needed.
+
+## Step 3: Close the loop
+
+After the agent completes a task and shows screenshots, you will **almost always** find something off. Maybe the padding is right but text wraps awkwardly. Maybe it works at 375px but breaks at 768px.
+
+This is where you earn your keep as the human in the loop.
+
+**Be specific in your feedback.** Don't say "this is wrong." Say exactly what's wrong:
+
+> Right padding still has 8px more than Figma. Computed value should be 16px on both sides. Check `.section-item-content` right padding.
+
+Vague feedback leads to guessing. Specific feedback leads to one-shot fixes.
+
+**Know when to step in.** If the agent goes in circles — fixes one thing, breaks another, repeat — stop after 2-3 failed attempts. Read the code yourself (usually just one or two files), find the root cause, and tell the agent exactly what to change. This isn't a failure. The agent handles the 80% that's straightforward. You handle the 20% that requires actual understanding.
+
+**Keep the plan updated.** Check off completed tasks, add new ones that surfaced during execution, mark tasks that turned out unnecessary. After each sprint I ask the agent to update the plan markdown so everything stays traceable.
+
+## Results
+
+Two sessions. One day. Four sprints covering styling, iOS compatibility, blog layout, and memory optimization.
+
+- **14 tasks** completed
+- **Zero manual CSS** — every line written or edited by the agent
+- **3 interventions** where the agent got stuck and I had to provide specific guidance
+- Memory growth dropped from **~20-30 MB/s** to a stable plateau
+
+Could I have done some of this faster manually? Probably. But for iOS safe-area debugging and memory profiling — areas where I had zero prior experience — the agent with DevTools MCP was dramatically faster than me fumbling through Stack Overflow.
+
+## Takeaways
+
+The tools exist: Figma MCP, Chrome DevTools MCP, Jira MCP. They only work if you build a workflow around them.
+
+1. **Plan with high-thinking models.** Invest the tokens upfront in a reviewed plan with acceptance criteria.
+2. **Execute task-by-task.** One task, explicit files, explicit validation.
+3. **Validate with real tools.** Screenshots, computed styles, performance traces. Not "I think it looks right."
+4. **Give precise feedback.** Say exactly what and where. Don't make the agent guess.
+5. **Know when to step in.** You're the human in the loop. Act like it.
+
+The agent is a force multiplier, not a replacement. The better you are at directing it, the more it multiplies.

@@ -1,0 +1,16 @@
+.codeBlock :global(code[data-theme*=" "]),
+.codeBlock :global(code[data-theme*=" "] span) {
+  color: var(--shiki-light);
+}
+
+:global(.dark) .codeBlock :global(code[data-theme*=" "]),
+:global(.dark) .codeBlock :global(code[data-theme*=" "] span) {
+  color: var(--shiki-dark);
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not(.light, .dark)) .codeBlock :global(code[data-theme*=" "]),
+  :global(:root:not(.light, .dark)) .codeBlock :global(code[data-theme*=" "] span) {
+    color: var(--shiki-dark);
+  }
+}

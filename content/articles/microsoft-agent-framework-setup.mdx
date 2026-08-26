@@ -1,0 +1,326 @@
+export const metadata = {
+  kind: "article",
+  title: "Config-Driven Agents in .NET with Microsoft Agent Framework",
+  description:
+    "A config-driven .NET pattern for defining Microsoft Agent Framework agents with keyed dependency injection, structured output, tools, and composition.",
+  published: "2025-09-15",
+  tags: [".NET","Microsoft Agent Framework","AI agents"],
+}
+
+The official Microsoft Agent Framework docs show you this:
+
+```csharp
+AIAgent writer = chatClient.CreateAIAgent(
+    name: "Writer",
+    instructions: "Write stories that are engaging and creative.");
+```
+
+That works for a demo. It doesn't work when you have 10 agents, each with different models, tools, structured output schemas, and few-shot examples — all needing DI, testability, and composition.
+
+Here's the base setup I use in production.
+
+## The problem with inline agents
+
+`CreateAIAgent()` is a convenient extension method. You pass a name, instructions, and optionally tools. But the moment you need to:
+
+- Resolve agents from DI by name
+- Override the model per agent (gpt-4.1 for reasoning, gpt-4.1-mini for classification)
+- Add structured JSON output schemas
+- Include few-shot examples in prompts
+- Compose agents sequentially
+
+...you're writing the same boilerplate everywhere. The config gets scattered across factory methods, `Program.cs`, and wherever you happen to wire things up.
+
+I wanted a **single place** to define what an agent is, and a clean DI pattern to resolve it.
+
+## Agent config abstraction
+
+Every agent in my setup is a **record** that declares its own name, model, prompt, tools, and response format. One file per agent. No wiring code, no builder chains.
+
+The interface:
+
+```csharp
+public interface IAgentConfig
+{
+    string Name { get; }
+    string Description { get; }
+    string ModelId { get; }
+    string Prompt { get; }
+    ChatClientAgentOptions ChatClientAgentOptions { get; init; }
+}
+```
+
+And the base record that builds `ChatClientAgentOptions` automatically from the declared properties:
+
+```csharp
+public abstract record AgentConfigBase : IAgentConfig
+{
+    public string Name => GetType().Name;
+    public abstract string Description { get; }
+    public virtual string ModelId => "gpt-4.1";
+    public abstract string Prompt { get; }
+
+    public ChatClientAgentOptions ChatClientAgentOptions
+    {
+        get => field ??= BuildChatClientAgentOptions();
+        init;
+    }
+
+    protected virtual ChatResponseFormat? ChatResponseFormat => null;
+    protected virtual IList<AITool>? Tools => null;
+
+    private ChatClientAgentOptions BuildChatClientAgentOptions()
+    {
+        var chatOptions = new ChatOptions
+        {
+            Instructions = Prompt,
+            ModelId = ModelId,
+        };
+
+        if (ChatResponseFormat is { } responseFormat)
+            chatOptions.ResponseFormat = responseFormat;
+
+        if (Tools is { Count: > 0 } tools)
+            chatOptions.Tools = tools;
+
+        return new ChatClientAgentOptions
+        {
+            Name = Name,
+            Description = Description,
+            ChatOptions = chatOptions,
+        };
+    }
+}
+```
+
+The key design decision: **the agent name is the type name**. `TranslationAgent` is registered as `"TranslationAgent"` in DI. No magic strings, no mismatches.
+
+Override what you need: `Prompt` is always required. `ModelId` defaults to `gpt-4.1`. `Tools` and `ChatResponseFormat` are null unless the agent uses them.
+
+## DI wiring with keyed singletons
+
+Each agent gets registered as a **keyed singleton** so you can resolve it by name from anywhere:
+
+```csharp
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddAgents(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var settings = configuration
+            .GetRequiredSection("AzureOpenAI")
+            .Get<AzureOpenAISettings>();
+
+        services.AddSingleton(settings);
+
+        services.AddAgent<TranslationAgent>(settings);
+        services.AddAgent<SentimentAnalysisAgent>(settings);
+        services.AddAgent<WeatherAssistantAgent>(settings);
+
+        return services;
+    }
+
+    private static void AddAgent<T>(
+        this IServiceCollection services,
+        AzureOpenAISettings settings) where T : class, IAgentConfig
+    {
+        services.AddSingleton<T>();
+
+        services.AddKeyedSingleton<AIAgent>(typeof(T).Name, (sp, _) =>
+        {
+            var config = sp.GetRequiredService<T>();
+
+            var chatClient = new AzureOpenAIClient(
+                    new Uri(settings.Endpoint),
+                    new ApiKeyCredential(settings.ApiKey))
+                .GetChatClient(config.ModelId)
+                .AsIChatClient();
+
+            return new ChatClientAgent(chatClient, config.ChatClientAgentOptions);
+        });
+    }
+}
+```
+
+Notice that each agent gets **its own `IChatClient`** initialized with the agent's `ModelId`. If `TranslationAgent` uses `gpt-4.1-mini` and `SentimentAnalysisAgent` uses `gpt-4.1`, they each get the right client. No shared state, no model mismatch.
+
+Resolving an agent is one line:
+
+```csharp
+var agent = services.GetRequiredKeyedService<AIAgent>(nameof(TranslationAgent));
+var result = await agent.RunAsync("Translate to French: Good morning.");
+```
+
+## Simple agent: text in, text out
+
+The simplest agent is a prompt with few-shot examples. Here's a translation agent:
+
+```csharp
+public record TranslationAgent : AgentConfigBase
+{
+    public override string Description =>
+        "Translates text into the specified target language.";
+
+    public override string Prompt =>
+        $"""
+         ## Objective
+         - Translate the user-provided text into the target language.
+
+         ## Response Format
+         - Return ONLY the translated text, nothing else.
+
+         ## Guidelines
+         - Preserve the original meaning, tone, and formatting.
+         - If the text is already in the target language, return it unchanged.
+
+         {RenderExamples()}
+         """;
+
+    protected override IReadOnlyList<PromptExample> PromptExamples =>
+    [
+        new("Translate to French: The meeting is scheduled for tomorrow.",
+            "La réunion est prévue pour demain matin."),
+        new("Translate to Spanish: Please review the attached document.",
+            "Por favor, revise el documento adjunto y proporcione sus comentarios."),
+    ];
+}
+```
+
+Few-shot examples are first-class. `RenderExamples()` in the base record formats them consistently and appends them to the prompt. No more manually concatenating example strings.
+
+## Structured output: JSON schema responses
+
+When you need typed responses, override `ChatResponseFormat`:
+
+```csharp
+public record SentimentAnalysisAgent : AgentConfigBase
+{
+    public override string Description =>
+        "Analyzes text sentiment and returns a structured result.";
+
+    public override string Prompt =>
+        $"""
+         ## Objective
+         - Analyze the sentiment of the user-provided text.
+
+         ## Response Format
+         - Return a JSON object matching the required schema.
+         - "sentiment" must be one of: "Positive", "Negative", "Neutral".
+         - "confidence" must be between 0.0 and 1.0.
+
+         {RenderExamples()}
+         """;
+
+    protected override ChatResponseFormat? ChatResponseFormat =>
+        ChatResponseFormat.ForJsonSchema<ResponseFormat>();
+
+    public class ResponseFormat
+    {
+        [JsonPropertyName("sentiment")]
+        public required string Sentiment { get; init; }
+
+        [JsonPropertyName("confidence")]
+        public required double Confidence { get; init; }
+
+        [JsonPropertyName("keywords")]
+        public required List<string> Keywords { get; init; }
+    }
+}
+```
+
+The `ForJsonSchema<T>()` method generates the JSON schema from the type at runtime and passes it to the model. The response is guaranteed to match your schema. You deserialize with `RunAsync<T>()`:
+
+```csharp
+var agent = services.GetRequiredKeyedService<AIAgent>(nameof(SentimentAnalysisAgent));
+var response = await agent.RunAsync<SentimentAnalysisAgent.ResponseFormat>(
+    "This is the best update we've had in years!");
+
+Console.WriteLine($"Sentiment: {response.Result.Sentiment}");   // Positive
+Console.WriteLine($"Confidence: {response.Result.Confidence:P0}"); // 95%
+```
+
+No manual JSON parsing. No schema drift.
+
+## Tool calling: functions as agent capabilities
+
+Override `Tools` and define methods with `[Description]` attributes:
+
+```csharp
+public record WeatherAssistantAgent : AgentConfigBase
+{
+    public override string Description =>
+        "Answers weather-related questions using tool calls.";
+
+    public override string Prompt =>
+        """
+        ## Objective
+        - Answer weather questions using the available tools.
+
+        ## Guidelines
+        - Always call the tool; do not make up weather data.
+        - If the location is ambiguous, ask for clarification.
+        """;
+
+    protected override IList<AITool>? Tools =>
+    [
+        AIFunctionFactory.Create(GetCurrentWeather),
+        AIFunctionFactory.Create(GetForecast),
+    ];
+
+    [Description("Gets the current weather for the specified city.")]
+    private static string GetCurrentWeather(
+        [Description("City name, e.g. 'London'")] string city)
+    {
+        // Replace with real API call in production
+        return city.ToLowerInvariant() switch
+        {
+            "london" => "London: 14C, partly cloudy, humidity 72%",
+            "tokyo" => "Tokyo: 28C, humid and overcast, humidity 85%",
+            _ => $"{city}: 20C, clear skies"
+        };
+    }
+
+    [Description("Gets a 3-day forecast for the specified city.")]
+    private static string GetForecast(
+        [Description("City name")] string city) =>
+        $"3-day forecast for {city}: Tomorrow 18C cloudy, Day 2 16C rain, Day 3 20C sunny";
+}
+```
+
+`AIFunctionFactory.Create()` from `Microsoft.Extensions.AI` inspects the method signature and `[Description]` attributes to generate the tool schema. The model calls the function automatically during `RunAsync` — no manual dispatch loop.
+
+## Agent composition: piping outputs
+
+Since every agent is resolved from DI by name, composing them is straightforward. Analyze sentiment, then translate the result:
+
+```csharp
+var sentimentAgent = services
+    .GetRequiredKeyedService<AIAgent>(nameof(SentimentAnalysisAgent));
+var translationAgent = services
+    .GetRequiredKeyedService<AIAgent>(nameof(TranslationAgent));
+
+var sentiment = await sentimentAgent
+    .RunAsync<SentimentAnalysisAgent.ResponseFormat>(
+        "The new release has critical bugs blocking our entire team.");
+
+var summary = $"Translate to French: The sentiment is {sentiment.Result.Sentiment} " +
+              $"with {sentiment.Result.Confidence:P0} confidence.";
+
+var translation = await translationAgent.RunAsync(summary);
+```
+
+This is manual composition — you control the data flow between agents. For more complex pipelines, MAF also provides `AgentWorkflowBuilder.BuildSequential()` and `WorkflowBuilder` with conditional routing, fan-out/fan-in, and shared state. But for most production use cases, explicit composition like this is easier to debug and reason about.
+
+## Takeaway
+
+The official MAF docs are good at showing you what's possible. They're not great at showing you how to structure it for production.
+
+The pattern is simple:
+
+1. **One record per agent.** Prompt, model, tools, response format — all in one file.
+2. **A base record** that builds `ChatClientAgentOptions` from declared properties.
+3. **Keyed DI singletons** so agents are resolved by name, each with their own model and client.
+4. **Few-shot examples as first-class** citizens, not string concatenation in prompts.
+
+Adding a new agent is one file and one line in `AddAgents()`. That's it.

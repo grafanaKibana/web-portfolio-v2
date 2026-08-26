@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { loadArticles } from "@/content/articles/server";
+import { home } from "@/content/structured";
+
+const publishedDate = new Intl.DateTimeFormat("en", {
+  dateStyle: "long",
+  timeZone: "UTC",
+});
 
 export const metadata: Metadata = {
   title: "Articles",
@@ -14,47 +20,36 @@ export const metadata: Metadata = {
  * @returns The article listing page.
  */
 export default async function ArticlesPage() {
-  const articles = await loadArticles();
+  const articles = (await loadArticles()).toSorted((left, right) =>
+    right.metadata.published.localeCompare(left.metadata.published));
 
   return (
-    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-6 py-20 focus:outline-none">
-      <header className="max-w-2xl">
-        <p className="tracking-route-kicker font-mono text-xs uppercase text-muted-foreground">
-          Writing
-        </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight">Articles</h1>
-        <p className="mt-5 text-lg leading-8 text-muted-foreground">
-          Notes on AI evaluation and software engineering.
-        </p>
-      </header>
-
-      <ul className="mt-14 divide-y">
-        {articles.map(({ slug, metadata: article }) => (
+    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
+      <h1 className="text-4xl font-semibold tracking-tight">Articles</h1>
+      <ul className="mt-10 divide-y">
+        {articles.map(({ slug, metadata: article, readingMinutes }) => (
           <li key={slug}>
-            <article className="py-8">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-xs text-muted-foreground">
-                <time dateTime={article.published}>
-                  {new Intl.DateTimeFormat("en", {
-                    dateStyle: "long",
-                    timeZone: "UTC",
-                  }).format(new Date(`${article.published}T00:00:00Z`))}
-                </time>
-                {article.tags?.length ? (
-                  <span>{article.tags.join(" · ")}</span>
-                ) : null}
-              </div>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-                <Link
-                  className="underline-offset-4 hover:text-accent-em hover:underline"
-                  href={`/articles/${slug}`}
-                >
+            <Link
+              aria-labelledby={`${slug}-article-title`}
+              className="group block rounded-sm py-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              data-slot="article-row"
+              href={`/articles/${slug}`}
+            >
+              <article>
+                <p className="font-mono text-xs text-muted-foreground">
+                  <time dateTime={article.published}>
+                    {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
+                  </time>
+                  {` · ${String(readingMinutes)} ${home.writing.readingTimeLabel}`}
+                </p>
+                <h2 id={`${slug}-article-title`} className="mt-3 break-words text-2xl font-semibold tracking-tight">
                   {article.title}
-                </Link>
-              </h2>
-              <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-                {article.description}
-              </p>
-            </article>
+                </h2>
+                <p className="mt-3 max-w-3xl leading-7 text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+                  {article.description}
+                </p>
+              </article>
+            </Link>
           </li>
         ))}
       </ul>

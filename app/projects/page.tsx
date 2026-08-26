@@ -18,7 +18,7 @@ export default async function ProjectsPage() {
   const projects = await loadProjects();
 
   return (
-    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
+    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
       <h1 className="text-4xl font-semibold tracking-tight">{home.projects.indexTitle}</h1>
       <ul className="mt-10 divide-y">
         {projects.map(({ slug, metadata: project }) => (

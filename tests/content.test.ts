@@ -142,7 +142,11 @@ test("MDX discovery is deterministic and ignores unrelated files", async (t) => 
 test("representative repository content is discoverable", () => {
   assert.deepEqual(
     discoverMdxSlugs(join(process.cwd(), "content/articles"), "articles"),
-    ["building-an-llm-evaluation-harness"],
+    [
+      "building-an-llm-evaluation-harness",
+      "fixing-bugs-with-mcps",
+      "microsoft-agent-framework-setup",
+    ],
   )
   assert.deepEqual(
     discoverMdxSlugs(join(process.cwd(), "content/projects"), "projects"),
@@ -320,6 +324,8 @@ test("one YAML document owns structured profile and approved home content", asyn
     { label: "Skills", href: "#skills" },
     { label: "Projects", href: "#projects" },
     { label: "Code", href: "#code" },
+    { label: "Writing", href: "#writing" },
+    { label: "Contact", href: "#contact" },
   ])
   assert.deepEqual(home.mobileNavigation, {
     closeLabel: "Close navigation",
@@ -342,7 +348,18 @@ test("one YAML document owns structured profile and approved home content", asyn
     caseStudyLabel: "Read case study",
     moreWorkLabel: "See other work",
     navigationLabel: "Project navigation",
+    paginationLabel: "Project pagination",
+    nextLabel: "Next",
     backLabel: "Back to all projects",
+    homeLabel: "Home",
+  })
+  assert.deepEqual(home.writing, {
+    label: "Writing",
+    empty: "No articles published yet.",
+    moreArticlesLabel: "See all articles",
+    readingTimeLabel: "min read",
+    navigationLabel: "Article navigation",
+    backLabel: "Back to all articles",
     homeLabel: "Home",
   })
   assert.deepEqual(home.experience, {
@@ -392,21 +409,26 @@ test("one YAML document owns structured profile and approved home content", asyn
         "Microsoft Agent Framework",
         "Semantic Kernel",
         "Microsoft.Extensions.AI",
+        "Large Language Models (LLMs)",
         "LLM Evaluation",
-        "RAG Systems",
+        "Retrieval-Augmented Generation (RAG)",
         "Azure AI Foundry",
         "Langfuse",
       ],
     },
     { title: "Programming Languages", skills: ["C#", "Python", "TypeScript", "SQL"] },
     {
-      title: "Backend & Data",
+      title: "Backend",
       skills: [
         ".NET",
         "ASP.NET Web API",
         "Entity Framework",
         "REST API",
-        "Postman",
+      ],
+    },
+    {
+      title: "Data",
+      skills: [
         "Microsoft SQL Server",
         "PostgreSQL",
         "MongoDB",

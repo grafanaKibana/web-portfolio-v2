@@ -1,0 +1,38 @@
+.content {
+  @media (min-width: 56.25rem) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6rem;
+  }
+}
+
+.sectionLabel {
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+}
+
+.title {
+  font-size: 1.625rem;
+}
+
+.description {
+  font-size: 0.9375rem;
+}
+
+.monochromeIcon path {
+  fill: currentcolor;
+}
+
+@media (min-width: 56.25rem) {
+  .title {
+    font-size: 2rem;
+  }
+
+  .description {
+    font-size: 1.0625rem;
+  }
+
+  .form input {
+    height: 2.25rem;
+    min-height: 2.25rem;
+  }
+}

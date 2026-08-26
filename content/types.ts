@@ -36,3 +36,7 @@ export interface LoadedContent<TMetadata extends ContentMetadata = ContentMetada
   metadata: TMetadata;
   Content: ComponentType;
 }
+
+export interface LoadedArticle extends LoadedContent<ArticleMetadata> {
+  readingMinutes: number;
+}

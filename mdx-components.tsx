@@ -1,5 +1,7 @@
+import { clsx } from "clsx";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
+import styles from "./mdx-components.module.scss";
 
 const components = {
   /**
@@ -54,7 +56,7 @@ const components = {
    * @returns The styled inline code.
    */
   code: (props: ComponentProps<"code">) => (
-    <code {...props} className="font-mono text-sm" />
+    <code {...props} className={clsx(props.className, "font-mono text-sm")} />
   ),
   /**
    * Applies overflow-safe styling to an MDX code block.
@@ -63,7 +65,14 @@ const components = {
    * @returns The styled code block.
    */
   pre: (props: ComponentProps<"pre">) => (
-    <pre {...props} className="mt-6 overflow-x-auto rounded-lg bg-muted p-4" />
+    <pre
+      {...props}
+      className={clsx(
+        props.className,
+        styles.codeBlock,
+        "mt-6 overflow-x-auto rounded-lg bg-muted/50 p-4",
+      )}
+    />
   ),
 } satisfies MDXComponents;
 

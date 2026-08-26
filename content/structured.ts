@@ -102,6 +102,8 @@ export interface HomeContent {
     caseStudyLabel: string;
     moreWorkLabel: string;
     navigationLabel: string;
+    paginationLabel: string;
+    nextLabel: string;
     backLabel: string;
     homeLabel: string;
   };
@@ -111,6 +113,33 @@ export interface HomeContent {
     username: string;
     mergedLabel: string;
     underReviewLabel: string;
+  };
+  writing: {
+    label: string;
+    empty: string;
+    moreArticlesLabel: string;
+    readingTimeLabel: string;
+    navigationLabel: string;
+    backLabel: string;
+    homeLabel: string;
+  };
+  contact: {
+    label: string;
+    title: string;
+    description: string;
+    email: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    messageLabel: string;
+    messagePlaceholder: string;
+    missingSuffix: string;
+    invalidEmailHelper: string;
+    sendLabel: string;
+    subjectPrefix: string;
+    bodyFromLabel: string;
+    bookCallLabel: string;
   };
   footer: {
     rights: string;
@@ -345,6 +374,8 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
   const skills = record(sourceHome.skills, "home.skills");
   const projects = record(sourceHome.projects, "home.projects");
   const codeActivity = record(sourceHome.codeActivity, "home.codeActivity");
+  const writing = record(sourceHome.writing, "home.writing");
+  const contact = record(sourceHome.contact, "home.contact");
   const availability = record(hero.availability, "home.hero.availability");
   const footer = record(sourceHome.footer, "home.footer");
   const navigation = array(sourceHome.navigation, "home.navigation", link);
@@ -407,7 +438,11 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
         indexDescription: string(projects.indexDescription, "home.projects.indexDescription"),
         caseStudyLabel: string(projects.caseStudyLabel, "home.projects.caseStudyLabel"),
         moreWorkLabel: string(projects.moreWorkLabel, "home.projects.moreWorkLabel"),
-        navigationLabel: string(projects.navigationLabel, "home.projects.navigationLabel"), backLabel: string(projects.backLabel, "home.projects.backLabel"), homeLabel: string(projects.homeLabel, "home.projects.homeLabel"),
+        navigationLabel: string(projects.navigationLabel, "home.projects.navigationLabel"),
+        paginationLabel: string(projects.paginationLabel, "home.projects.paginationLabel"),
+        nextLabel: string(projects.nextLabel, "home.projects.nextLabel"),
+        backLabel: string(projects.backLabel, "home.projects.backLabel"),
+        homeLabel: string(projects.homeLabel, "home.projects.homeLabel"),
       },
       codeActivity: {
         label: string(codeActivity.label, "home.codeActivity.label"),
@@ -415,6 +450,33 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
         username: string(codeActivity.username, "home.codeActivity.username"),
         mergedLabel: string(codeActivity.mergedLabel, "home.codeActivity.mergedLabel"),
         underReviewLabel: string(codeActivity.underReviewLabel, "home.codeActivity.underReviewLabel"),
+      },
+      writing: {
+        label: string(writing.label, "home.writing.label"),
+        empty: string(writing.empty, "home.writing.empty"),
+        moreArticlesLabel: string(writing.moreArticlesLabel, "home.writing.moreArticlesLabel"),
+        readingTimeLabel: string(writing.readingTimeLabel, "home.writing.readingTimeLabel"),
+        navigationLabel: string(writing.navigationLabel, "home.writing.navigationLabel"),
+        backLabel: string(writing.backLabel, "home.writing.backLabel"),
+        homeLabel: string(writing.homeLabel, "home.writing.homeLabel"),
+      },
+      contact: {
+        label: string(contact.label, "home.contact.label"),
+        title: string(contact.title, "home.contact.title"),
+        description: string(contact.description, "home.contact.description"),
+        email: string(contact.email, "home.contact.email"),
+        nameLabel: string(contact.nameLabel, "home.contact.nameLabel"),
+        namePlaceholder: string(contact.namePlaceholder, "home.contact.namePlaceholder"),
+        emailLabel: string(contact.emailLabel, "home.contact.emailLabel"),
+        emailPlaceholder: string(contact.emailPlaceholder, "home.contact.emailPlaceholder"),
+        messageLabel: string(contact.messageLabel, "home.contact.messageLabel"),
+        messagePlaceholder: string(contact.messagePlaceholder, "home.contact.messagePlaceholder"),
+        missingSuffix: string(contact.missingSuffix, "home.contact.missingSuffix"),
+        invalidEmailHelper: string(contact.invalidEmailHelper, "home.contact.invalidEmailHelper"),
+        sendLabel: string(contact.sendLabel, "home.contact.sendLabel"),
+        subjectPrefix: string(contact.subjectPrefix, "home.contact.subjectPrefix"),
+        bodyFromLabel: string(contact.bodyFromLabel, "home.contact.bodyFromLabel"),
+        bookCallLabel: string(contact.bookCallLabel, "home.contact.bookCallLabel"),
       },
       footer: {
         rights: string(footer.rights, "home.footer.rights"),

@@ -12,7 +12,7 @@
   padding-inline: 1.125rem;
 }
 
-.projectNavigation {
+.detailNavigation {
   display: grid;
   grid-template-columns: 5.5rem minmax(0, 1fr) 5.5rem;
 }
@@ -21,7 +21,7 @@
   display: none;
 }
 
-:global(body):has([data-slot="project-header"]) .header[data-slot="site-header"] {
+:global(body):has([data-slot="project-header"], [data-slot="article-header"]) .header[data-slot="site-header"] {
   display: none;
 }
 
@@ -40,7 +40,7 @@
     padding-inline: 12.5rem;
   }
 
-  .projectNavigation {
+  .detailNavigation {
     grid-template-columns: 4rem minmax(0, 1fr) 4rem;
   }
 }

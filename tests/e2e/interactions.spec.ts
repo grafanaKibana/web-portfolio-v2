@@ -1,7 +1,5 @@
 import { expect, test } from "@playwright/test";
 
-const futureSectionIds = ["writing", "contact"];
-
 test("desktop navigation and header match the corrected design contract", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 768 });
   await page.goto("/");
@@ -14,7 +12,7 @@ test("desktop navigation and header match the corrected design contract", async 
   await expect(page.locator("#about")).toHaveCSS("padding-left", "200px");
   expect(await navigation.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
-  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code"]);
+  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code", "/#writing", "/#contact"]);
   await expect(page.getByRole("button", { name: "Jump to section" })).toHaveCount(0);
 
   const homeBox = await page.getByRole("link", { name: "Back to top" }).boundingBox();
@@ -37,7 +35,7 @@ test("desktop navigation highlights the section at the sticky-header edge", asyn
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
 
   await expect(navigation.locator('a[aria-current="location"]')).toHaveCount(0);
-  for (const id of ["about", "experience", "education", "skills", "projects", "code"]) {
+  for (const id of ["about", "experience", "education", "skills", "projects", "code", "writing", "contact"]) {
     const href = `/#${id}`;
     await page.locator(`#${id}`).evaluate((section) => {
       section.scrollIntoView();
@@ -214,7 +212,7 @@ for (const path of ["/", "/articles/building-an-llm-evaluation-harness"]) {
   });
 }
 
-test("the home page contains approved content through Phase 7 Code activity", async ({ page }) => {
+test("the home page contains approved content through Phase 9 Contact", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
@@ -231,7 +229,8 @@ test("the home page contains approved content through Phase 7 Code activity", as
   const primaryBox = await primaryAction.boundingBox();
   const secondaryBox = await secondaryAction.boundingBox();
   if (!primaryBox || !secondaryBox) throw new Error("Hero actions must be measurable");
-  expect(primaryBox).toMatchObject({ x: 22, width: 346, height: 46 });
+  expect(primaryBox).toMatchObject({ x: 22, width: 346, height: 48 });
+  expect(secondaryBox.height).toBe(48);
   expect(secondaryBox.y - primaryBox.y - primaryBox.height).toBe(6);
   expect(["lab(0 0 0)", "oklch(0 0 0)"]).toContain(
     await primaryAction.evaluate((element) => getComputedStyle(element).backgroundColor),
@@ -242,9 +241,10 @@ test("the home page contains approved content through Phase 7 Code activity", as
   await expect(primaryAction.locator("svg")).toHaveCSS("transition-duration", "0s");
   await secondaryAction.hover();
   await expect(secondaryAction.locator("svg")).not.toHaveCSS("translate", "none");
+  const hero = page.locator('section[aria-labelledby="intro-heading"]');
   const socialBoxes = [];
   for (const label of ["LinkedIn", "Telegram", "GitHub", "LeetCode"]) {
-    const link = page.getByRole("link", { name: label, exact: true });
+    const link = hero.getByRole("link", { name: label, exact: true });
     await expect(link).toBeVisible();
     await expect(link.locator("svg")).toHaveCount(1);
     socialBoxes.push(await link.boundingBox());
@@ -375,9 +375,15 @@ test("the home page contains approved content through Phase 7 Code activity", as
     "Vector search",
     "Retrieval evaluation",
   ]);
-  for (const id of futureSectionIds) {
-    await expect(page.locator(`#${id}`)).toHaveCount(0);
-  }
+  const contact = page.locator("#contact");
+  await expect(contact.getByText("Contact", { exact: true })).toBeVisible();
+  await expect(contact.getByRole("heading", { level: 2, name: "Let's talk" })).toBeVisible();
+  await expect(contact.getByRole("textbox", { name: "Name" })).toHaveAttribute("required", "");
+  await expect(contact.getByRole("textbox", { name: "Email" })).toHaveAttribute("required", "");
+  await expect(contact.getByRole("textbox", { name: "Message" })).toHaveAttribute("required", "");
+  const linkedIn = contact.getByRole("link", { name: "LinkedIn", exact: true });
+  expect(await linkedIn.locator("svg").first().locator("path").evaluate((path) => getComputedStyle(path).fill))
+    .toBe(await linkedIn.evaluate((link) => getComputedStyle(link).color));
 });
 
 test("Experience keeps the date rail, compact reading order, and native disclosure", async ({ page }) => {
@@ -774,7 +780,8 @@ test("Skills renders every validated item with one consistent icon slot", async 
   await expect(skills.getByRole("heading", { level: 3 })).toHaveText([
     "AI / Machine Learning",
     "Programming Languages",
-    "Backend & Data",
+    "Backend",
+    "Data",
     "Cloud & DevOps",
     "Observability & CI/CD",
     "AI Development Tools",
@@ -783,8 +790,9 @@ test("Skills renders every validated item with one consistent icon slot", async 
     "Microsoft Agent Framework",
     "Semantic Kernel",
     "Microsoft.Extensions.AI",
+    "Large Language Models (LLMs)",
     "LLM Evaluation",
-    "RAG Systems",
+    "Retrieval-Augmented Generation (RAG)",
     "Azure AI Foundry",
     "Langfuse",
     "C#",
@@ -795,7 +803,6 @@ test("Skills renders every validated item with one consistent icon slot", async 
     "ASP.NET Web API",
     "Entity Framework",
     "REST API",
-    "Postman",
     "Microsoft SQL Server",
     "PostgreSQL",
     "MongoDB",
@@ -824,7 +831,7 @@ test("Skills renders every validated item with one consistent icon slot", async 
     "GitHub Copilot",
   ]);
   await expect(skills.locator('[data-slot="skill-icon"]')).toHaveCount(42);
-  await expect(skills.locator('[data-icon-kind="semantic-gradient"]')).toHaveCount(4);
+  await expect(skills.locator('[data-icon-kind="semantic-gradient"]')).toHaveCount(5);
   await expect(skills.locator('[data-icon-kind="dotnet"]')).toHaveCount(4);
   await expect(skills.locator('[data-icon-kind="gcp-api"]')).toHaveCount(1);
   await expect(skills.locator('[data-icon-kind="microsoft-agent-framework"]')).toHaveCount(1);
@@ -832,6 +839,10 @@ test("Skills renders every validated item with one consistent icon slot", async 
   await expect(skills.locator('[data-icon-kind="claude-design"]')).toHaveCount(1);
   await expect(skills.locator('[data-icon-kind="codex"]')).toHaveCount(1);
   await expect(skills.getByText("Semantic Kernel", { exact: true }).locator("..").locator(".lucide-sparkles")).toHaveCount(2);
+  await expect(skills.getByText("Large Language Models (LLMs)", { exact: true })
+    .locator("..").locator(".lucide-brain-circuit")).toHaveCount(2);
+  await expect(skills.getByText("Retrieval-Augmented Generation (RAG)", { exact: true })
+    .locator("..").locator(".lucide-text-search")).toHaveCount(2);
   expect(await skills.locator('[data-icon-kind="semantic-gradient"]').evaluateAll((icons) =>
     icons.every((icon) => {
       const layers = icon.querySelectorAll("svg");
@@ -1033,6 +1044,229 @@ test("Code activity renders live GitHub data and fails open without empty UI", a
     await expect(contributionDay).toHaveCSS("scale", "none");
     await expect(contributionDay).toHaveCSS("box-shadow", "none");
   }
+});
+
+test("Writing renders validated article metadata across responsive themes", async ({ page }) => {
+  for (const width of [390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#writing");
+    const writing = page.locator("#writing");
+    const article = writing.getByRole("link", {
+      name: /Building an LLM Evaluation Harness with Microsoft\.Extensions\.AI/,
+    });
+
+    expect(await writing.locator('a[href^="/articles/"]').evaluateAll((links) =>
+      links.map((link) => link.getAttribute("href")),
+    )).toEqual([
+      "/articles/building-an-llm-evaluation-harness",
+      "/articles/fixing-bugs-with-mcps",
+      "/articles/microsoft-agent-framework-setup",
+    ]);
+    await expect(article).toHaveAttribute("href", "/articles/building-an-llm-evaluation-harness");
+    await expect(article.getByText("March 16, 2026", { exact: true })).toBeVisible();
+    await expect(article).toContainText("March 16, 2026 · 8 min read");
+    await expect(article).toContainText("A dataset-driven NUnit evaluation harness");
+    await expect(writing.locator('[data-slot="more-articles-link"]')).toHaveAttribute("href", "/articles");
+    expect(await writing.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
+  }
+
+  await page.evaluate(() => {
+    localStorage.setItem("theme", "dark");
+  });
+  await page.reload();
+  await expect(page.locator("#writing")).toBeVisible();
+});
+
+test("Contact exposes its inactive and partially complete requirements", async ({ page }) => {
+  await page.goto("/#contact");
+  const contact = page.locator("#contact");
+  const send = contact.getByRole("button", { name: "Send message" });
+
+  await expect(send).toBeDisabled();
+  await expect(contact.getByText("All three fields required", { exact: true })).toHaveCount(0);
+  await expect(contact.getByText("No mail client?", { exact: true })).toHaveCount(0);
+  await contact.getByRole("textbox", { name: "Name" }).fill("Anna Sokolova");
+  await contact.getByRole("textbox", { name: "Email" }).fill("anna@example.com");
+  await expect(send).toBeDisabled();
+  await expect(contact.getByText("Message still empty", { exact: true })).toBeVisible();
+});
+
+test("Contact keeps a visible keyboard focus indicator", async ({ page }) => {
+  await page.goto("/#contact");
+  const name = page.locator("#contact").getByRole("textbox", { name: "Name" });
+
+  await name.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(name).toBeFocused();
+  await expect(name).toHaveCSS("box-shadow", "none");
+  await expect(name).toHaveCSS("outline-style", "solid");
+  await expect(name).toHaveCSS("outline-width", "2px");
+  expect(await name.evaluate((input) => {
+    const style = getComputedStyle(input);
+    return style.outlineColor === style.color;
+  })).toBe(true);
+});
+
+test("Contact links use the shared muted hover treatment", async ({ page }) => {
+  await page.goto("/#contact");
+  const contact = page.locator("#contact");
+  const foreground = await page.locator("body").evaluate((body) => getComputedStyle(body).color);
+
+  for (const label of [
+    "reshetnik.nikita@gmail.com",
+    "LinkedIn",
+    "Telegram",
+    "GitHub",
+    "LeetCode",
+  ]) {
+    const link = contact.getByRole("link", { name: label, exact: true });
+    expect(await link.evaluate((element) => getComputedStyle(element).color)).not.toBe(foreground);
+    await link.hover();
+    await expect(link).toHaveCSS("color", foreground);
+  }
+
+  await expect(contact.getByText("Book a call", { exact: true })).toHaveCSS("opacity", "0.35");
+});
+
+test("Contact reuses the primary action and balances its desktop columns", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/#contact");
+  const contact = page.locator("#contact");
+
+  await contact.getByRole("textbox", { name: "Name" }).fill("Anna Sokolova");
+  await contact.getByRole("textbox", { name: "Email" }).fill("anna@example.com");
+  await contact.getByRole("textbox", { name: "Message" }).fill("Hello there");
+
+  const download = page.getByRole("link", { name: "Download Résumé" });
+  const explore = page.getByRole("link", { name: "Explore Experience" });
+  const send = contact.getByRole("button", { name: "Send message" });
+  /**
+   * Reads the computed styles that define the shared primary action treatment.
+   *
+   * @param selector - Action locator to inspect.
+   * @returns The comparable primary action styles.
+   */
+  const actionStyles = async (selector: typeof download) => selector.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      borderRadius: style.borderRadius,
+      color: style.color,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      height: style.height,
+      paddingLeft: style.paddingLeft,
+      paddingRight: style.paddingRight,
+    };
+  });
+  expect(await actionStyles(send)).toEqual(await actionStyles(download));
+  await expect(download).toHaveCSS("height", "48px");
+  await expect(explore).toHaveCSS("height", "48px");
+
+  const leftColumn = contact.locator(":scope > div > div").first();
+  const form = contact.locator("form");
+  const message = contact.getByRole("textbox", { name: "Message" });
+  const [leftBox, formBox, messageBox] = await Promise.all([
+    leftColumn.boundingBox(),
+    form.boundingBox(),
+    message.boundingBox(),
+  ]);
+  if (!leftBox || !formBox || !messageBox) throw new Error("Contact columns must be measurable");
+
+  expect(Math.abs(leftBox.y + leftBox.height - formBox.y - formBox.height)).toBeLessThanOrEqual(1);
+  expect(messageBox.height).toBeGreaterThan(112);
+});
+
+test("Contact native validation focuses an invalid email", async ({ page }) => {
+  await page.goto("/#contact");
+  const contact = page.locator("#contact");
+  const email = contact.getByRole("textbox", { name: "Email" });
+
+  await contact.getByRole("textbox", { name: "Name" }).fill("Anna Sokolova");
+  await email.fill("not-an-email");
+  await contact.getByRole("textbox", { name: "Message" }).fill("Hello there");
+  await expect(contact.getByRole("button", { name: "Send message" })).toBeDisabled();
+  await contact.locator("form").evaluate((form: HTMLFormElement) => {
+    form.requestSubmit();
+  });
+
+  await expect(email).toBeFocused();
+  expect(await email.evaluate((input: HTMLInputElement) => input.validity.typeMismatch)).toBe(true);
+});
+
+test("Contact computes the ready mail-app handoff from all fields", async ({ page }) => {
+  await page.goto("/#contact");
+  const contact = page.locator("#contact");
+
+  await contact.getByRole("textbox", { name: "Name" }).fill("Anna Sokolova");
+  await contact.getByRole("textbox", { name: "Email" }).fill("anna@example.com");
+  await contact.getByRole("textbox", { name: "Message" }).fill("Hello there");
+
+  await expect(contact.getByRole("button", { name: "Send message" })).toBeEnabled();
+  await expect(contact.getByText("Opens your mail app", { exact: true })).toHaveCount(0);
+  await expect(contact.getByText("Subject: Portfolio message from Anna Sokolova", { exact: true }))
+    .toHaveCount(0);
+  await expect(contact.locator("form")).toHaveAttribute(
+    "action",
+    "mailto:reshetnik.nikita@gmail.com?subject=Portfolio%20message%20from%20Anna%20Sokolova&body=From%3A%20Anna%20Sokolova%20%3Canna%40example.com%3E%0A%0AHello%20there",
+  );
+});
+
+test("Contact reflows without overflow in both themes", async ({ page }) => {
+  for (const { width, theme } of [
+    { width: 195, theme: "light" },
+    { width: 390, theme: "dark" },
+    { width: 414, theme: "light" },
+    { width: 1440, theme: "dark" },
+  ]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#contact");
+    await page.evaluate((selectedTheme) => {
+      localStorage.setItem("theme", selectedTheme);
+    }, theme);
+    await page.reload();
+
+    await expect(page.locator("html")).toHaveClass(new RegExp(theme));
+    const send = page.locator("#contact").getByRole("button", { name: "Send message" });
+    await expect(send).toBeVisible();
+    expect(await send.evaluate((button) => button.scrollHeight <= button.clientHeight)).toBe(true);
+    expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+  }
+});
+
+test("Contact clears the desktop sticky header through its direct anchor", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/#contact");
+
+  const sectionRule = page.locator("#contact > p");
+  const ruleBox = await sectionRule.boundingBox();
+  const headingBox = await page.getByRole("heading", { level: 2, name: "Let's talk" }).boundingBox();
+  const headerBox = await page.locator('[data-slot="site-header"]').boundingBox();
+  if (!ruleBox || !headingBox || !headerBox) throw new Error("Contact heading and rule must be measurable");
+
+  expect(ruleBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+  expect(headingBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+  await expect(sectionRule).toHaveCSS("border-top-width", "1px");
+});
+
+test("collection links select the matching desktop header item after client navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/#projects");
+  await page.locator('[data-slot="more-projects-link"]').click();
+  await expect(page).toHaveURL(/\/projects$/);
+
+  const navigation = page.getByRole("navigation", { name: "Primary navigation" });
+  await expect(navigation.getByRole("link", { name: "Projects" }))
+    .toHaveAttribute("aria-current", "location");
+  await expect(navigation.getByRole("link", { name: "Writing" }))
+    .not.toHaveAttribute("aria-current", "location");
+
+  await page.goto("/#writing");
+  await page.locator('[data-slot="more-articles-link"]').click();
+  await expect(page).toHaveURL(/\/articles$/);
+  await expect(navigation.getByRole("link", { name: "Writing" }))
+    .toHaveAttribute("aria-current", "location");
 });
 
 test("descriptor follows the reference timing and reduced-motion animation", async ({ page }) => {
@@ -1260,7 +1494,7 @@ test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
   for (const width of [390, 768, 1024, 1279, 1280]) {
-    test(`the Phase 7 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
+    test(`the Phase 9 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/");
       await expect(page.getByRole("navigation", {
@@ -1269,7 +1503,7 @@ test.describe("without JavaScript", () => {
       })).toHaveCount(1);
       expect(await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
         links.map((link) => link.getAttribute("href")),
-      )).toEqual(width >= 1280 ? ["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code"] : ["/#top"]);
+      )).toEqual(width >= 1280 ? ["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code", "/#writing", "/#contact"] : ["/#top"]);
       await expect(page.locator('[data-slot="opening-splash"]')).toHaveCSS("visibility", "hidden");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect(page.getByRole("contentinfo")).toBeVisible();
@@ -1278,6 +1512,12 @@ test.describe("without JavaScript", () => {
       await expect(page.locator("#skills")).toHaveCount(1);
       await expect(page.locator("#projects")).toHaveCount(1);
       await expect(page.locator("#code").getByRole("link", { name: "github.com/grafanaKibana" })).toBeVisible();
+      await expect(page.locator("#writing").getByRole("link", {
+        name: /Building an LLM Evaluation Harness with Microsoft\.Extensions\.AI/,
+      })).toHaveAttribute("href", "/articles/building-an-llm-evaluation-harness");
+      await expect(page.locator("#contact").getByRole("link", {
+        name: "reshetnik.nikita@gmail.com",
+      })).toHaveAttribute("href", "mailto:reshetnik.nikita@gmail.com");
     });
   }
 
@@ -1318,7 +1558,7 @@ test.describe("without JavaScript", () => {
     });
     const disclosure = page.locator("details").filter({ has: compactNavigation });
     await disclosure.locator("summary").click();
-    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience", "Education", "Skills", "Projects", "Code"]);
+    await expect(compactNavigation.getByRole("link")).toHaveText(["About", "Experience", "Education", "Skills", "Projects", "Code", "Writing", "Contact"]);
     await compactNavigation.getByRole("link", { name: "About" }).click();
     await expect(page).toHaveURL(/#about$/);
     const headingBox = await page.getByRole("heading", { level: 2, name: "About" }).boundingBox();

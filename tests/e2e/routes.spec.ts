@@ -1,22 +1,22 @@
 import { expect, test } from "@playwright/test";
 
-const knownRoutes = [
+const knownArticleRoutes = [
   {
     path: "/articles/building-an-llm-evaluation-harness",
     heading: "Building an LLM Evaluation Harness with Microsoft.Extensions.AI",
   },
-  { path: "/projects/devbook", heading: "DevBook" },
-  { path: "/projects/latex-cv", heading: "LatexCV" },
-  { path: "/projects/lifeos", heading: "LifeOS" },
-  { path: "/projects/obsidian-colsdown", heading: "Colsdown" },
-  { path: "/projects/obsidian-tabsdown", heading: "Tabsdown" },
-  { path: "/projects/quartz-tabsdown", heading: "Quartz Tabsdown" },
-  { path: "/projects/web-portfolio-v1", heading: "web-portfolio-v1" },
-  { path: "/projects/web-portfolio-v2", heading: "web-portfolio-v2" },
+  {
+    path: "/articles/fixing-bugs-with-mcps",
+    heading: "How I Fixed 14 Frontend Bugs in One Day Without Writing CSS",
+  },
+  {
+    path: "/articles/microsoft-agent-framework-setup",
+    heading: "Config-Driven Agents in .NET with Microsoft Agent Framework",
+  },
 ];
 const missingRouteFamilies = ["articles", "projects"];
 
-for (const route of knownRoutes) {
+for (const route of knownArticleRoutes) {
   test(`${route.path} renders its static MDX route`, async ({ page }) => {
     const response = await page.goto(route.path);
 
@@ -25,6 +25,44 @@ for (const route of knownRoutes) {
     await expect(page.locator("article")).toBeVisible();
   });
 }
+
+test("every project index link resolves to a static semantic case study", async ({ page }) => {
+  await page.goto("/projects");
+  const hrefs = await page.locator('[data-slot="project-row"]').evaluateAll((links) =>
+    links.map((link) => link.getAttribute("href")).filter((href): href is string => href !== null));
+
+  expect(hrefs.length).toBeGreaterThan(0);
+  for (const href of hrefs) {
+    expect(href).toMatch(/^\/projects\/[a-z0-9-]+$/);
+    const response = await page.goto(href);
+
+    expect(response?.status()).toBe(200);
+    const article = page.locator("main#main > article");
+    await expect(article).toBeVisible();
+    await expect(article.getByRole("heading", { level: 1 })).toBeVisible();
+    const headingTags = await article.locator("h1, h2, h3, h4, h5, h6").evaluateAll((headings) =>
+      headings.map((heading) => heading.tagName));
+    expect(headingTags[0]).toBe("H1");
+    expect(headingTags.slice(1)).not.toContain("H1");
+  }
+});
+
+test("every Home Writing link resolves to a rendered static article", async ({ page }) => {
+  await page.goto("/");
+  const links = page.locator('#writing a[href^="/articles/"]');
+  const hrefs = await links.evaluateAll((anchors) =>
+    anchors.map((anchor) => anchor.getAttribute("href")).filter((href) => href !== null));
+
+  expect(hrefs.length).toBeGreaterThan(0);
+  for (const href of hrefs) {
+    const response = await page.goto(href);
+
+    expect(response?.status()).toBe(200);
+    const article = page.locator("main#main > article");
+    await expect(article).toBeVisible();
+    await expect(article.getByRole("heading", { level: 1 })).toBeVisible();
+  }
+});
 
 for (const family of missingRouteFamilies) {
   test(`unknown ${family} slug uses the static framework 404`, async ({ page }) => {
@@ -36,6 +74,7 @@ for (const family of missingRouteFamilies) {
 }
 
 test("project case studies use the route-aware header and hero actions", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto("/projects/devbook");
 
   await expect(page.locator('[data-slot="site-header"]')).toBeHidden();
@@ -46,6 +85,7 @@ test("project case studies use the route-aware header and hero actions", async (
   await expect(navigation.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
 
   const hero = page.locator('[data-slot="project-hero"]');
+  await expect(hero.locator('[data-slot="project-title-row"] > [data-slot="project-actions"]')).toHaveCount(1);
   await expect(hero.getByRole("heading", { level: 1, name: "DevBook" })).toBeVisible();
   await expect(hero.getByRole("link", { name: "Live" })).toHaveAttribute("href", "https://devbook.zip");
   await expect(hero.getByRole("link", { name: "Source" })).toHaveAttribute(
@@ -57,6 +97,48 @@ test("project case studies use the route-aware header and hero actions", async (
   await expect(page.locator("article").getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.locator("article").getByRole("heading", { name: "Links" })).toHaveCount(0);
   await expect(page.locator("article").getByRole("heading", { name: "Stack" })).toHaveCount(0);
+
+  const titleBox = await hero.getByRole("heading", { level: 1, name: "DevBook" }).boundingBox();
+  const actionsBox = await hero.locator('[data-slot="project-actions"]').boundingBox();
+  if (!titleBox || !actionsBox) throw new Error("Project title and actions must be measurable");
+  expect(titleBox.y + titleBox.height / 2).toBeCloseTo(actionsBox.y + actionsBox.height / 2, 1);
+});
+
+test("project case-study prose keeps a readable measure without page overflow", async ({ page }) => {
+  for (const width of [390, 414, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/projects/devbook");
+
+    expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+    const articleBox = await page.locator("main#main > article").boundingBox();
+    if (!articleBox) throw new Error("Project article must be measurable");
+    expect(articleBox.width).toBeLessThanOrEqual(768);
+    expect(articleBox.x).toBeGreaterThanOrEqual(0);
+    expect(articleBox.x + articleBox.width).toBeLessThanOrEqual(width);
+  }
+});
+
+test("project case studies link to the next discovered case study", async ({ page }) => {
+  await page.goto("/projects");
+  const rows = page.locator('[data-slot="project-row"]');
+  const firstHref = await rows.nth(0).getAttribute("href");
+  const secondHref = await rows.nth(1).getAttribute("href");
+  const secondTitle = await rows.nth(1).getByRole("heading", { level: 2 }).textContent();
+  if (!firstHref || !secondHref || !secondTitle) throw new Error("Two project case studies are required");
+
+  await page.goto(firstHref);
+  const pagination = page.getByRole("navigation", { name: "Project pagination" });
+  await expect(pagination).toContainText("Next");
+  const nextLink = pagination.locator('[data-slot="next-project"]');
+  await expect(nextLink).toHaveAttribute("href", secondHref);
+  await expect(nextLink).toContainText(secondTitle.trim());
+
+  await nextLink.click();
+  await expect(page).toHaveURL(new RegExp(`${secondHref}$`));
+  await expect(page.locator("main#main > article").getByRole("heading", {
+    level: 1,
+    name: secondTitle.trim(),
+  })).toBeVisible();
 });
 
 test("web-portfolio-v1 omits the unavailable live destination", async ({ page }) => {
@@ -95,15 +177,23 @@ for (const plugin of [
 }
 
 test("the project index keeps each complete row as one ordered case-study link", async ({ page }) => {
-  await page.goto("/projects");
+  for (const width of [375, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/projects");
+
+    const mainBox = await page.locator("main#main").boundingBox();
+    if (!mainBox) throw new Error("Projects content must be measurable");
+    expect(mainBox.x + mainBox.width / 2).toBeCloseTo(width / 2, 1);
+  }
 
   const header = page.locator('[data-slot="site-header"]');
   await expect(header).toBeVisible();
   await expect(page.locator('[data-slot="project-header"]')).toHaveCount(0);
   await expect(header.getByRole("link", { name: "Back to top" })).toHaveAttribute("href", "/#top");
+  await expect(header.getByRole("link", { name: "Projects" })).toHaveAttribute("aria-current", "location");
   expect(await header.getByRole("navigation", { name: "Primary navigation" }).getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
-  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code"]);
+  )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code", "/#writing", "/#contact"]);
   await expect(page.locator("main").getByRole("heading", { level: 1, name: "Projects" })).toBeVisible();
   await expect(page.getByText("Selected work", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Software, learning systems, and applied AI work.", { exact: true })).toHaveCount(0);
@@ -114,6 +204,86 @@ test("the project index keeps each complete row as one ordered case-study link",
   expect(await rows.first().locator("article > *").evaluateAll((elements) =>
     elements.map((element) => element.tagName),
   )).toEqual(["H2", "P", "P"]);
+});
+
+test("article pages use the route-aware detail header without index-page copy", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("theme", "dark");
+  });
+  await page.goto("/articles/building-an-llm-evaluation-harness");
+
+  await expect(page.locator('[data-slot="site-header"]')).toBeHidden();
+  const header = page.locator('[data-slot="article-header"]');
+  const navigation = header.getByRole("navigation", { name: "Article navigation" });
+  await expect(header.getByRole("heading")).toHaveCount(0);
+  await expect(navigation.getByRole("link", { name: "Back to all articles" }))
+    .toHaveAttribute("href", "/articles");
+  await expect(navigation.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+  await expect(page.locator("main#main").getByText("All articles", { exact: true })).toHaveCount(0);
+  await expect(page.locator("main#main").getByText("Writing", { exact: true })).toHaveCount(0);
+  await expect(page.locator("main#main").getByRole("heading", {
+    level: 1,
+    name: "Building an LLM Evaluation Harness with Microsoft.Extensions.AI",
+  })).toBeVisible();
+
+  expect(await page.locator("main article > header > *").evaluateAll((elements) =>
+    elements.map((element) => element.tagName),
+  )).toEqual(["TIME", "H1", "P", "P"]);
+
+  const highlightedCode = page.locator(
+    'figure[data-rehype-pretty-code-figure] pre[data-language="csharp"] code[data-language="csharp"]',
+  ).first();
+  await expect(highlightedCode).toHaveAttribute(
+    "data-theme",
+    /(?:github-light.*github-dark-dimmed|github-dark-dimmed.*github-light)/,
+  );
+  await expect(highlightedCode.locator('span[style*="--shiki-light"][style*="--shiki-dark"]').first())
+    .toBeVisible();
+
+  const codeBlock = highlightedCode.locator("xpath=..");
+  const backgrounds = await codeBlock.evaluate((element) => {
+    const mutedProbe = document.createElement("span");
+    mutedProbe.className = "bg-muted";
+    document.body.append(mutedProbe);
+    const result = {
+      block: getComputedStyle(element).backgroundColor,
+      muted: getComputedStyle(mutedProbe).backgroundColor,
+      page: getComputedStyle(document.body).backgroundColor,
+    };
+    mutedProbe.remove();
+    return result;
+  });
+  expect(backgrounds.block).not.toBe(backgrounds.muted);
+  expect(backgrounds.block).not.toBe(backgrounds.page);
+});
+
+test("the Writing index reuses the approved whole-row project composition", async ({ page }) => {
+  for (const width of [375, 414, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/articles");
+    expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+
+    const mainBox = await page.locator("main#main").boundingBox();
+    if (!mainBox) throw new Error("Articles content must be measurable");
+    expect(mainBox.x + mainBox.width / 2).toBeCloseTo(width / 2, 1);
+  }
+
+  await expect(page.locator("main").getByRole("heading", { level: 1, name: "Articles" })).toBeVisible();
+  await expect(page.getByText("Notes on AI evaluation and software engineering.", { exact: true })).toHaveCount(0);
+
+  const rows = page.locator('[data-slot="article-row"]');
+  await expect(rows).toHaveCount(3);
+  expect(await rows.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
+    "/articles/building-an-llm-evaluation-harness",
+    "/articles/fixing-bugs-with-mcps",
+    "/articles/microsoft-agent-framework-setup",
+  ]);
+  expect(await rows.first().locator("article > *").evaluateAll((elements) =>
+    elements.map((element) => element.tagName),
+  )).toEqual(["P", "H2", "P"]);
+  await expect(rows.first()).toContainText("March 16, 2026 · 8 min read");
+  await expect(page.locator('[data-slot="site-header"]').getByRole("link", { name: "Writing" }))
+    .toHaveAttribute("aria-current", "location");
 });
 
 test("project case-study headers leave their center empty on narrow screens", async ({ page }) => {
@@ -138,7 +308,7 @@ test("Home sections keep their semantic order", async ({ page }) => {
 
   expect(await page.locator("main#main > section").evaluateAll((sections) =>
     sections.map((section) => section.getAttribute("aria-labelledby") ?? section.id),
-  )).toEqual(["intro-heading", "about-heading", "experience-heading", "education-heading", "skills-heading", "projects-heading", "code-heading"]);
+  )).toEqual(["intro-heading", "about-heading", "experience-heading", "education-heading", "skills-heading", "projects-heading", "code-heading", "writing-heading", "contact-heading"]);
 });
 
 test.describe("without JavaScript", () => {
@@ -190,7 +360,8 @@ test.describe("without JavaScript", () => {
     await expect(skills.getByRole("heading", { level: 3 })).toHaveText([
       "AI / Machine Learning",
       "Programming Languages",
-      "Backend & Data",
+      "Backend",
+      "Data",
       "Cloud & DevOps",
       "Observability & CI/CD",
       "AI Development Tools",
@@ -198,20 +369,14 @@ test.describe("without JavaScript", () => {
     await expect(skills.locator('[data-slot="skill"]')).toHaveCount(42);
     await expect(skills.locator('[data-slot="skill-icon"]')).toHaveCount(42);
     await expect(page.locator("#code").getByRole("link", { name: "github.com/grafanaKibana" })).toBeVisible();
-    for (const id of ["writing", "contact"]) {
-      await expect(page.locator(`#${id}`)).toHaveCount(0);
-    }
-
-    await page.goto("/articles");
-    await page
-      .getByRole("link", {
-        name: "Building an LLM Evaluation Harness with Microsoft.Extensions.AI",
-      })
-      .click();
-    await expect(page).toHaveURL(/\/articles\/building-an-llm-evaluation-harness$/);
-    await expect(
-      page.getByRole("heading", { level: 2, name: "The structure" }),
-    ).toBeVisible();
+    const writing = page.locator("#writing");
+    await expect(writing.getByRole("heading", { level: 2, name: "Writing" })).toBeVisible();
+    const articleLinks = writing.locator('a[href^="/articles/"]');
+    expect(await articleLinks.count()).toBeGreaterThan(0);
+    await articleLinks.first().click();
+    const article = page.locator("main#main > article");
+    await expect(article).toBeVisible();
+    await expect(article.getByRole("heading", { level: 1 })).toBeVisible();
 
     await page.goto("/projects");
     await page.getByRole("link", { name: "DevBook" }).click();

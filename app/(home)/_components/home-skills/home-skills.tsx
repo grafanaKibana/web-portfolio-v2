@@ -32,7 +32,7 @@ import {
   Typescript,
   Vercel,
 } from "@thesvg/react";
-import { Database, Gauge, Sparkles, TextSearch, type LucideIcon } from "lucide-react";
+import { BrainCircuit, Database, Gauge, Sparkles, TextSearch, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { home, profile } from "@/content/structured";
@@ -70,8 +70,9 @@ const skillIcons: Readonly<Record<string, ReactNode>> = {
   ),
   "Semantic Kernel": <SemanticGradientIcon icon={Sparkles} tone={styles.orchestration} />,
   "Microsoft.Extensions.AI": <Microsoft className={clsx(styles.brandIcon, styles.colorBrandIcon)} />,
+  "Large Language Models": <SemanticGradientIcon icon={BrainCircuit} tone={styles.orchestration} />,
   "LLM Evaluation": <SemanticGradientIcon icon={Gauge} tone={styles.evaluation} />,
-  "RAG Systems": <SemanticGradientIcon icon={TextSearch} tone={styles.retrieval} />,
+  "Retrieval-Augmented Generation": <SemanticGradientIcon icon={TextSearch} tone={styles.retrieval} />,
   "Azure AI Foundry": <AzureAiStudio className={clsx(styles.brandIcon, styles.colorBrandIcon)} />,
   Langfuse: <Langfuse className={clsx(styles.brandIcon, styles.colorBrandIcon)} variant="color" />,
   "C#": <span className={styles.dotnetBadge} data-icon-kind="dotnet">C#</span>,

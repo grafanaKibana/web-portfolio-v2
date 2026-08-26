@@ -2,6 +2,7 @@ import { ArrowDown, Download, type LucideIcon } from "lucide-react";
 import { home } from "@/content/structured";
 import { clsx } from "clsx";
 import { DescriptorRotation } from "../descriptor-rotation/descriptor-rotation";
+import { PrimaryAction } from "../primary-action/primary-action";
 import styles from "./home-hero.module.scss";
 
 const icons: Record<string, LucideIcon> = {
@@ -76,16 +77,12 @@ export function HomeHero() {
         />
       </div>
       <div className={clsx(styles.actions, "flex w-full flex-col lg:w-auto lg:flex-row lg:items-center")}>
-        <a
-          className={clsx(styles.action, "inline-flex w-full items-center justify-center gap-2 rounded-md border border-transparent bg-primary font-medium text-primary-foreground hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:w-auto lg:px-4 lg:leading-5")}
-          download
-          href={primaryAction.href}
-        >
+        <PrimaryAction download href={primaryAction.href}>
           <Icon name={primaryAction.icon} className={clsx(styles.primaryActionIcon)} />
           {primaryAction.label}
-        </a>
+        </PrimaryAction>
         <a
-          className={clsx(styles.action, "group mt-1.5 inline-flex w-full items-center justify-center gap-2 rounded-md font-medium transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto")}
+          className={clsx(styles.secondaryAction, "group mt-1.5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md font-medium transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto")}
           href={secondaryAction.href}
         >
           {secondaryAction.label}

@@ -4,39 +4,340 @@ export const metadata = {
   description:
     "A dataset-driven NUnit evaluation harness for prompt test suites, classification metrics, LLM-based evaluators, and local or CI reporting.",
   published: "2026-03-16",
-  tags: [".NET", "AI evaluation", "NUnit"],
+  tags: [".NET","AI evaluation","NUnit"],
 }
 
-The official `Microsoft.Extensions.AI.Evaluation` examples explain how to run an evaluator against one response. A production test suite also needs repeatable datasets, parallel execution, aggregate metrics, and reports that engineers can inspect locally or in CI.
+The official `Microsoft.Extensions.AI.Evaluation` docs show you how to run a single evaluator against a single response. That's useful for understanding the API. It's not useful for running 500 test cases against a prompt, computing accuracy/F1/precision across classes, and generating an HTML report you can open in CI.
 
-The harness is NUnit-based, dataset-driven, and produces reports with `dotnet aieval report`.
+Here's the evaluation harness I use in production. It's NUnit-based, dataset-driven, and produces reports via `dotnet aieval report`.
 
 ## The structure
 
-```text
+```
 MEAI.Evaluations/
 ├── Common/
-│   ├── EvaluationTestBase.cs
-│   ├── EvaluatorBase.cs
+│   ├── EvaluationTestBase.cs     # Generic base for all eval tests
+│   ├── EvaluatorBase.cs          # Typed evaluator with context extraction
 │   ├── Evaluators/
-│   └── Calculators/
+│   │   ├── Classification/       # Exact match + F1/precision/recall
+│   │   ├── Blocklist/            # Prohibited content checking
+│   │   ├── Range/                # Numeric range validation
+│   │   └── TextQuality/          # LLM-judged quality scoring
+│   └── Calculators/              # ClassificationCalculator, SemanticSimilarity, MRR
 ├── Datasets/
+│   └── SentimentClassification.csv
 ├── Scenarios/
-└── RunEvaluation.cs
+│   └── SentimentClassification/
+│       └── SentimentClassificationEvaluation.cs
+└── RunEvaluation.cs              # CLI: test → report → browser
 ```
 
-Every evaluation scenario is one NUnit test class backed by a CSV dataset. The base class handles chat client setup, reporting configuration, and summary generation. The scenario supplies the prompt, evaluators, and aggregate metrics.
+Every evaluation scenario is **one NUnit test class** backed by a **CSV dataset**. The base class handles chat client setup, reporting configuration, and summary generation. You override what matters: the evaluators, the prompt, and how to compute aggregate metrics.
 
 ## The base test class
 
-The base class is generic over the prediction type collected during each test iteration. It keeps the model under test separate from the judge model, runs child cases in parallel, and stores predictions in a `ConcurrentBag` so collection remains safe across threads.
+This is the core abstraction. It's generic over `TPrediction` — the type of result you collect during each test iteration for summary aggregation later.
 
-## Aggregating results
+```csharp
+[TestFixture]
+[Category("LLMCalls")]
+[Parallelizable(ParallelScope.Children)]
+public abstract class EvaluationTestBase<TPrediction>
+{
+    protected IChatClient InferenceChatClient { get; private set; } = null!;
+    protected ConcurrentBag<TPrediction> Predictions { get; } = [];
+    protected ReportingConfiguration ReportingConfig { get; private set; } = null!;
 
-The evaluation library scores individual iterations but does not aggregate metrics across them. The harness computes those metrics during teardown and writes a separate summary scenario into the report.
+    [OneTimeSetUp]
+    public async Task BaseSetupAsync()
+    {
+        InferenceChatClient = CreateChatClient(Settings.InferenceModelId);
+        var judgeChatClient = CreateChatClient(Settings.JudgeModelId);
 
-That keeps per-case detail and aggregate quality in one place: engineers can inspect individual ExactMatch failures alongside accuracy, precision, recall, and F1 without leaving the generated HTML report.
+        ReportingConfig = DiskBasedReportingConfiguration.Create(
+            storageRootPath: EvaluationExecutionContext.ReportsPath,
+            evaluators: GetPerIterationEvaluators(),
+            chatConfiguration: new ChatConfiguration(judgeChatClient),
+            enableResponseCaching: false,
+            executionName: EvaluationExecutionContext.ExecutionName);
+    }
+
+    [OneTimeTearDown]
+    public async Task BaseTeardownAsync()
+    {
+        await GenerateSummaryReportAsync();
+        // dispose clients...
+    }
+
+    protected abstract IEvaluator[] GetPerIterationEvaluators();
+
+    protected abstract Dictionary<string, IEnumerable<SummaryMetric>>
+        ComputeSummaryMetrics(IReadOnlyList<TPrediction> predictions);
+
+    protected static IEnumerable<TestCaseData> LoadTestCases(
+        string datasetFileName, params string[] columns);
+}
+```
+
+A few things to note:
+
+**Two separate models.** `InferenceChatClient` is the model being tested. The judge model (used inside `ChatConfiguration`) is the model that scores the responses. Keeping them separate means you can evaluate gpt-4.1-mini's output using gpt-4.1 as a judge — or vice versa.
+
+**`DiskBasedReportingConfiguration`** from `Microsoft.Extensions.AI.Evaluation.Reporting` stores results to disk. The `dotnet aieval report` CLI tool reads these and generates an HTML report. Each test run gets its own timestamped folder.
+
+**`Parallelizable(ParallelScope.Children)`** means NUnit runs test cases in parallel. The `ConcurrentBag<TPrediction>` collects results safely across threads. On teardown, the base class computes summary metrics from all collected predictions and writes them as a separate summary scenario.
+
+**`LoadTestCases`** reads a CSV file and yields NUnit `TestCaseData` objects — one per row. The first column becomes the test case display name.
+
+## Writing an evaluator
+
+The library ships with evaluators like `RelevanceTruthAndCompletenessEvaluator` and `CoherenceEvaluator`. They work well for general quality. But for classification tasks — where you need exact-match checking and aggregate F1 scores — you write your own.
+
+Every custom evaluator extends `EvaluatorBase<TContext>`, which handles context extraction and error cases:
+
+```csharp
+public abstract class EvaluatorBase<TContext> : IEvaluator
+    where TContext : EvaluationContext
+{
+    public abstract IReadOnlyCollection<string> EvaluationMetricNames { get; }
+
+    public ValueTask<EvaluationResult> EvaluateAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatResponse modelResponse,
+        ChatConfiguration? chatConfiguration = null,
+        IEnumerable<EvaluationContext>? additionalContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        var context = additionalContext?.OfType<TContext>().FirstOrDefault();
+
+        if (context is null)
+            return ValueTask.FromResult(
+                CreateMissingContextResult(messages, modelResponse, chatConfiguration));
+
+        return EvaluateCoreAsync(messages.ToList(), modelResponse,
+            context, chatConfiguration, cancellationToken);
+    }
+
+    protected abstract ValueTask<EvaluationResult> EvaluateCoreAsync(
+        IList<ChatMessage> messages,
+        ChatResponse modelResponse,
+        TContext context,
+        ChatConfiguration? chatConfiguration,
+        CancellationToken cancellationToken);
+}
+```
+
+The typed context pattern is important. `additionalContext` in the evaluation API is `IEnumerable<EvaluationContext>` — it's a generic bag. By constraining to `TContext`, the evaluator gets a strongly typed object with exactly the data it needs (expected label, comparison mode, response parser).
+
+Here's the classification evaluator's core logic:
+
+```csharp
+protected override ValueTask<EvaluationResult> EvaluateCoreAsync(
+    IList<ChatMessage> messages,
+    ChatResponse modelResponse,
+    ClassificationEvaluationContext context,
+    ChatConfiguration? chatConfiguration,
+    CancellationToken cancellationToken)
+{
+    var predictedLabel = modelResponse.Text?.Trim() ?? string.Empty;
+
+    var isMatch = string.Equals(
+        context.ExpectedLabel, predictedLabel,
+        context.Comparison);
+
+    var metric = new BooleanMetric("ExactMatch", isMatch)
+    {
+        Interpretation = new EvaluationMetricInterpretation
+        {
+            Rating = isMatch
+                ? EvaluationRating.Exceptional
+                : EvaluationRating.Unacceptable,
+            Failed = !isMatch,
+            Reason = isMatch
+                ? $"'{predictedLabel}' matches expected."
+                : $"Expected '{context.ExpectedLabel}', got '{predictedLabel}'."
+        }
+    };
+
+    return ValueTask.FromResult(new EvaluationResult(metric));
+}
+```
+
+Per iteration, it produces a single `BooleanMetric`. After all iterations complete, the base class calls `ComputeSummaryMetrics()` which feeds the collected predictions into `ClassificationCalculator` — computing accuracy, macro precision, macro recall, and macro F1 across all classes.
+
+## Writing a scenario
+
+A scenario is one NUnit test class. It declares the dataset, prompt, evaluators, and how to aggregate:
+
+```csharp
+public class SentimentClassificationEvaluation
+    : EvaluationTestBase<ClassificationPrediction>
+{
+    private const string DatasetFile = "SentimentClassification.csv";
+
+    private const string SystemPrompt =
+        "You are a sentiment classifier. " +
+        "Classify the sentiment as exactly one of: Positive, Negative, or Neutral. " +
+        "Respond with only the sentiment label, nothing else.";
+
+    protected override IEvaluator[] GetPerIterationEvaluators() =>
+        [new ClassificationEvaluator()];
+
+    protected override Dictionary<string, IEnumerable<SummaryMetric>>
+        ComputeSummaryMetrics(IReadOnlyList<ClassificationPrediction> predictions) =>
+        ClassificationEvaluator.ComputeSummaryMetrics(predictions);
+
+    private static IEnumerable<TestCaseData> TestCases() =>
+        LoadTestCases(DatasetFile, "ID", "Input", "Expected Sentiment");
+
+    [Test]
+    [TestCaseSource(nameof(TestCases))]
+    public async Task ClassifySentiment(
+        string id, string input, string expectedSentiment)
+    {
+        await using var scenarioRun = await ReportingConfig
+            .CreateScenarioRunAsync(
+                scenarioName: GetScenarioName(),
+                iterationName: id);
+
+        List<ChatMessage> messages =
+        [
+            new(ChatRole.System, SystemPrompt),
+            new(ChatRole.User, input)
+        ];
+
+        var response = await InferenceChatClient.GetResponseAsync(messages);
+        var predictedSentiment = response.Text?.Trim() ?? string.Empty;
+
+        Predictions.Add(new ClassificationPrediction(
+            expectedSentiment, predictedSentiment));
+
+        await scenarioRun.EvaluateAsync(
+            messages, response,
+            additionalContext:
+            [
+                new ClassificationEvaluationContext(expectedSentiment)
+            ]);
+    }
+}
+```
+
+The CSV dataset drives the test cases:
+
+```csv
+ID,Input,Expected Sentiment
+SC-001,"This product is amazing, I love it!",Positive
+SC-002,"Terrible experience, would not recommend.",Negative
+SC-003,"The package arrived on Tuesday.",Neutral
+```
+
+Each row becomes one NUnit test case. The test sends the input to the inference model, collects the prediction, and passes both the response and the expected label (via `ClassificationEvaluationContext`) to the evaluator. Fifteen rows = fifteen test cases, all running in parallel.
+
+## Aggregating results with the summary evaluator
+
+Here's the problem: the reporting infrastructure stores **per-iteration** results. You get 15 rows in the report — one per test case — each with an ExactMatch boolean. That's useful for debugging. It's not useful for answering "what's the overall accuracy of this prompt?"
+
+The evaluation library doesn't natively aggregate metrics across iterations. You need to do it yourself and inject the results back into the report.
+
+That's what the summary evaluator does. It doesn't actually evaluate anything — it takes **pre-computed metrics** and wraps them in the reporting format so they appear in the HTML report alongside the per-case results.
+
+```csharp
+public class SummaryEvaluator(IEnumerable<SummaryMetric> metrics) : IEvaluator
+{
+    private readonly List<SummaryMetric> metricsList = metrics.ToList();
+
+    public IReadOnlyCollection<string> EvaluationMetricNames =>
+        metricsList.Select(m => m.Name).ToList();
+
+    public ValueTask<EvaluationResult> EvaluateAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatResponse modelResponse,
+        ChatConfiguration? chatConfiguration = null,
+        IEnumerable<EvaluationContext>? additionalContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = metricsList
+            .Select(CreateNumericMetric)
+            .Cast<EvaluationMetric>()
+            .ToList();
+
+        return ValueTask.FromResult(new EvaluationResult(result));
+    }
+}
+```
+
+Each `SummaryMetric` carries a value, a description, and a `Kind` that controls how it's displayed and rated in the report:
+
+```csharp
+public enum SummaryMetricKind
+{
+    Percentage,     // 0.93 → "93.00%", rated by threshold
+    FivePointScale, // 4.2 → "4.20 / 5", rated by scale
+    Count,          // 15 → "15", no rating
+    PlainNumber     // 0.87 → "0.87", no rating
+}
+
+public class SummaryMetric(
+    string name, double value, string description, SummaryMetricKind kind)
+    : EvaluationMetric(name);
+```
+
+The flow works like this: during test execution, each iteration adds a `ClassificationPrediction` to the thread-safe `ConcurrentBag`. On `[OneTimeTearDown]`, the base class calls `ComputeSummaryMetrics()` — which in the classification case computes accuracy, macro precision, macro recall, and macro F1 from all predictions — then writes them as a **separate summary scenario**:
+
+```csharp
+private async Task GenerateSummaryReportAsync()
+{
+    if (Predictions.IsEmpty) return;
+
+    var summaryMetrics = ComputeSummaryMetrics(Predictions.ToList());
+
+    foreach (var (iterationName, metrics) in summaryMetrics)
+    {
+        await CreateSummaryScenarioAsync(iterationName, metrics);
+    }
+}
+```
+
+`CreateSummaryScenarioAsync` creates a new `DiskBasedReportingConfiguration` with the `SummaryEvaluator`, creates a scenario run named `Summary.SentimentClassification`, and calls `EvaluateAsync` with a placeholder message. The pre-computed metrics flow through the evaluator into the reporting storage.
+
+The result: the HTML report shows both the **per-case detail** (15 rows with ExactMatch pass/fail) and the **aggregate dashboard** (overall accuracy 93%, macro F1 0.91, etc.) in the same report. You see where the model failed and how it performs overall — without leaving the report.
+
+## Running and reporting
+
+The `RunEvaluation.cs` script chains three steps:
+
+1. **`dotnet test`** — runs all evaluation tests, stores results to `EvaluationReports/`
+2. **`dotnet aieval report`** — generates an HTML report from the stored results
+3. **Opens the report** in the default browser (optional `--open-browser` flag)
+
+```bash
+# Run all evaluations
+dotnet run --project RunEvaluation.cs
+
+# Run a specific scenario
+dotnet run --project RunEvaluation.cs -- --name SentimentClassification
+
+# Run and open the report
+dotnet run --project RunEvaluation.cs -- --open-browser
+```
+
+The HTML report shows per-iteration results (each test case with its metrics) and summary scenarios (aggregate accuracy, F1, precision, recall). Because it's `dotnet test` under the hood, it works with any CI system — Azure DevOps, GitHub Actions, whatever runs NUnit.
+
+## Adding a new scenario
+
+The pattern is always the same:
+
+1. **Add a CSV dataset** in `Datasets/` with your test cases
+2. **Pick or write an evaluator** — use `ClassificationEvaluator` for label matching, `RangeEvaluator` for numeric ranges, `BlocklistEvaluator` for prohibited content, or write a custom one
+3. **Create a scenario class** in `Scenarios/` extending `EvaluationTestBase<TPrediction>` — override the prompt, evaluators, and summary computation
+4. **Run it** — `dotnet test` or the runner script
+
+No framework changes. No wiring updates. One CSV, one class, and you have a reproducible evaluation with an HTML report.
 
 ## Takeaway
 
-The evaluator handles individual scoring. The surrounding test infrastructure handles datasets, parallel execution, aggregation, and reporting inside the existing NUnit and CI workflow.
+`Microsoft.Extensions.AI.Evaluation` gives you the primitives: `IEvaluator`, `EvaluationResult`, `ScenarioRun`, `DiskBasedReportingConfiguration`. The official docs show each primitive individually.
+
+What they don't show is how to build a **test harness** that runs hundreds of cases in parallel, collects predictions, computes aggregate metrics, and generates a report — all inside your existing NUnit/CI pipeline.
+
+That's what the base class pattern does. The evaluation library handles individual scoring. Your infrastructure handles everything around it: datasets, parallelism, aggregation, and reporting.

@@ -1,6 +1,6 @@
 import { Github, Obsidian } from "@thesvg/react";
 import { clsx } from "clsx";
-import { ArrowLeft, ExternalLink, House } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, House } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -58,13 +58,16 @@ export default async function ProjectPage({
   const { slug } = await params;
   const project = await loadProject(slug);
   if (!project) notFound();
+  const projectSlugs = getProjectSlugs();
+  const nextSlug = projectSlugs[projectSlugs.indexOf(slug) + 1];
+  const nextProject = nextSlug ? await loadProject(nextSlug) : undefined;
 
   return (
     <>
       <header className={clsx(headerStyles.header, "sticky top-0 z-50")} data-slot="project-header">
         <nav
           aria-label={home.projects.navigationLabel}
-          className={clsx(headerStyles.navigation, headerStyles.projectNavigation, "mx-auto h-full w-full items-center")}
+          className={clsx(headerStyles.navigation, headerStyles.detailNavigation, "mx-auto h-full w-full items-center")}
         >
           <div className="flex items-center">
             <Link
@@ -91,7 +94,34 @@ export default async function ProjectPage({
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
         <article className="max-w-3xl">
           <header className="border-b pb-10" data-slot="project-hero">
-            <h1 className="text-4xl font-semibold tracking-tight">{project.metadata.title}</h1>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" data-slot="project-title-row">
+              <h1 className="min-w-0 text-4xl font-semibold tracking-tight">{project.metadata.title}</h1>
+              {project.metadata.links?.length ? (
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-6" data-slot="project-actions">
+                  {project.metadata.links.map((link) => {
+                    let icon = <ExternalLink aria-hidden="true" className="size-3.5 opacity-60" />;
+                    if (link.href.startsWith("https://obsidian.md/plugins")) {
+                      icon = <Obsidian aria-hidden="true" className="size-3.5 opacity-60" data-slot="obsidian-icon" variant="mono" />;
+                    } else if (link.href.startsWith("https://github.com/")) {
+                      icon = <Github aria-hidden="true" className="size-3.5 opacity-60" variant="mono" />;
+                    }
+
+                    return (
+                      <a
+                        className="project-action-link"
+                        href={link.href}
+                        key={link.href}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {icon}
+                        {link.label}
+                      </a>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
             <p className="mt-5 text-lg leading-8 text-muted-foreground">
               {project.metadata.description}
             </p>
@@ -100,32 +130,36 @@ export default async function ProjectPage({
                 {project.metadata.tags.join(" · ")}
               </p>
             ) : null}
-            {project.metadata.links?.length ? (
-              <div className="mt-4 flex flex-wrap items-center gap-x-6" data-slot="project-actions">
-                {project.metadata.links.map((link) => (
-                  <a
-                    className="project-action-link"
-                    href={link.href}
-                    key={link.href}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {link.href.startsWith("https://obsidian.md/plugins")
-                      ? <Obsidian aria-hidden="true" className="size-3.5 opacity-60" data-slot="obsidian-icon" variant="mono" />
-                      : link.href.startsWith("https://github.com/")
-                      ? <Github aria-hidden="true" className="size-3.5 opacity-60" variant="mono" />
-                      : <ExternalLink aria-hidden="true" className="size-3.5 opacity-60" />}
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            ) : null}
           </header>
 
           <div className="pt-6">
             <project.Content />
           </div>
         </article>
+        {nextProject ? (
+          <nav
+            aria-label={home.projects.paginationLabel}
+            className="mt-20 max-w-3xl border-t pt-8"
+            data-slot="project-pagination"
+          >
+            <Link
+              className="group ml-auto block w-fit text-right focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              data-slot="next-project"
+              href={`/projects/${nextProject.slug}`}
+            >
+              <span className="block font-mono text-xs uppercase tracking-route-kicker text-muted-foreground">
+                {home.projects.nextLabel}
+              </span>
+              <span className="mt-3 inline-flex items-center gap-3 text-2xl font-medium tracking-tight">
+                {nextProject.metadata.title}
+                <ArrowRight
+                  aria-hidden="true"
+                  className="size-5 text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground"
+                />
+              </span>
+            </Link>
+          </nav>
+        ) : null}
       </main>
     </>
   );

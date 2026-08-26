@@ -94,9 +94,10 @@ profile:
     - { title: "IT Essentials: PC Hardware and Software", provider: Cisco Networking Academy }
     - { title: "CPA: Programming Essentials in C++", provider: Cisco Networking Academy }
   skills:
-    - { title: AI / Machine Learning, skills: [Microsoft Agent Framework, Semantic Kernel, Microsoft.Extensions.AI, LLM Evaluation, RAG Systems, Azure AI Foundry, Langfuse] }
+    - { title: AI / Machine Learning, skills: [Microsoft Agent Framework, Semantic Kernel, Microsoft.Extensions.AI, Large Language Models, LLM Evaluation, Retrieval-Augmented Generation, Azure AI Foundry, Langfuse] }
     - { title: Programming Languages, skills: ["C#", Python, TypeScript, SQL] }
-    - { title: Backend & Data, skills: [.NET, ASP.NET Web API, Entity Framework, REST API, Postman, Microsoft SQL Server, PostgreSQL, MongoDB, Elasticsearch, Kafka] }
+    - { title: Backend, skills: [.NET, ASP.NET Web API, Entity Framework, REST API] }
+    - { title: Data, skills: [Microsoft SQL Server, PostgreSQL, MongoDB, Elasticsearch, Kafka] }
     - { title: Cloud & DevOps, skills: [Microsoft Azure, Amazon Web Services, Vercel, Docker, Kubernetes, Argo CD, Jenkins] }
     - { title: Observability & CI/CD, skills: [Grafana, Prometheus, Kibana, Azure DevOps, GitHub Actions, GitLab CI/CD] }
     - { title: AI Development Tools, skills: [Claude Code, Claude Design, Codex, Pi, OpenCode, Cursor, CodeRabbit, GitHub Copilot] }
@@ -125,6 +126,8 @@ home:
     - { label: Skills, href: "#skills" }
     - { label: Projects, href: "#projects" }
     - { label: Code, href: "#code" }
+    - { label: Writing, href: "#writing" }
+    - { label: Contact, href: "#contact" }
   mobileNavigation:
     closeLabel: Close navigation
     triggerLabel: Jump to section
@@ -161,6 +164,8 @@ home:
     caseStudyLabel: Read case study
     moreWorkLabel: See other work
     navigationLabel: Project navigation
+    paginationLabel: Project pagination
+    nextLabel: Next
     backLabel: Back to all projects
     homeLabel: Home
   codeActivity:
@@ -169,6 +174,31 @@ home:
     username: grafanaKibana
     mergedLabel: Merged
     underReviewLabel: Under review
+  writing:
+    label: Writing
+    empty: No articles published yet.
+    moreArticlesLabel: See all articles
+    readingTimeLabel: min read
+    navigationLabel: Article navigation
+    backLabel: Back to all articles
+    homeLabel: Home
+  contact:
+    label: Contact
+    title: Let's talk
+    description: Have a role, project, or engineering challenge worth discussing? Send me a message or email me directly.
+    email: reshetnik.nikita@gmail.com
+    nameLabel: Name
+    namePlaceholder: Your name
+    emailLabel: Email
+    emailPlaceholder: m@example.com
+    messageLabel: Message
+    messagePlaceholder: What would you like to discuss?
+    missingSuffix: still empty
+    invalidEmailHelper: Enter a valid email address
+    sendLabel: Send message
+    subjectPrefix: Portfolio message from
+    bodyFromLabel: "From:"
+    bookCallLabel: Book a call
   footer:
     rights: All rights reserved.
     localTimeLabel: Local Time

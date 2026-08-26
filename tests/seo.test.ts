@@ -27,6 +27,8 @@ test("metadata routes include every known static content route", () => {
       "https://portfolio.example.test/articles",
       "https://portfolio.example.test/projects",
       "https://portfolio.example.test/articles/building-an-llm-evaluation-harness",
+      "https://portfolio.example.test/articles/fixing-bugs-with-mcps",
+      "https://portfolio.example.test/articles/microsoft-agent-framework-setup",
       "https://portfolio.example.test/projects/devbook",
       "https://portfolio.example.test/projects/latex-cv",
       "https://portfolio.example.test/projects/lifeos",
