@@ -15,7 +15,7 @@ export function SiteFooter() {
 
   return (
     <footer className={clsx(styles.footer, "page-shell-gutter border-t py-7 text-center font-mono text-muted-foreground lg:py-9 lg:text-xs")}>
-      © {year} {profile.name}. {home.footer.rights} · {home.footer.localTimeLabel}:{" "}
+      © {year} {profile.name}. All rights reserved. · Local Time:{" "}
       <LocalTime
         initialTime={initialTime}
         locale={home.footer.locale}

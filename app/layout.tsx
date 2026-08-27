@@ -70,7 +70,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             className={clsx(styles.skipLink, "sr-only fixed left-4 top-4 rounded-md bg-background px-4 py-3 font-medium shadow-md focus:not-sr-only focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
             href="#main"
           >
-            {home.accessibility.skipToContent}
+            Skip to content
           </a>
           <SiteHeader />
           {children}

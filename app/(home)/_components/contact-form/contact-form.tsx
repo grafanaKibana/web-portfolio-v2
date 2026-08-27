@@ -7,40 +7,30 @@ import styles from "./home-contact.module.scss";
 
 interface ContactFormProps {
   emailAddress: string;
-  emailLabel: string;
-  emailPlaceholder: string;
-  bodyFromLabel: string;
-  invalidEmailHelper: string;
-  messageLabel: string;
-  messagePlaceholder: string;
-  missingSuffix: string;
-  nameLabel: string;
-  namePlaceholder: string;
-  sendLabel: string;
-  subjectPrefix: string;
 }
+
+const labels = {
+  bodyFrom: "From:",
+  email: "Email",
+  emailPlaceholder: "m@example.com",
+  invalidEmail: "Enter a valid email address",
+  message: "Message",
+  messagePlaceholder: "What would you like to discuss?",
+  missingSuffix: "still empty",
+  name: "Name",
+  namePlaceholder: "Your name",
+  send: "Send message",
+  subjectPrefix: "Portfolio message from",
+} as const;
 
 /**
  * Renders a native-validating contact form that opens a prefilled mail client.
  *
- * @param props - YAML-backed Contact form copy and email destination.
+ * @param props - Contact email destination.
  * @returns The contact form.
  */
 export function ContactForm(props: ContactFormProps) {
-  const {
-    bodyFromLabel,
-    emailAddress,
-    emailLabel,
-    emailPlaceholder,
-    invalidEmailHelper,
-    messageLabel,
-    messagePlaceholder,
-    missingSuffix,
-    nameLabel,
-    namePlaceholder,
-    sendLabel,
-    subjectPrefix,
-  } = props;
+  const { emailAddress } = props;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isEmailValid, setIsEmailValid] = useState(false);
@@ -49,20 +39,20 @@ export function ContactForm(props: ContactFormProps) {
   const trimmedEmail = email.trim();
   const trimmedMessage = message.trim();
   const isReady = Boolean(trimmedName && trimmedEmail && isEmailValid && trimmedMessage);
-  const subject = `${subjectPrefix} ${trimmedName}`;
+  const subject = `${labels.subjectPrefix} ${trimmedName}`;
   const mailtoHref = isReady
-    ? `mailto:${emailAddress}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${bodyFromLabel} ${trimmedName} <${trimmedEmail}>\n\n${trimmedMessage}`)}`
+    ? `mailto:${emailAddress}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${labels.bodyFrom} ${trimmedName} <${trimmedEmail}>\n\n${trimmedMessage}`)}`
     : `mailto:${emailAddress}`;
   let helperText = "";
   if (trimmedName || trimmedEmail || trimmedMessage) {
     if (!trimmedName) {
-      helperText = `${nameLabel} ${missingSuffix}`;
+      helperText = `${labels.name} ${labels.missingSuffix}`;
     } else if (!trimmedEmail) {
-      helperText = `${emailLabel} ${missingSuffix}`;
+      helperText = `${labels.email} ${labels.missingSuffix}`;
     } else if (!trimmedMessage) {
-      helperText = `${messageLabel} ${missingSuffix}`;
+      helperText = `${labels.message} ${labels.missingSuffix}`;
     } else if (!isEmailValid) {
-      helperText = invalidEmailHelper;
+      helperText = labels.invalidEmail;
     }
   }
 
@@ -77,12 +67,12 @@ export function ContactForm(props: ContactFormProps) {
   }
 
   const fieldClass =
-    "rounded-md border bg-background px-3 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2 user-invalid:border-destructive";
+    "rounded-md border bg-background px-3 py-2 transition-colors focus:border-foreground focus:outline-none user-invalid:border-destructive motion-reduce:transition-none";
 
   return (
     <form action={mailtoHref} className={clsx(styles.form, "flex h-full min-w-0 flex-col gap-4")} onSubmit={sendEmail}>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="contact-name">{nameLabel}</label>
+        <label className="text-sm font-medium" htmlFor="contact-name">{labels.name}</label>
         <input
           className={`${fieldClass} h-11 w-full`}
           id="contact-name"
@@ -90,7 +80,7 @@ export function ContactForm(props: ContactFormProps) {
           onChange={(event) => {
             setName(event.target.value);
           }}
-          placeholder={namePlaceholder}
+          placeholder={labels.namePlaceholder}
           required
           type="text"
           value={name}
@@ -98,7 +88,7 @@ export function ContactForm(props: ContactFormProps) {
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="contact-email">{emailLabel}</label>
+        <label className="text-sm font-medium" htmlFor="contact-email">{labels.email}</label>
         <input
           className={`${fieldClass} h-11 w-full`}
           id="contact-email"
@@ -107,7 +97,7 @@ export function ContactForm(props: ContactFormProps) {
             setEmail(event.target.value);
             setIsEmailValid(!event.currentTarget.validity.typeMismatch);
           }}
-          placeholder={emailPlaceholder}
+          placeholder={labels.emailPlaceholder}
           required
           type="email"
           value={email}
@@ -115,7 +105,7 @@ export function ContactForm(props: ContactFormProps) {
         />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="contact-message">{messageLabel}</label>
+        <label className="text-sm font-medium" htmlFor="contact-message">{labels.message}</label>
         <textarea
           className={`${fieldClass} min-h-28 w-full flex-1 resize-y`}
           id="contact-message"
@@ -123,7 +113,7 @@ export function ContactForm(props: ContactFormProps) {
           onChange={(event) => {
             setMessage(event.target.value);
           }}
-          placeholder={messagePlaceholder}
+          placeholder={labels.messagePlaceholder}
           required
           rows={4}
           value={message}
@@ -131,7 +121,7 @@ export function ContactForm(props: ContactFormProps) {
       </div>
       <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:items-center sm:gap-5">
         <PrimaryAction disabled={!isReady} type="submit">
-          {sendLabel}
+          {labels.send}
         </PrimaryAction>
         {helperText ? <span aria-live="polite" className="text-sm text-muted-foreground">{helperText}</span> : null}
       </div>

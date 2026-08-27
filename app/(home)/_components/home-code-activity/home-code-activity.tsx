@@ -43,11 +43,11 @@ export async function HomeCodeActivity() {
   const profileHref = `https://github.com/${codeActivity.username}`;
   const profileLabel = `github.com/${codeActivity.username}`;
   const groups = [
-    { status: "merged", label: codeActivity.mergedLabel, contributions: activity.merged },
-    { status: "under-review", label: codeActivity.underReviewLabel, contributions: activity.underReview },
+    { status: "merged", label: "Merged", contributions: activity.merged },
+    { status: "under-review", label: "Under review", contributions: activity.underReview },
   ] as const;
   const summary = activity.pullRequestsAvailable
-    ? `${String(activity.merged.length)} ${codeActivity.mergedLabel.toLowerCase()} · ${String(activity.underReview.length)} ${codeActivity.underReviewLabel.toLowerCase()}`
+    ? `${String(activity.merged.length)} merged · ${String(activity.underReview.length)} under review`
     : null;
   const calendarDays = activity.calendar.map((day) => ({
     ...day,
@@ -61,7 +61,7 @@ export async function HomeCodeActivity() {
           id="code-heading"
           className={clsx(styles.sectionLabel, "m-0 font-mono font-normal uppercase text-muted-foreground")}
         >
-          {codeActivity.label}
+          Code activity
         </h2>
         {summary ? (
           <p
@@ -121,7 +121,7 @@ export async function HomeCodeActivity() {
         <figure className={clsx(styles.activity, "m-0 border-t pt-5")} data-slot="activity-visualization">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             <figcaption className={clsx(styles.groupLabel, "font-mono uppercase text-muted-foreground")}>
-              {codeActivity.activityLabel}
+              GitHub activity · last 12 months
             </figcaption>
             <a className="project-action-link min-w-0 break-all" href={profileHref} rel="noreferrer" target="_blank">
               <Github aria-hidden="true" className="size-3.5 opacity-60" variant="mono" />

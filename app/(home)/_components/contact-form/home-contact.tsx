@@ -28,11 +28,11 @@ export function HomeContact() {
       id="contact"
     >
       <p className={clsx(styles.sectionLabel, "mb-7 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-14 lg:pt-3.5")}>
-        {contact.label}
+        Contact
       </p>
       <div className={clsx(styles.content, "grid gap-12")}>
         <div>
-          <h2 className={clsx(styles.title, "m-0 font-medium tracking-tight")} id="contact-heading">{contact.title}</h2>
+          <h2 className={clsx(styles.title, "m-0 font-medium tracking-tight")} id="contact-heading">Let&apos;s talk</h2>
           <p className={clsx(styles.description, "mt-3 max-w-md leading-relaxed text-muted-foreground lg:mt-4")}>
             {contact.description}
           </p>
@@ -60,24 +60,11 @@ export function HomeContact() {
             ))}
             <span aria-disabled="true" className="inline-flex min-h-12 w-fit items-center gap-2.5 text-sm text-muted-foreground opacity-35 lg:text-base">
               <Calendar aria-hidden="true" className="size-4" />
-              {contact.bookCallLabel}
+              Book a call
             </span>
           </div>
         </div>
-        <ContactForm
-          bodyFromLabel={contact.bodyFromLabel}
-          emailAddress={contact.email}
-          emailLabel={contact.emailLabel}
-          emailPlaceholder={contact.emailPlaceholder}
-          invalidEmailHelper={contact.invalidEmailHelper}
-          messageLabel={contact.messageLabel}
-          messagePlaceholder={contact.messagePlaceholder}
-          missingSuffix={contact.missingSuffix}
-          nameLabel={contact.nameLabel}
-          namePlaceholder={contact.namePlaceholder}
-          sendLabel={contact.sendLabel}
-          subjectPrefix={contact.subjectPrefix}
-        />
+        <ContactForm emailAddress={contact.email} />
       </div>
     </section>
   );

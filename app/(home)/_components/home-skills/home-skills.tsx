@@ -35,7 +35,7 @@ import {
 import { BrainCircuit, Database, Gauge, Sparkles, TextSearch, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { home, profile } from "@/content/structured";
+import { profile } from "@/content/structured";
 import { clsx } from "clsx";
 import styles from "./home-skills.module.scss";
 
@@ -137,7 +137,7 @@ export function HomeSkills() {
         id="skills-heading"
         className={clsx(styles.sectionLabel, "border-t font-mono font-normal uppercase text-muted-foreground")}
       >
-        {home.skills.label}
+        Skills
       </h2>
       <div>
         {profile.skills.map((group) => (

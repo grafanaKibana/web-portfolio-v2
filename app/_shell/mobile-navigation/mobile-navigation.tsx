@@ -2,10 +2,13 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { clsx } from "clsx";
-import { Check, ChevronDown, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, House, X } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ThemeToggle } from "../theme/theme";
 import styles from "./mobile-navigation.module.scss";
+import headerStyles from "../site-header/site-header.module.scss";
 
 interface NavigationItem {
   label: string;
@@ -13,11 +16,26 @@ interface NavigationItem {
 }
 
 interface MobileNavigationProps {
+  backToTopLabel: string;
   closeLabel: string;
+  compactNavigationLabel: string;
   defaultSectionLabel: string;
+  detailRoutes: readonly {
+    backHref: string;
+    backLabel: string;
+    homeLabel: string;
+    navigationLabel: string;
+    routePrefix: string;
+  }[];
   items: readonly NavigationItem[];
   navigationLabel: string;
+  primaryNavigationLabel: string;
   scrollThreshold: number;
+  themeLabels: {
+    change: string;
+    switchToDark: string;
+    switchToLight: string;
+  };
   triggerLabel: string;
 }
 
@@ -89,23 +107,34 @@ function useSectionNavigationState(
 /**
  * Renders active desktop links and the centered compact section selector.
  *
+ * @param backToTopLabel - Accessible label for the Home control.
  * @param closeLabel - Accessible label for the sheet close control.
+ * @param compactNavigationLabel - Accessible label for the no-JavaScript navigation.
  * @param defaultSectionLabel - Label shown before a section becomes active.
- * @param items - YAML-authored section anchors.
+ * @param detailRoutes - Detail-route controls selected from the current pathname.
+ * @param items - Section anchors shown by the shell.
  * @param navigationLabel - Accessible popover navigation label.
+ * @param primaryNavigationLabel - Accessible label for the shell navigation.
  * @param scrollThreshold - Scroll offset that reveals the selector.
+ * @param themeLabels - Accessible labels for each theme state.
  * @param triggerLabel - Accessible selector label.
  * @returns The compact navigation trigger and modal popover.
  */
 export function MobileNavigation({
+  backToTopLabel,
   closeLabel,
+  compactNavigationLabel,
   defaultSectionLabel,
+  detailRoutes,
   items,
   navigationLabel,
+  primaryNavigationLabel,
   scrollThreshold,
+  themeLabels,
   triggerLabel,
 }: MobileNavigationProps) {
   const pathname = usePathname();
+  const detailRoute = detailRoutes.find(({ routePrefix }) => pathname.startsWith(routePrefix));
   const activeRouteHref = pathname.startsWith("/projects")
     ? "#projects"
     : pathname.startsWith("/articles")
@@ -117,8 +146,48 @@ export function MobileNavigation({
     activeRouteHref,
   );
 
+  if (detailRoute) {
+    return (
+      <nav
+        aria-label={detailRoute.navigationLabel}
+        className={clsx(headerStyles.navigation, "mx-auto grid h-full w-full grid-cols-3 items-center")}
+      >
+        <div className="flex items-center">
+          <Link
+            aria-label={detailRoute.homeLabel}
+            className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:size-8"
+            href="/"
+          >
+            <House aria-hidden="true" className="size-ui-icon opacity-70" />
+          </Link>
+        </div>
+        <Link
+          className="text-ui-xs inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-1.5 font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          data-slot="detail-back-link"
+          href={detailRoute.backHref}
+        >
+          <ArrowLeft aria-hidden="true" className="size-3.5 opacity-70" />
+          {detailRoute.backLabel}
+        </Link>
+        <div className="justify-self-end">
+          <ThemeToggle labels={themeLabels} />
+        </div>
+      </nav>
+    );
+  }
+
   return (
-    <>
+    <nav
+      aria-label={primaryNavigationLabel}
+      className={clsx(headerStyles.navigation, "relative mx-auto flex h-full w-full items-center justify-between")}
+    >
+      <Link
+        aria-label={backToTopLabel}
+        className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:size-8"
+        href="/#top"
+      >
+        <House aria-hidden="true" className="size-ui-icon opacity-70" />
+      </Link>
       <div className="desktop-link-row-gap text-ui-xs absolute left-1/2 hidden -translate-x-1/2 items-center whitespace-nowrap text-muted-foreground xl:flex">
         {items.map((item) => {
           const current = item.label === activeLabel;
@@ -182,6 +251,30 @@ export function MobileNavigation({
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
-    </>
+      <noscript>
+        <details className="text-ui-xs absolute left-1/2 top-2 z-50 w-54 -translate-x-1/2 xl:hidden">
+          <summary
+            className={clsx(headerStyles.summary, "flex min-h-11 cursor-pointer list-none items-center justify-center font-medium")}
+          >
+            {triggerLabel}
+          </summary>
+          <nav
+            aria-label={compactNavigationLabel}
+            className="floating-menu-shadow rounded-md border bg-popover p-1.5"
+          >
+            {items.map((item) => (
+              <a
+                key={item.href}
+                className="flex min-h-11 items-center rounded-sm px-2.5 text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                href={`/${item.href}`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </details>
+      </noscript>
+      <ThemeToggle labels={themeLabels} />
+    </nav>
   );
 }

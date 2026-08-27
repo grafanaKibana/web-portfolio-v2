@@ -1,5 +1,5 @@
 import { ArrowDown, Download, type LucideIcon } from "lucide-react";
-import { home } from "@/content/structured";
+import { home, profile } from "@/content/structured";
 import { clsx } from "clsx";
 import { DescriptorRotation } from "../descriptor-rotation/descriptor-rotation";
 import { PrimaryAction } from "../primary-action/primary-action";
@@ -10,6 +10,13 @@ const icons: Record<string, LucideIcon> = {
   download: Download,
 };
 
+const socialIconNames = {
+  GitHub: "github",
+  LeetCode: "leetcode",
+  LinkedIn: "linkedin",
+  Telegram: "telegram",
+} as const;
+
 const brandPaths: Record<string, string> = {
   linkedin: "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z",
   telegram: "M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z",
@@ -18,12 +25,12 @@ const brandPaths: Record<string, string> = {
 };
 
 /**
- * Resolves one YAML icon key through the Home Hero allowlist.
+ * Resolves one Home Hero icon key through the local allowlist.
  *
- * @param name - YAML icon identifier.
+ * @param name - Local icon identifier.
  * @param className - Optional classes applied to the icon.
  * @returns The matching decorative icon.
- * @throws When YAML contains an unsupported icon identifier.
+ * @throws When local markup requests an unsupported icon identifier.
  */
 function Icon({ name, className }: { name: string; className?: string }) {
   const path = brandPaths[name];
@@ -45,11 +52,6 @@ function Icon({ name, className }: { name: string; className?: string }) {
  * @returns The Home Hero section.
  */
 export function HomeHero() {
-  const [primaryAction, secondaryAction] = home.hero.actions;
-  if (!primaryAction || !secondaryAction) {
-    throw new Error("Home Hero requires exactly two actions");
-  }
-
   return (
     <section
       aria-labelledby="intro-heading"
@@ -77,29 +79,29 @@ export function HomeHero() {
         />
       </div>
       <div className={clsx(styles.actions, "flex w-full flex-col lg:w-auto lg:flex-row lg:items-center")}>
-        <PrimaryAction download href={primaryAction.href}>
-          <Icon name={primaryAction.icon} className={clsx(styles.primaryActionIcon)} />
-          {primaryAction.label}
+        <PrimaryAction download href={home.hero.resumeHref}>
+          <Icon name="download" className={clsx(styles.primaryActionIcon)} />
+          Download Résumé
         </PrimaryAction>
         <a
           className={clsx(styles.secondaryAction, "group mt-1.5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md font-medium transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto")}
-          href={secondaryAction.href}
+          href="#experience"
         >
-          {secondaryAction.label}
+          Explore Experience
           <Icon
-            name={secondaryAction.icon}
+            name="arrow-down"
             className="-order-1 size-3.5 opacity-60 transition-transform duration-150 group-hover:translate-y-0.5 motion-reduce:group-hover:translate-none motion-reduce:transition-none lg:order-none"
           />
         </a>
       </div>
       <ul className={clsx(styles.socialLinks, "desktop-link-row-gap grid w-full grid-cols-2 justify-items-center gap-x-1 gap-y-1 sm:flex sm:flex-wrap sm:justify-center sm:gap-y-0 lg:w-auto")}>
-        {home.hero.socialLinks.map((link) => (
+        {profile.links.map((link) => (
           <li key={link.href}>
             <a
               className="text-ui-xs inline-flex min-h-11 items-center gap-2 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               href={link.href}
             >
-              <Icon name={link.icon} className="size-3.5 opacity-65" />
+              <Icon name={socialIconNames[link.label as keyof typeof socialIconNames]} className="size-3.5 opacity-65" />
               {link.label}
             </a>
           </li>

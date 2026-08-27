@@ -29,7 +29,7 @@ export function PrimaryAction({
 }: PrimaryActionProps) {
   const className = clsx(
     styles.action,
-    "inline-flex h-12 w-full items-center justify-center gap-2 rounded-md border border-transparent bg-primary px-5 font-medium text-primary-foreground hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:opacity-40 lg:w-auto lg:px-4 lg:leading-5",
+    "inline-flex h-12 w-full items-center justify-center gap-2 rounded-md border border-transparent bg-primary px-5 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:opacity-40 motion-reduce:transition-none lg:w-auto lg:px-4 lg:leading-5",
   );
 
   if (href) {

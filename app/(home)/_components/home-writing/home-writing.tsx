@@ -3,7 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 import { loadArticles } from "@/content/articles/server";
-import { home } from "@/content/structured";
 import styles from "./home-writing.module.scss";
 
 const publishedDate = new Intl.DateTimeFormat("en", {
@@ -31,7 +30,7 @@ export async function HomeWriting() {
         id="writing-heading"
         className={clsx(styles.sectionLabel, "mb-6 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-14 lg:pt-3.5")}
       >
-        {home.writing.label}
+        Writing
       </h2>
       {latestArticles.length ? (
         <>
@@ -47,7 +46,7 @@ export async function HomeWriting() {
                       <time dateTime={article.published}>
                         {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
                       </time>
-                      {` · ${String(readingMinutes)} ${home.writing.readingTimeLabel}`}
+                      {` · ${String(readingMinutes)} min read`}
                     </p>
                     <h3 className="mt-2.5 max-w-3xl break-words text-xl font-medium leading-tight tracking-tight">
                       {article.title}
@@ -65,12 +64,12 @@ export async function HomeWriting() {
             data-slot="more-articles-link"
             href="/articles"
           >
-            {home.writing.moreArticlesLabel}
+            See all articles
             <ArrowUpRight aria-hidden="true" className="ml-auto size-3.5 opacity-60" />
           </Link>
         </>
       ) : (
-        <p className="m-0 text-sm text-muted-foreground">{home.writing.empty}</p>
+        <p className="m-0 text-sm text-muted-foreground">No articles published yet.</p>
       )}
     </section>
   );

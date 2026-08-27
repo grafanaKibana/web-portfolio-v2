@@ -1,206 +1,141 @@
 profile:
-  name: Nikita Reshetnik
-  headline: Shipping Agents at scale
+  name: "Nikita Reshetnik"
+  headline: "Shipping Agents at scale"
   summary:
-    - I’m Nikita, an AI Engineer with a Software/.NET foundation and 5 years of experience building enterprise software.
-    - I design LLM-powered services for extraction, classification, controlled rewriting, semantic matching, and embedding-based search, supported by automated evaluation pipelines that keep quality visible as prompts evolve.
-    - I also ship .NET services, lead cross-functional delivery, improve engineering workflows, and help teams adopt AI development tools in day-to-day work.
+    - "I’m Nikita, an AI Engineer with a Software/.NET foundation and 5 years of experience building enterprise software."
+    - "I design LLM-powered services for extraction, classification, controlled rewriting, semantic matching, and embedding-based search, supported by automated evaluation pipelines that keep quality visible as prompts evolve."
+    - "I also ship .NET services, lead cross-functional delivery, improve engineering workflows, and help teams adopt AI development tools in day-to-day work."
   careerChapters:
     - id: ai
-      title: AI Engineering
-      summary: Designing and delivering production AI capabilities, evaluation systems, engineering enablement, and internal AI platforms.
+      title: "AI Engineering"
+      summary: "Designing and delivering production AI capabilities, evaluation systems, engineering enablement, and internal AI platforms."
     - id: software
-      title: Software Engineering
-      summary: Progressed from internships to end-to-end ownership across .NET APIs, microservices, monoliths, plugins, SQL, releases, and team practices.
+      title: "Software Engineering"
+      summary: "Progressed from internships to end-to-end ownership across .NET APIs, microservices, monoliths, plugins, SQL, releases, and team practices."
   facts:
-    - { label: Current role, value: Senior AI Engineer }
-    - { label: Education, value: Bachelor of Software Engineering }
-    - { label: Languages, value: "English, Ukrainian, Russian" }
-    - { label: Based in, value: Europe }
+    - { label: "Current role", value: "Senior AI Engineer" }
+    - { label: "Education", value: "Bachelor of Software Engineering" }
+    - { label: "Languages", value: "English, Ukrainian, Russian" }
+    - { label: "Based in", value: "Europe" }
   experience:
-    - organization: DraftKings
+    - organization: "DraftKings"
       logo: /companies/draftkings.svg
-      role: Senior AI Engineer
+      role: "Senior AI Engineer"
       chapter: ai
-      period: April 2026 — Present
-      summary: Working on an internal AI platform that helps engineers ship faster through AI-assisted development workflows, automated code generation, intelligent documentation, and structured enablement programs.
+      start: 2026-04
+      end: null
+      summary: "Working on an internal AI platform that helps engineers ship faster through AI-assisted development workflows, automated code generation, intelligent documentation, and structured enablement programs."
       highlights: []
-    - organization: ELEKS
+    - organization: "ELEKS"
       logo: /companies/eleks.svg
-      role: AI Engineer
+      role: "AI Engineer"
       chapter: ai
-      period: November 2024 — March 2026
-      summary: Designed and delivered a reusable LLM-powered REST service for extraction, classification, controlled rewriting, suggestions, semantic matching, and embedding-based prediction search. Built evaluation and observability workflows around the AI features and led cross-functional delivery.
+      start: 2024-11
+      end: 2026-03
+      summary: "Designed and delivered a reusable LLM-powered REST service for extraction, classification, controlled rewriting, suggestions, semantic matching, and embedding-based prediction search. Built evaluation and observability workflows around the AI features and led cross-functional delivery."
       highlights:
-        - Built automated prompt-quality pipelines covering Accuracy, Macro and Micro F1, and LLM-as-a-Judge Correctness, Faithfulness, and Relevance.
-        - Led delivery across engineering, QA, MLOps, Data Science, DevOps, and Product.
-        - Created documentation and onboarding material and led practical AI-tooling sessions.
-    - organization: ELEKS
+        - "Built automated prompt-quality pipelines covering Accuracy, Macro and Micro F1, and LLM-as-a-Judge Correctness, Faithfulness, and Relevance."
+        - "Led delivery across engineering, QA, MLOps, Data Science, DevOps, and Product."
+        - "Created documentation and onboarding material and led practical AI-tooling sessions."
+    - organization: "ELEKS"
       logo: /companies/eleks.svg
-      role: Software Engineer
+      role: "Software Engineer"
       chapter: software
-      period: December 2023 — November 2024
-      summary: Delivered end-to-end features and fixes across RESTful microservices, a monolithic application, plugin packages, and a desktop client. Improved SQL performance, code quality, release reliability, and day-to-day Agile delivery.
+      start: 2023-12
+      end: 2024-11
+      summary: "Delivered end-to-end features and fixes across RESTful microservices, a monolithic application, plugin packages, and a desktop client. Improved SQL performance, code quality, release reliability, and day-to-day Agile delivery."
       highlights: []
-    - organization: ELEKS
+    - organization: "ELEKS"
       logo: /companies/eleks.svg
-      role: Junior Software Engineer
+      role: "Junior Software Engineer"
       chapter: software
-      period: May 2022 — December 2023
-      summary: Delivered features and fixes across REST APIs, microservices, a monolith, and plugin packages. Supported client investigations and strengthened team knowledge through documentation and a shared SQL query library.
+      start: 2022-05
+      end: 2023-12
+      summary: "Delivered features and fixes across REST APIs, microservices, a monolith, and plugin packages. Supported client investigations and strengthened team knowledge through documentation and a shared SQL query library."
       highlights: []
-    - organization: ELEKS
+    - organization: "ELEKS"
       logo: /companies/eleks.svg
-      role: Trainee Software Engineer
+      role: "Trainee Software Engineer"
       chapter: software
-      period: December 2021 — May 2022
-      summary: Delivered supervised REST API work and small but important fixes while learning the system architecture, modern .NET practices, and the time-management and legal domain.
+      start: 2021-12
+      end: 2022-05
+      summary: "Delivered supervised REST API work and small but important fixes while learning the system architecture, modern .NET practices, and the time-management and legal domain."
       highlights: []
-    - organization: ELEKS
+    - organization: "ELEKS"
       logo: /companies/eleks.svg
-      role: Software Engineer Intern
+      role: "Software Engineer Intern"
       chapter: software
-      period: September 2021 — November 2021
-      summary: Built AutoHubAPI as a practical environment for learning REST API development, then presented the application and progress to company management.
+      start: 2021-09
+      end: 2021-11
+      summary: "Built AutoHubAPI as a practical environment for learning REST API development, then presented the application and progress to company management."
       highlights: []
-    - organization: Sigma Software Group
+    - organization: "Sigma Software Group"
       logo: /companies/sigma-software.svg
-      role: Software Engineer Intern
+      role: "Software Engineer Intern"
       chapter: software
-      period: March 2021 — April 2021
-      summary: Worked across design, front-end, back-end, and testing on a team-built car-rental application. Used UML and Figma to guide implementation and achieved more than 80% unit and integration test coverage on the back-end.
+      start: 2021-03
+      end: 2021-04
+      summary: "Worked across design, front-end, back-end, and testing on a team-built car-rental application. Used UML and Figma to guide implementation and achieved more than 80% unit and integration test coverage on the back-end."
       highlights: []
   education:
-    institution: State University of Information and Communication Technologies
-    qualification: Bachelor of Software Engineering
-    period: September 2019 — June 2023
-    location: Kyiv, Ukraine
+    institution: "State University of Information and Communication Technologies"
+    qualification: "Bachelor of Software Engineering"
+    start: 2019-09
+    end: 2023-06
+    location: "Kyiv, Ukraine"
   certifications:
-    - title: Azure AI Fundamentals
-      date: August 2025
+    - title: "Azure AI Fundamentals"
+      date: 2025-08
       icon: /certifications/microsoft-azure.svg
       href: https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134
-    - title: GitHub Copilot
-      date: June 2025
+    - title: "GitHub Copilot"
+      date: 2025-06
       icon: /certifications/github-copilot.svg
       href: https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url
   learning:
-    - { title: Multi AI Agent Systems with crewAI, provider: DeepLearning.AI }
-    - { title: Machine Learning in Production, provider: DeepLearning.AI }
-    - { title: "Docker and Kubernetes: The Big Picture", provider: Pluralsight }
-    - { title: Getting Started with Docker, provider: Pluralsight }
-    - { title: "F# Track", provider: Exercism }
-    - { title: .NET Camp, provider: ELEKS University }
-    - { title: "IT Essentials: PC Hardware and Software", provider: Cisco Networking Academy }
-    - { title: "CPA: Programming Essentials in C++", provider: Cisco Networking Academy }
+    - { title: "Multi AI Agent Systems with crewAI", provider: "DeepLearning.AI" }
+    - { title: "Machine Learning in Production", provider: "DeepLearning.AI" }
+    - { title: "Docker and Kubernetes: The Big Picture", provider: "Pluralsight" }
+    - { title: "Getting Started with Docker", provider: "Pluralsight" }
+    - { title: "F# Track", provider: "Exercism" }
+    - { title: ".NET Camp", provider: "ELEKS University" }
+    - { title: "IT Essentials: PC Hardware and Software", provider: "Cisco Networking Academy" }
+    - { title: "CPA: Programming Essentials in C++", provider: "Cisco Networking Academy" }
   skills:
-    - { title: AI / Machine Learning, skills: [Microsoft Agent Framework, Semantic Kernel, Microsoft.Extensions.AI, Large Language Models, LLM Evaluation, Retrieval-Augmented Generation, Azure AI Foundry, Langfuse] }
-    - { title: Programming Languages, skills: ["C#", Python, TypeScript, SQL] }
-    - { title: Backend, skills: [.NET, ASP.NET Web API, Entity Framework, REST API] }
-    - { title: Data, skills: [Microsoft SQL Server, PostgreSQL, MongoDB, Elasticsearch, Kafka] }
-    - { title: Cloud & DevOps, skills: [Microsoft Azure, Amazon Web Services, Vercel, Docker, Kubernetes, Argo CD, Jenkins] }
-    - { title: Observability & CI/CD, skills: [Grafana, Prometheus, Kibana, Azure DevOps, GitHub Actions, GitLab CI/CD] }
-    - { title: AI Development Tools, skills: [Claude Code, Claude Design, Codex, Pi, OpenCode, Cursor, CodeRabbit, GitHub Copilot] }
+    - { title: "AI / Machine Learning", skills: ["Microsoft Agent Framework", "Semantic Kernel", "Microsoft.Extensions.AI", "Large Language Models", "LLM Evaluation", "Retrieval-Augmented Generation", "Azure AI Foundry", "Langfuse"] }
+    - { title: "Programming Languages", skills: ["C#", "Python", "TypeScript", "SQL"] }
+    - { title: "Backend", skills: [".NET", "ASP.NET Web API", "Entity Framework", "REST API"] }
+    - { title: "Data", skills: ["Microsoft SQL Server", "PostgreSQL", "MongoDB", "Elasticsearch", "Kafka"] }
+    - { title: "Cloud & DevOps", skills: ["Microsoft Azure", "Amazon Web Services", "Vercel", "Docker", "Kubernetes", "Argo CD", "Jenkins"] }
+    - { title: "Observability & CI/CD", skills: ["Grafana", "Prometheus", "Kibana", "Azure DevOps", "GitHub Actions", "GitLab CI/CD"] }
+    - { title: "AI Development Tools", skills: ["Claude Code", "Claude Design", "Codex", "Pi", "OpenCode", "Cursor", "CodeRabbit", "GitHub Copilot"] }
   links:
-    - { label: LinkedIn, href: "https://www.linkedin.com/in/nikitareshetnik/" }
-    - { label: Telegram, href: "https://t.me/grafanaKibana" }
-    - { label: GitHub, href: "https://github.com/grafanaKibana" }
-    - { label: LeetCode, href: "https://leetcode.com/u/grafanaKibana/" }
+    - { label: "LinkedIn", href: https://www.linkedin.com/in/nikitareshetnik/ }
+    - { label: "Telegram", href: https://t.me/grafanaKibana }
+    - { label: "GitHub", href: https://github.com/grafanaKibana }
+    - { label: "LeetCode", href: https://leetcode.com/u/grafanaKibana/ }
 
 home:
-  metadataDescription: AI engineer shipping agents at scale with a software and .NET foundation.
-  accessibility:
-    skipToContent: Skip to content
-    backToTop: Back to top
-    primaryNavigation: Primary navigation
-    mobileNavigation: Mobile navigation
-    compactNavigation: Compact navigation
-  theme:
-    change: Change color theme
-    switchToDark: Switch to dark theme
-    switchToLight: Switch to light theme
-  navigation:
-    - { label: About, href: "#about" }
-    - { label: Experience, href: "#experience" }
-    - { label: Education, href: "#education" }
-    - { label: Skills, href: "#skills" }
-    - { label: Projects, href: "#projects" }
-    - { label: Code, href: "#code" }
-    - { label: Writing, href: "#writing" }
-    - { label: Contact, href: "#contact" }
+  metadataDescription: "AI engineer shipping agents at scale with a software and .NET foundation."
   mobileNavigation:
-    closeLabel: Close navigation
-    triggerLabel: Jump to section
-    defaultSectionLabel: About
     scrollThreshold: 260
   hero:
-    availability: { status: Open to work, qualifier: remote or relocation }
-    title: Hi, I’m Nikita Reshetnik.
-    lead: Shipping Agents at scale.
-    descriptors: [AI Engineer, Software Developer, UI Design Enthusiast, Open Source Contributor]
+    availability: { status: "Open to work", qualifier: "remote or relocation" }
+    title: "Hi, I’m Nikita Reshetnik."
+    lead: "Shipping Agents at scale."
+    descriptors: ["AI Engineer", "Software Developer", "UI Design Enthusiast", "Open Source Contributor"]
     descriptorInterval: 3200
-    actions:
-      - { label: Download Résumé, href: "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf", icon: download }
-      - { label: Explore Experience, href: "#experience", icon: arrow-down }
-    socialLinks:
-      - { label: LinkedIn, href: "https://www.linkedin.com/in/nikitareshetnik/", icon: linkedin }
-      - { label: Telegram, href: "https://t.me/grafanaKibana", icon: telegram }
-      - { label: GitHub, href: "https://github.com/grafanaKibana", icon: github }
-      - { label: LeetCode, href: "https://leetcode.com/u/grafanaKibana/", icon: leetcode }
-  experience:
-    label: Experience
-    detailsLabel: Details
-  education:
-    label: Education
-    degreeLabel: University degree
-    certificationsLabel: Industry certifications
-  skills:
-    label: Skills
+    resumeHref: https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf
   projects:
-    label: Selected work
     featuredSlugs: [devbook, obsidian-tabsdown, web-portfolio-v1]
-    indexTitle: Projects
-    indexDescription: Projects by Nikita Reshetnik across AI and software engineering.
-    caseStudyLabel: Read case study
-    moreWorkLabel: See other work
-    navigationLabel: Project navigation
-    paginationLabel: Project pagination
-    nextLabel: Next
-    backLabel: Back to all projects
-    homeLabel: Home
+    indexDescription: "Projects by Nikita Reshetnik across AI and software engineering."
   codeActivity:
-    label: Code activity
-    activityLabel: GitHub activity · last 12 months
-    username: grafanaKibana
-    mergedLabel: Merged
-    underReviewLabel: Under review
+    username: "grafanaKibana"
   writing:
-    label: Writing
-    empty: No articles published yet.
-    moreArticlesLabel: See all articles
-    readingTimeLabel: min read
-    navigationLabel: Article navigation
-    backLabel: Back to all articles
-    homeLabel: Home
+    indexDescription: "Articles by Nikita Reshetnik about AI and software engineering."
   contact:
-    label: Contact
-    title: Let's talk
-    description: Have a role, project, or engineering challenge worth discussing? Send me a message or email me directly.
-    email: reshetnik.nikita@gmail.com
-    nameLabel: Name
-    namePlaceholder: Your name
-    emailLabel: Email
-    emailPlaceholder: m@example.com
-    messageLabel: Message
-    messagePlaceholder: What would you like to discuss?
-    missingSuffix: still empty
-    invalidEmailHelper: Enter a valid email address
-    sendLabel: Send message
-    subjectPrefix: Portfolio message from
-    bodyFromLabel: "From:"
-    bookCallLabel: Book a call
+    description: "Have a role, project, or engineering challenge worth discussing? Send me a message or email me directly."
+    email: "reshetnik.nikita@gmail.com"
   footer:
-    rights: All rights reserved.
-    localTimeLabel: Local Time
-    locale: en-GB
-    timeZone: Europe/Kyiv
+    locale: "en-GB"
+    timeZone: "Europe/Kyiv"

@@ -50,7 +50,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 /**
  * Toggles the resolved color theme after hydration.
  *
- * @param labels - YAML-authored accessible labels for each theme state.
+ * @param labels - Accessible labels for each theme state.
  * @returns The accessible theme toggle.
  */
 export function ThemeToggle({ labels }: { labels: {

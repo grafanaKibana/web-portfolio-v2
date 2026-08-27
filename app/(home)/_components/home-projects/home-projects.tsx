@@ -31,7 +31,7 @@ export async function HomeProjects() {
         id="projects-heading"
         className={clsx(styles.sectionLabel, "mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5")}
       >
-        {home.projects.label}
+        Selected work
       </h2>
       <ul className="m-0 list-none p-0">
         {featuredProjects.map(({ slug, metadata: project }) => (
@@ -74,7 +74,7 @@ export async function HomeProjects() {
                   href={`/projects/${slug}`}
                 >
                   <ArrowUpRight aria-hidden="true" className="size-3.5 opacity-60" />
-                  {home.projects.caseStudyLabel}
+                  Read case study
                 </Link>
               </div>
             </article>
@@ -86,7 +86,7 @@ export async function HomeProjects() {
         data-slot="more-projects-link"
         href="/projects"
       >
-        {home.projects.moreWorkLabel}
+        See other work
         <ArrowUpRight aria-hidden="true" className="ml-auto size-3.5 opacity-60" />
       </Link>
     </section>

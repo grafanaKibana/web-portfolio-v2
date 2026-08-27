@@ -20,7 +20,12 @@
   position: absolute;
   inset: 8.5px auto 0.5rem 0.25rem;
   width: 1px;
-  background: var(--border);
+  background: linear-gradient(
+    to bottom,
+    var(--accent-em),
+    color-mix(in oklab, var(--accent-em) 35%, var(--border)) 6rem,
+    var(--border) 12rem
+  );
   content: "";
 }
 
@@ -41,8 +46,15 @@
 }
 
 .timelineDotCurrent {
+  animation: timeline-current-dot 2.4s ease-in-out infinite;
   border-color: var(--accent-em);
   background: var(--accent-em);
+}
+
+@keyframes timeline-current-dot {
+  50% {
+    transform: scale(1.18);
+  }
 }
 
 .roleTitle {
@@ -142,7 +154,14 @@
 @media (min-width: 48rem) {
   .timeline::before {
     inset: 1.5rem auto 0.625rem 8.75rem;
-    background: linear-gradient(to bottom, var(--border) 82%, transparent);
+    background: linear-gradient(
+      to bottom,
+      var(--accent-em),
+      color-mix(in oklab, var(--accent-em) 35%, var(--border)) 6rem,
+      var(--border) 12rem,
+      var(--border) 82%,
+      transparent
+    );
   }
 
   .experienceItem {
@@ -203,6 +222,10 @@
   .roleDetails::details-content,
   .detailsIcon {
     transition: none;
+  }
+
+  .timelineDotCurrent {
+    animation: none;
   }
 
   .roleDetails::details-content {

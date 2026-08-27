@@ -4,6 +4,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { load } from "js-yaml";
 
+const monthFormatter = new Intl.DateTimeFormat("en", {
+  month: "long",
+  timeZone: "UTC",
+  year: "numeric",
+});
+
 export interface ExternalLink {
   label: string;
   href: string;
@@ -14,6 +20,8 @@ export interface Experience {
   logo: string;
   role: string;
   chapter: string;
+  start: string;
+  end: string | null;
   period: string;
   summary: string;
   highlights: readonly string[];
@@ -54,23 +62,7 @@ export interface PortfolioProfile {
 
 export interface HomeContent {
   metadataDescription: string;
-  accessibility: {
-    skipToContent: string;
-    backToTop: string;
-    primaryNavigation: string;
-    mobileNavigation: string;
-    compactNavigation: string;
-  };
-  theme: {
-    change: string;
-    switchToDark: string;
-    switchToLight: string;
-  };
-  navigation: readonly ExternalLink[];
   mobileNavigation: {
-    closeLabel: string;
-    triggerLabel: string;
-    defaultSectionLabel: string;
     scrollThreshold: number;
   };
   hero: {
@@ -79,71 +71,23 @@ export interface HomeContent {
     lead: string;
     descriptors: readonly string[];
     descriptorInterval: number;
-    actions: readonly (ExternalLink & { icon: string })[];
-    socialLinks: readonly (ExternalLink & { icon: string })[];
-  };
-  experience: {
-    label: string;
-    detailsLabel: string;
-  };
-  education: {
-    label: string;
-    degreeLabel: string;
-    certificationsLabel: string;
-  };
-  skills: {
-    label: string;
+    resumeHref: string;
   };
   projects: {
-    label: string;
     featuredSlugs: readonly string[];
-    indexTitle: string;
     indexDescription: string;
-    caseStudyLabel: string;
-    moreWorkLabel: string;
-    navigationLabel: string;
-    paginationLabel: string;
-    nextLabel: string;
-    backLabel: string;
-    homeLabel: string;
   };
   codeActivity: {
-    label: string;
-    activityLabel: string;
     username: string;
-    mergedLabel: string;
-    underReviewLabel: string;
   };
   writing: {
-    label: string;
-    empty: string;
-    moreArticlesLabel: string;
-    readingTimeLabel: string;
-    navigationLabel: string;
-    backLabel: string;
-    homeLabel: string;
+    indexDescription: string;
   };
   contact: {
-    label: string;
-    title: string;
     description: string;
     email: string;
-    nameLabel: string;
-    namePlaceholder: string;
-    emailLabel: string;
-    emailPlaceholder: string;
-    messageLabel: string;
-    messagePlaceholder: string;
-    missingSuffix: string;
-    invalidEmailHelper: string;
-    sendLabel: string;
-    subjectPrefix: string;
-    bodyFromLabel: string;
-    bookCallLabel: string;
   };
   footer: {
-    rights: string;
-    localTimeLabel: string;
     locale: string;
     timeZone: string;
   };
@@ -197,21 +141,47 @@ function number(value: unknown, path: string): number {
 }
 
 /**
- * Reads the start and end years from an experience period.
+ * Validates an ISO 8601 calendar month.
  *
- * @param period - Validated experience-period text.
+ * @param value - Untrusted month value.
  * @param path - Human-readable field path.
- * @returns The inclusive year range, with a null end for a current role.
- * @throws When the period cannot produce a valid ordered range.
+ * @returns The validated `YYYY-MM` month.
+ * @throws When the value is not a valid calendar month.
  */
-function roleYears(period: string, path: string): { start: number; end: number | null } {
-  const match = /^\p{L}+ (\d{4}) — (?:(?:\p{L}+ )?(\d{4})|Present)$/u.exec(period);
-  if (!match?.[1]) throw new Error(`content/portfolio.yaml: ${path} must use "Month YYYY — Month YYYY" or "Month YYYY — Present"`);
+function calendarMonth(value: unknown, path: string): string {
+  if (typeof value !== "string" || !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(value)) {
+    throw new Error(`content/portfolio.yaml: ${path} must use ISO 8601 YYYY-MM format`);
+  }
+  return value;
+}
 
-  const start = Number(match[1]);
-  const end = match[2] ? Number(match[2]) : null;
-  if (end !== null && end < start) throw new Error(`content/portfolio.yaml: ${path} must end after it starts`);
-  return { start, end };
+/**
+ * Formats a validated calendar month for display.
+ *
+ * @param value - Validated `YYYY-MM` month.
+ * @returns The month and year in the current portfolio style.
+ */
+function formatMonth(value: string): string {
+  return monthFormatter.format(new Date(`${value}-01T00:00:00Z`));
+}
+
+/**
+ * Validates and formats one start/end month range.
+ *
+ * @param value - Record containing ISO start and end months.
+ * @param path - Human-readable field path.
+ * @returns Validated source months plus their presentation-ready period.
+ * @throws When either month is invalid or the range is reversed.
+ */
+function monthRange(value: RecordValue, path: string): { start: string; end: string | null; period: string } {
+  const start = calendarMonth(value.start, `${path}.start`);
+  const end = value.end === null ? null : calendarMonth(value.end, `${path}.end`);
+  if (end !== null && end < start) throw new Error(`content/portfolio.yaml: ${path}.end must not precede ${path}.start`);
+  return {
+    start,
+    end,
+    period: `${formatMonth(start)} — ${end === null ? "Present" : formatMonth(end)}`,
+  };
 }
 
 /**
@@ -224,10 +194,11 @@ function roleYears(period: string, path: string): { start: number; end: number |
  */
 function careerChapterMeta(roles: readonly Experience[], path: string): string {
   if (!roles.length) throw new Error(`content/portfolio.yaml: ${path} must have at least one matching experience`);
-  const periods = roles.map((role, index) => roleYears(role.period, `${path}.experience[${String(index)}].period`));
-  const start = Math.min(...periods.map((period) => period.start));
-  const present = periods.some((period) => period.end === null);
-  const end = present ? "Present" : String(Math.max(...periods.map((period) => period.end ?? period.start)));
+  const start = Math.min(...roles.map((role) => Number(role.start.slice(0, 4))));
+  const present = roles.some((role) => role.end === null);
+  const end = present
+    ? "Present"
+    : String(Math.max(...roles.map((role) => Number((role.end ?? role.start).slice(0, 4)))));
   return `${String(start)}—${end} · ${String(roles.length)} ${roles.length === 1 ? "role" : "roles"}`;
 }
 
@@ -260,19 +231,6 @@ function link(value: unknown, path: string): ExternalLink {
 }
 
 /**
- * Parses a labeled icon hyperlink from YAML.
- *
- * @param value - Untrusted YAML link value.
- * @param path - Human-readable field path.
- * @returns The validated labeled icon link.
- * @throws When the link shape is invalid.
- */
-function iconLink(value: unknown, path: string) {
-  const item = record(value, path);
-  return { ...link(item, path), icon: string(item.icon, `${path}.icon`) };
-}
-
-/**
  * Parses the validated profile branch of the portfolio document.
  *
  * @param sourceProfile - Untrusted profile record from the YAML root.
@@ -296,13 +254,14 @@ function parseProfile(sourceProfile: RecordValue): PortfolioProfile {
   const experience = array(sourceProfile.experience, "profile.experience", (value, path) => {
     const item = record(value, path);
     const chapter = string(item.chapter, `${path}.chapter`);
+    const dates = monthRange(item, path);
     if (!chapterIds.has(chapter)) throw new Error(`content/portfolio.yaml: ${path}.chapter must match a career chapter id`);
     return {
       organization: string(item.organization, `${path}.organization`),
       logo: string(item.logo, `${path}.logo`),
       role: string(item.role, `${path}.role`),
       chapter,
-      period: string(item.period, `${path}.period`),
+      ...dates,
       summary: string(item.summary, `${path}.summary`),
       highlights: array(item.highlights, `${path}.highlights`, string),
     };
@@ -327,14 +286,14 @@ function parseProfile(sourceProfile: RecordValue): PortfolioProfile {
     education: {
       institution: string(education.institution, "profile.education.institution"),
       qualification: string(education.qualification, "profile.education.qualification"),
-      period: string(education.period, "profile.education.period"),
+      period: monthRange(education, "profile.education").period,
       location: string(education.location, "profile.education.location"),
     },
     certifications: array(sourceProfile.certifications, "profile.certifications", (value, path) => {
       const item = record(value, path);
       return {
         title: string(item.title, `${path}.title`),
-        date: string(item.date, `${path}.date`),
+        date: formatMonth(calendarMonth(item.date, `${path}.date`)),
         icon: string(item.icon, `${path}.icon`),
         href: string(item.href, `${path}.href`),
       };
@@ -365,48 +324,23 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
   const root = record(value, "root");
   const sourceProfile = record(root.profile, "profile");
   const sourceHome = record(root.home, "home");
-  const accessibility = record(sourceHome.accessibility, "home.accessibility");
-  const theme = record(sourceHome.theme, "home.theme");
   const mobileNavigation = record(sourceHome.mobileNavigation, "home.mobileNavigation");
   const hero = record(sourceHome.hero, "home.hero");
-  const experience = record(sourceHome.experience, "home.experience");
-  const education = record(sourceHome.education, "home.education");
-  const skills = record(sourceHome.skills, "home.skills");
   const projects = record(sourceHome.projects, "home.projects");
   const codeActivity = record(sourceHome.codeActivity, "home.codeActivity");
   const writing = record(sourceHome.writing, "home.writing");
   const contact = record(sourceHome.contact, "home.contact");
   const availability = record(hero.availability, "home.hero.availability");
   const footer = record(sourceHome.footer, "home.footer");
-  const navigation = array(sourceHome.navigation, "home.navigation", link);
   const descriptors = array(hero.descriptors, "home.hero.descriptors", string);
-  const actions = array(hero.actions, "home.hero.actions", iconLink);
-  const socialLinks = array(hero.socialLinks, "home.hero.socialLinks", iconLink);
   const descriptorInterval = number(hero.descriptorInterval, "home.hero.descriptorInterval");
   if (!descriptors.length) throw new Error("content/portfolio.yaml: home.hero.descriptors must not be empty");
-  if (actions.length !== 2) throw new Error("content/portfolio.yaml: home.hero.actions must contain two actions");
   if (descriptorInterval <= 0) throw new Error("content/portfolio.yaml: home.hero.descriptorInterval must be positive");
   return {
     profile: parseProfile(sourceProfile),
     home: {
       metadataDescription: string(sourceHome.metadataDescription, "home.metadataDescription"),
-      accessibility: {
-        skipToContent: string(accessibility.skipToContent, "home.accessibility.skipToContent"),
-        backToTop: string(accessibility.backToTop, "home.accessibility.backToTop"),
-        primaryNavigation: string(accessibility.primaryNavigation, "home.accessibility.primaryNavigation"),
-        mobileNavigation: string(accessibility.mobileNavigation, "home.accessibility.mobileNavigation"),
-        compactNavigation: string(accessibility.compactNavigation, "home.accessibility.compactNavigation"),
-      },
-      theme: {
-        change: string(theme.change, "home.theme.change"),
-        switchToDark: string(theme.switchToDark, "home.theme.switchToDark"),
-        switchToLight: string(theme.switchToLight, "home.theme.switchToLight"),
-      },
-      navigation,
       mobileNavigation: {
-        closeLabel: string(mobileNavigation.closeLabel, "home.mobileNavigation.closeLabel"),
-        triggerLabel: string(mobileNavigation.triggerLabel, "home.mobileNavigation.triggerLabel"),
-        defaultSectionLabel: string(mobileNavigation.defaultSectionLabel, "home.mobileNavigation.defaultSectionLabel"),
         scrollThreshold: number(mobileNavigation.scrollThreshold, "home.mobileNavigation.scrollThreshold"),
       },
       hero: {
@@ -418,69 +352,23 @@ function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: H
         lead: string(hero.lead, "home.hero.lead"),
         descriptors,
         descriptorInterval,
-        actions,
-        socialLinks,
+        resumeHref: string(hero.resumeHref, "home.hero.resumeHref"),
       },
-      experience: {
-        label: string(experience.label, "home.experience.label"),
-        detailsLabel: string(experience.detailsLabel, "home.experience.detailsLabel"),
-      },
-      education: {
-        label: string(education.label, "home.education.label"),
-        degreeLabel: string(education.degreeLabel, "home.education.degreeLabel"),
-        certificationsLabel: string(education.certificationsLabel, "home.education.certificationsLabel"),
-      },
-      skills: { label: string(skills.label, "home.skills.label") },
       projects: {
-        label: string(projects.label, "home.projects.label"),
         featuredSlugs: array(projects.featuredSlugs, "home.projects.featuredSlugs", string),
-        indexTitle: string(projects.indexTitle, "home.projects.indexTitle"),
         indexDescription: string(projects.indexDescription, "home.projects.indexDescription"),
-        caseStudyLabel: string(projects.caseStudyLabel, "home.projects.caseStudyLabel"),
-        moreWorkLabel: string(projects.moreWorkLabel, "home.projects.moreWorkLabel"),
-        navigationLabel: string(projects.navigationLabel, "home.projects.navigationLabel"),
-        paginationLabel: string(projects.paginationLabel, "home.projects.paginationLabel"),
-        nextLabel: string(projects.nextLabel, "home.projects.nextLabel"),
-        backLabel: string(projects.backLabel, "home.projects.backLabel"),
-        homeLabel: string(projects.homeLabel, "home.projects.homeLabel"),
       },
       codeActivity: {
-        label: string(codeActivity.label, "home.codeActivity.label"),
-        activityLabel: string(codeActivity.activityLabel, "home.codeActivity.activityLabel"),
         username: string(codeActivity.username, "home.codeActivity.username"),
-        mergedLabel: string(codeActivity.mergedLabel, "home.codeActivity.mergedLabel"),
-        underReviewLabel: string(codeActivity.underReviewLabel, "home.codeActivity.underReviewLabel"),
       },
       writing: {
-        label: string(writing.label, "home.writing.label"),
-        empty: string(writing.empty, "home.writing.empty"),
-        moreArticlesLabel: string(writing.moreArticlesLabel, "home.writing.moreArticlesLabel"),
-        readingTimeLabel: string(writing.readingTimeLabel, "home.writing.readingTimeLabel"),
-        navigationLabel: string(writing.navigationLabel, "home.writing.navigationLabel"),
-        backLabel: string(writing.backLabel, "home.writing.backLabel"),
-        homeLabel: string(writing.homeLabel, "home.writing.homeLabel"),
+        indexDescription: string(writing.indexDescription, "home.writing.indexDescription"),
       },
       contact: {
-        label: string(contact.label, "home.contact.label"),
-        title: string(contact.title, "home.contact.title"),
         description: string(contact.description, "home.contact.description"),
         email: string(contact.email, "home.contact.email"),
-        nameLabel: string(contact.nameLabel, "home.contact.nameLabel"),
-        namePlaceholder: string(contact.namePlaceholder, "home.contact.namePlaceholder"),
-        emailLabel: string(contact.emailLabel, "home.contact.emailLabel"),
-        emailPlaceholder: string(contact.emailPlaceholder, "home.contact.emailPlaceholder"),
-        messageLabel: string(contact.messageLabel, "home.contact.messageLabel"),
-        messagePlaceholder: string(contact.messagePlaceholder, "home.contact.messagePlaceholder"),
-        missingSuffix: string(contact.missingSuffix, "home.contact.missingSuffix"),
-        invalidEmailHelper: string(contact.invalidEmailHelper, "home.contact.invalidEmailHelper"),
-        sendLabel: string(contact.sendLabel, "home.contact.sendLabel"),
-        subjectPrefix: string(contact.subjectPrefix, "home.contact.subjectPrefix"),
-        bodyFromLabel: string(contact.bodyFromLabel, "home.contact.bodyFromLabel"),
-        bookCallLabel: string(contact.bookCallLabel, "home.contact.bookCallLabel"),
       },
       footer: {
-        rights: string(footer.rights, "home.footer.rights"),
-        localTimeLabel: string(footer.localTimeLabel, "home.footer.localTimeLabel"),
         locale: string(footer.locale, "home.footer.locale"),
         timeZone: string(footer.timeZone, "home.footer.timeZone"),
       },

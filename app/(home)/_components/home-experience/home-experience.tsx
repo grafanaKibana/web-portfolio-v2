@@ -1,6 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
-import { home, profile } from "@/content/structured";
+import { profile } from "@/content/structured";
 import { clsx } from "clsx";
 import styles from "./home-experience.module.scss";
 
@@ -13,7 +13,7 @@ export function HomeExperience() {
   return (
     <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "page-shell-gutter w-full")}>
       <div className={clsx(styles.experienceHeader, "border-t font-mono uppercase text-muted-foreground")}>
-        <h2 id="experience-heading">{home.experience.label}</h2>
+        <h2 id="experience-heading">Experience</h2>
       </div>
       <ol className={clsx(styles.timeline, "relative m-0 list-none p-0 pl-5.5 md:pl-0")}>
         {profile.experience.map((experience, index) => {
@@ -50,7 +50,7 @@ export function HomeExperience() {
                   <details className={clsx(styles.roleDetails, "mt-2.5 md:mt-3")}>
                     <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-mono uppercase text-muted-foreground">
                       <ChevronRight aria-hidden="true" className={styles.detailsIcon} />
-                      {home.experience.detailsLabel}
+                      Details
                     </summary>
                     <div className={styles.detailsContent} data-slot="details-content">
                       <ul className="m-0 flex list-none flex-col gap-3 pt-3 md:pt-4">

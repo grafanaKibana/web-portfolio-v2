@@ -12,16 +12,7 @@
   padding-inline: 1.125rem;
 }
 
-.detailNavigation {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr) 5.5rem;
-}
-
 .summary::-webkit-details-marker {
-  display: none;
-}
-
-:global(body):has([data-slot="project-header"], [data-slot="article-header"]) .header[data-slot="site-header"] {
   display: none;
 }
 
@@ -38,9 +29,5 @@
 
   .navigation {
     padding-inline: 12.5rem;
-  }
-
-  .detailNavigation {
-    grid-template-columns: 4rem minmax(0, 1fr) 4rem;
   }
 }

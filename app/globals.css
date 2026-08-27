@@ -70,12 +70,9 @@
     letter-spacing: 0.18em;
   }
 
-  .project-action-link {
+  .project-action-link,
+  .project-action-link:visited {
     @apply inline-flex min-h-11 items-center gap-2 text-sm font-normal text-muted-foreground transition-colors;
-  }
-
-  .project-action-link:first-child {
-    @apply font-medium text-foreground;
   }
 
   .project-action-link:is(:hover, :focus-visible) {

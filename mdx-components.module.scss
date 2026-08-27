@@ -1,3 +1,7 @@
+.blockquote > p:first-child {
+  margin-top: 0;
+}
+
 .codeBlock :global(code[data-theme*=" "]),
 .codeBlock :global(code[data-theme*=" "] span) {
   color: var(--shiki-light);

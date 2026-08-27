@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import test from "node:test"
+import { load } from "js-yaml"
 
 import {
   loadGitHubActivity,
@@ -277,18 +278,75 @@ test("repository keeps live activity out of YAML and uses the approved resume re
   const yaml = await readFile(join(process.cwd(), "content", "portfolio.yaml"), "utf8")
   assert.doesNotMatch(yaml, /github\.com\/.+\/pull\/\d+/)
   assert.doesNotMatch(yaml, /\d+ merged · \d+ under review/)
-  const [primaryAction] = home.hero.actions
-  assert.ok(primaryAction)
   assert.equal(
-    primaryAction.href,
+    home.hero.resumeHref,
     "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf",
   )
 })
 
-test("one YAML document owns structured profile and approved home content", async () => {
+test("portfolio YAML contains personal data and configuration, not interface copy", async () => {
   const yaml = await readFile(join(process.cwd(), "content", "portfolio.yaml"), "utf8")
+  const document = load(yaml) as {
+    home?: Record<string, unknown>
+    profile?: {
+      certifications?: Array<{ date?: unknown }>
+      education?: { end?: unknown; start?: unknown }
+      experience?: Array<{ end?: unknown; period?: unknown; start?: unknown }>
+    }
+  }
+  const sourceHome = document.home ?? {}
+  const sourceProfile = document.profile ?? {}
   assert.match(yaml, /^profile:/m)
   assert.match(yaml, /^home:/m)
+  assert.deepEqual(Object.keys(sourceHome), [
+    "metadataDescription",
+    "mobileNavigation",
+    "hero",
+    "projects",
+    "codeActivity",
+    "writing",
+    "contact",
+    "footer",
+  ])
+  assert.deepEqual(sourceHome.mobileNavigation, { scrollThreshold: 260 })
+  assert.deepEqual(Object.keys(sourceHome.hero as Record<string, unknown>), [
+    "availability",
+    "title",
+    "lead",
+    "descriptors",
+    "descriptorInterval",
+    "resumeHref",
+  ])
+  assert.deepEqual(Object.keys(sourceHome.projects as Record<string, unknown>), [
+    "featuredSlugs",
+    "indexDescription",
+  ])
+  assert.deepEqual(Object.keys(sourceHome.codeActivity as Record<string, unknown>), ["username"])
+  assert.deepEqual(Object.keys(sourceHome.writing as Record<string, unknown>), ["indexDescription"])
+  assert.deepEqual(Object.keys(sourceHome.contact as Record<string, unknown>), ["description", "email"])
+  assert.deepEqual(Object.keys(sourceHome.footer as Record<string, unknown>), ["locale", "timeZone"])
+  assert.ok(sourceProfile.experience?.every(({ end, period, start }) =>
+    period === undefined
+    && typeof start === "string"
+    && /^\d{4}-(?:0[1-9]|1[0-2])$/.test(start)
+    && (end === null || typeof end === "string" && /^\d{4}-(?:0[1-9]|1[0-2])$/.test(end))))
+  assert.match(String(sourceProfile.education?.start), /^\d{4}-(?:0[1-9]|1[0-2])$/)
+  assert.match(String(sourceProfile.education?.end), /^\d{4}-(?:0[1-9]|1[0-2])$/)
+  assert.ok(sourceProfile.certifications?.every(({ date }) =>
+    typeof date === "string" && /^\d{4}-(?:0[1-9]|1[0-2])$/.test(date)))
+
+  const unquotedStringValues = yaml.split("\n").flatMap((line, index) => {
+    const match = /^\s*(?:-\s+)?([\w]+):\s+(.+)$/.exec(line)
+    if (!match?.[1] || !match[2]) return []
+    const [, key, value] = match
+    if (["id", "chapter"].includes(key)
+      || /^(?:"|'|\[|\{|\/|https?:\/\/|null$|\d)/.test(value)) return []
+    return [`${String(index + 1)}: ${line.trim()}`]
+  })
+  assert.deepEqual(unquotedStringValues, [])
+})
+
+test("one YAML document owns structured profile and approved personal content", () => {
   assert.equal(profile.name, "Nikita Reshetnik")
   assert.equal(profile.headline, "Shipping Agents at scale")
   assert.deepEqual(profile.careerChapters, [
@@ -317,22 +375,7 @@ test("one YAML document owns structured profile and approved home content", asyn
       { logo: "/companies/sigma-software.svg", organization: "Sigma Software Group", role: "Software Engineer Intern" },
     ],
   )
-  assert.deepEqual(home.navigation, [
-    { label: "About", href: "#about" },
-    { label: "Experience", href: "#experience" },
-    { label: "Education", href: "#education" },
-    { label: "Skills", href: "#skills" },
-    { label: "Projects", href: "#projects" },
-    { label: "Code", href: "#code" },
-    { label: "Writing", href: "#writing" },
-    { label: "Contact", href: "#contact" },
-  ])
-  assert.deepEqual(home.mobileNavigation, {
-    closeLabel: "Close navigation",
-    triggerLabel: "Jump to section",
-    defaultSectionLabel: "About",
-    scrollThreshold: 260,
-  })
+  assert.deepEqual(home.mobileNavigation, { scrollThreshold: 260 })
   assert.deepEqual(home.hero.descriptors, [
     "AI Engineer",
     "Software Developer",
@@ -341,30 +384,11 @@ test("one YAML document owns structured profile and approved home content", asyn
   ])
   assert.equal(home.hero.descriptorInterval, 3200)
   assert.deepEqual(home.projects, {
-    label: "Selected work",
     featuredSlugs: ["devbook", "obsidian-tabsdown", "web-portfolio-v1"],
-    indexTitle: "Projects",
     indexDescription: "Projects by Nikita Reshetnik across AI and software engineering.",
-    caseStudyLabel: "Read case study",
-    moreWorkLabel: "See other work",
-    navigationLabel: "Project navigation",
-    paginationLabel: "Project pagination",
-    nextLabel: "Next",
-    backLabel: "Back to all projects",
-    homeLabel: "Home",
   })
   assert.deepEqual(home.writing, {
-    label: "Writing",
-    empty: "No articles published yet.",
-    moreArticlesLabel: "See all articles",
-    readingTimeLabel: "min read",
-    navigationLabel: "Article navigation",
-    backLabel: "Back to all articles",
-    homeLabel: "Home",
-  })
-  assert.deepEqual(home.experience, {
-    label: "Experience",
-    detailsLabel: "Details",
+    indexDescription: "Articles by Nikita Reshetnik about AI and software engineering.",
   })
   assert.deepEqual(profile.education, {
     institution: "State University of Information and Communication Technologies",
@@ -396,12 +420,6 @@ test("one YAML document owns structured profile and approved home content", asyn
     { title: "IT Essentials: PC Hardware and Software", provider: "Cisco Networking Academy" },
     { title: "CPA: Programming Essentials in C++", provider: "Cisco Networking Academy" },
   ])
-  assert.deepEqual(home.education, {
-    label: "Education",
-    degreeLabel: "University degree",
-    certificationsLabel: "Industry certifications",
-  })
-  assert.deepEqual(home.skills, { label: "Skills" })
   assert.deepEqual(profile.skills, [
     {
       title: "AI / Machine Learning",
@@ -409,9 +427,9 @@ test("one YAML document owns structured profile and approved home content", asyn
         "Microsoft Agent Framework",
         "Semantic Kernel",
         "Microsoft.Extensions.AI",
-        "Large Language Models (LLMs)",
+        "Large Language Models",
         "LLM Evaluation",
-        "Retrieval-Augmented Generation (RAG)",
+        "Retrieval-Augmented Generation",
         "Azure AI Foundry",
         "Langfuse",
       ],
@@ -449,15 +467,8 @@ test("one YAML document owns structured profile and approved home content", asyn
       skills: ["Claude Code", "Claude Design", "Codex", "Pi", "OpenCode", "Cursor", "CodeRabbit", "GitHub Copilot"],
     },
   ])
-  assert.deepEqual(home.accessibility, {
-    skipToContent: "Skip to content",
-    backToTop: "Back to top",
-    primaryNavigation: "Primary navigation",
-    mobileNavigation: "Mobile navigation",
-    compactNavigation: "Compact navigation",
-  })
   assert.deepEqual(
-    home.hero.socialLinks.map(({ label, href }) => ({ label, href })),
+    profile.links,
     [
       { label: "LinkedIn", href: "https://www.linkedin.com/in/nikitareshetnik/" },
       { label: "Telegram", href: "https://t.me/grafanaKibana" },
@@ -466,8 +477,6 @@ test("one YAML document owns structured profile and approved home content", asyn
     ],
   )
   assert.deepEqual(home.footer, {
-    rights: "All rights reserved.",
-    localTimeLabel: "Local Time",
     locale: "en-GB",
     timeZone: "Europe/Kyiv",
   })

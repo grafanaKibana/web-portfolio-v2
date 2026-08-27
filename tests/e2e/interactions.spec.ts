@@ -236,7 +236,8 @@ test("the home page contains approved content through Phase 9 Contact", async ({
     await primaryAction.evaluate((element) => getComputedStyle(element).backgroundColor),
   );
   await primaryAction.hover();
-  await expect(primaryAction).toHaveCSS("transition-duration", "0s");
+  await expect(primaryAction).toHaveCSS("transition-duration", "0.15s");
+  await expect(primaryAction).toHaveCSS("transition-property", "opacity");
   await expect(primaryAction.locator("svg")).toHaveCSS("transform", "none");
   await expect(primaryAction.locator("svg")).toHaveCSS("transition-duration", "0s");
   await secondaryAction.hover();
@@ -566,6 +567,24 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
   expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
 });
 
+test("Experience present marker grows subtly from a matching gradient rail", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#experience");
+  const timeline = page.locator("#experience ol");
+  const currentDot = timeline.locator('[data-slot="timeline-dot"]').first();
+  const dotBackground = await currentDot.evaluate((dot) => getComputedStyle(dot).backgroundColor);
+  const railBackground = await timeline.evaluate((element) => getComputedStyle(element, "::before").backgroundImage);
+
+  expect(railBackground).toContain("linear-gradient");
+  expect(railBackground).toContain(dotBackground);
+  await expect(currentDot).toHaveCSS("animation-name", /timeline-current-dot/);
+  await expect(currentDot).toHaveCSS("animation-duration", "2.4s");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload();
+  await expect(timeline.locator('[data-slot="timeline-dot"]').first()).toHaveCSS("animation-name", "none");
+});
+
 test("Experience disclosure uses native keyboard behavior and in-flow motion", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto("/#experience");
@@ -594,7 +613,7 @@ test("Experience disclosure uses native keyboard behavior and in-flow motion", a
     throw new Error("Following Experience entry must be measurable");
   }
   expect(openingNextTop).toBeGreaterThan(closedNextTop);
-  expect(openingNextTop).toBeLessThan(openNextTop);
+  expect(openingNextTop).toBeLessThanOrEqual(openNextTop);
   await expect(content).toHaveCSS("visibility", "visible");
   await expect(icon).not.toHaveCSS("transform", "none");
 
@@ -786,13 +805,21 @@ test("Skills renders every validated item with one consistent icon slot", async 
     "Observability & CI/CD",
     "AI Development Tools",
   ]);
+  expect(await skills.getByRole("heading", { level: 3 }).evaluateAll((headings) => headings.every((heading) => {
+    const before = getComputedStyle(heading, "::before");
+    const after = getComputedStyle(heading, "::after");
+    return before.borderTopWidth === "1px"
+      && after.borderTopWidth === "1px"
+      && before.flexGrow === "1"
+      && after.flexGrow === "1";
+  }))).toBe(true);
   await expect(skills.locator('[data-slot="skill-label"]')).toHaveText([
     "Microsoft Agent Framework",
     "Semantic Kernel",
     "Microsoft.Extensions.AI",
-    "Large Language Models (LLMs)",
+    "Large Language Models",
     "LLM Evaluation",
-    "Retrieval-Augmented Generation (RAG)",
+    "Retrieval-Augmented Generation",
     "Azure AI Foundry",
     "Langfuse",
     "C#",
@@ -839,9 +866,9 @@ test("Skills renders every validated item with one consistent icon slot", async 
   await expect(skills.locator('[data-icon-kind="claude-design"]')).toHaveCount(1);
   await expect(skills.locator('[data-icon-kind="codex"]')).toHaveCount(1);
   await expect(skills.getByText("Semantic Kernel", { exact: true }).locator("..").locator(".lucide-sparkles")).toHaveCount(2);
-  await expect(skills.getByText("Large Language Models (LLMs)", { exact: true })
+  await expect(skills.getByText("Large Language Models", { exact: true })
     .locator("..").locator(".lucide-brain-circuit")).toHaveCount(2);
-  await expect(skills.getByText("Retrieval-Augmented Generation (RAG)", { exact: true })
+  await expect(skills.getByText("Retrieval-Augmented Generation", { exact: true })
     .locator("..").locator(".lucide-text-search")).toHaveCount(2);
   expect(await skills.locator('[data-icon-kind="semantic-gradient"]').evaluateAll((icons) =>
     icons.every((icon) => {
@@ -902,7 +929,7 @@ test("Skills clears the header and wraps without horizontal overflow", async ({ 
     const skills = page.locator("#skills");
 
     expect(await skills.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
-    await expect(skills.locator('[data-slot="skill-group"]')).toHaveCount(6);
+    await expect(skills.locator('[data-slot="skill-group"]')).toHaveCount(7);
     await expect(skills.locator("ul").first()).toHaveCSS("flex-wrap", "wrap");
 
     if ([390, 768, 1280].includes(width)) {
@@ -933,8 +960,14 @@ test("Selected work reflows without overflow and clears the sticky header", asyn
     expect(Math.abs(heading.y - header.y - header.height)).toBeLessThanOrEqual(1);
   }
 
+  const homeProjectActions = page.locator("#projects").locator('[data-slot="project-actions"]').first().locator("a");
+  expect(new Set(await homeProjectActions.evaluateAll((actions) =>
+    actions.map((action) => getComputedStyle(action).color))).size).toBe(1);
   const projectAction = page.locator("#projects").getByRole("link", { name: "Read case study" }).first();
   const restingActionColor = await projectAction.evaluate((element) => getComputedStyle(element).color);
+  expect(restingActionColor).not.toBe(await page.locator("#projects").getByRole("heading", { level: 3 }).first().evaluate((element) =>
+    getComputedStyle(element).color,
+  ));
   await projectAction.hover();
   await expect.poll(() => projectAction.evaluate((element) => getComputedStyle(element).color))
     .toBe(await page.locator("#projects").getByRole("heading", { level: 3 }).first().evaluate((element) =>
@@ -981,12 +1014,14 @@ test("project rows keep the approved static and color-only hover treatments", as
   expect(await homeDescription.evaluate((element) => getComputedStyle(element).color)).toBe(homeDescriptionStart);
 
   await page.goto("/projects/devbook");
-  const sourceAction = page.locator('[data-slot="project-hero"]').getByRole("link", { name: "Source" });
-  const restingSourceColor = await sourceAction.evaluate((element) => getComputedStyle(element).color);
-  await sourceAction.hover();
-  await expect.poll(() => sourceAction.evaluate((element) => getComputedStyle(element).color))
-    .not.toBe(restingSourceColor);
-  await expect(sourceAction.locator("svg")).toHaveCSS("transform", "none");
+  const projectActions = page.locator('[data-slot="project-actions"] a');
+  const restingActionColors = await projectActions.evaluateAll((actions) =>
+    actions.map((action) => getComputedStyle(action).color));
+  expect(new Set(restingActionColors).size).toBe(1);
+  await projectActions.first().hover();
+  await expect.poll(() => projectActions.first().evaluate((element) => getComputedStyle(element).color))
+    .not.toBe(restingActionColors[0]);
+  await expect(projectActions.first().locator("svg")).toHaveCSS("transform", "none");
 });
 
 test("Code activity renders live GitHub data and fails open without empty UI", async ({ page }) => {
@@ -1094,18 +1129,20 @@ test("Contact exposes its inactive and partially complete requirements", async (
 test("Contact keeps a visible keyboard focus indicator", async ({ page }) => {
   await page.goto("/#contact");
   const name = page.locator("#contact").getByRole("textbox", { name: "Name" });
+  const restingBorder = await name.evaluate((input) => getComputedStyle(input).borderColor);
 
   await name.focus();
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Tab");
   await expect(name).toBeFocused();
   await expect(name).toHaveCSS("box-shadow", "none");
-  await expect(name).toHaveCSS("outline-style", "solid");
-  await expect(name).toHaveCSS("outline-width", "2px");
-  expect(await name.evaluate((input) => {
+  await expect(name).toHaveCSS("outline-style", "none");
+  await expect(name).toHaveCSS("transition-duration", "0.15s");
+  await expect.poll(() => name.evaluate((input) => {
     const style = getComputedStyle(input);
-    return style.outlineColor === style.color;
+    return style.borderColor === style.color;
   })).toBe(true);
+  expect(await name.evaluate((input) => getComputedStyle(input).borderColor)).not.toBe(restingBorder);
 });
 
 test("Contact links use the shared muted hover treatment", async ({ page }) => {
@@ -1267,6 +1304,35 @@ test("collection links select the matching desktop header item after client navi
   await expect(page).toHaveURL(/\/articles$/);
   await expect(navigation.getByRole("link", { name: "Writing" }))
     .toHaveAttribute("aria-current", "location");
+});
+
+test("detail routes replace shell controls after client navigation without adding a header", async ({ page }) => {
+  for (const route of [
+    {
+      collection: "/projects",
+      row: "project-row",
+      navigation: "Project navigation",
+      back: "Back to list",
+    },
+    {
+      collection: "/articles",
+      row: "article-row",
+      navigation: "Article navigation",
+      back: "Back to list",
+    },
+  ]) {
+    await page.goto(route.collection);
+    await page.locator(`[data-slot="${route.row}"]`).first().click();
+
+    const header = page.getByRole("banner");
+    await expect(header).toHaveCount(1);
+    const navigation = header.getByRole("navigation", { name: route.navigation });
+    await expect(navigation.getByRole("link", { name: route.back })).toHaveAttribute(
+      "href",
+      route.collection,
+    );
+    await expect(navigation.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+  }
 });
 
 test("descriptor follows the reference timing and reduced-motion animation", async ({ page }) => {

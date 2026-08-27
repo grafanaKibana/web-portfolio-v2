@@ -17,14 +17,23 @@
 
 .skillGroup + .skillGroup {
   padding-top: 1.375rem;
-  border-top: 1px solid var(--border);
 }
 
 .groupLabel {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
   margin: 0;
   text-align: center;
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
+}
+
+.groupLabel::before,
+.groupLabel::after {
+  border-top: 1px solid var(--border);
+  content: "";
+  flex: 1;
 }
 
 .brandIcon {

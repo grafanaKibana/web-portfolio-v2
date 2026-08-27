@@ -1,30 +1,26 @@
 import { expect, test } from "@playwright/test";
 
-const knownArticleRoutes = [
-  {
-    path: "/articles/building-an-llm-evaluation-harness",
-    heading: "Building an LLM Evaluation Harness with Microsoft.Extensions.AI",
-  },
-  {
-    path: "/articles/fixing-bugs-with-mcps",
-    heading: "How I Fixed 14 Frontend Bugs in One Day Without Writing CSS",
-  },
-  {
-    path: "/articles/microsoft-agent-framework-setup",
-    heading: "Config-Driven Agents in .NET with Microsoft Agent Framework",
-  },
-];
 const missingRouteFamilies = ["articles", "projects"];
 
-for (const route of knownArticleRoutes) {
-  test(`${route.path} renders its static MDX route`, async ({ page }) => {
-    const response = await page.goto(route.path);
+test("every article index link resolves to a static semantic article", async ({ page }) => {
+  await page.goto("/articles");
+  const hrefs = await page.locator('[data-slot="article-row"]').evaluateAll((links) =>
+    links.map((link) => link.getAttribute("href")).filter((href): href is string => href !== null));
+
+  expect(hrefs.length).toBeGreaterThan(0);
+  for (const href of hrefs) {
+    expect(href).toMatch(/^\/articles\/[a-z0-9-]+$/);
+    const response = await page.goto(href);
 
     expect(response?.status()).toBe(200);
-    await expect(page.getByRole("heading", { level: 1, name: route.heading })).toBeVisible();
-    await expect(page.locator("article")).toBeVisible();
-  });
-}
+    const article = page.locator("main#main > article");
+    await expect(article).toBeVisible();
+    const headingTags = await article.locator("h1, h2, h3, h4, h5, h6").evaluateAll((headings) =>
+      headings.map((heading) => heading.tagName));
+    expect(headingTags[0]).toBe("H1");
+    expect(headingTags.slice(1)).not.toContain("H1");
+  }
+});
 
 test("every project index link resolves to a static semantic case study", async ({ page }) => {
   await page.goto("/projects");
@@ -77,11 +73,15 @@ test("project case studies use the route-aware header and hero actions", async (
   await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto("/projects/devbook");
 
-  await expect(page.locator('[data-slot="site-header"]')).toBeHidden();
-  const header = page.locator('[data-slot="project-header"]');
+  await expect(page.getByRole("banner")).toHaveCount(1);
+  const header = page.locator('[data-slot="site-header"]');
   const navigation = header.getByRole("navigation", { name: "Project navigation" });
+  await expect(header).toBeVisible();
+  await expect(page.locator('[data-slot="project-header"]')).toHaveCount(0);
   await expect(header.getByRole("heading")).toHaveCount(0);
-  await expect(navigation.getByRole("link", { name: "Back to all projects" })).toHaveAttribute("href", "/projects");
+  const back = navigation.getByRole("link", { name: "Back to list" });
+  await expect(back).toHaveAttribute("href", "/projects");
+  await expect(back).toHaveAttribute("data-slot", "detail-back-link");
   await expect(navigation.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
 
   const hero = page.locator('[data-slot="project-hero"]');
@@ -112,7 +112,7 @@ test("project case-study prose keeps a readable measure without page overflow", 
     expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
     const articleBox = await page.locator("main#main > article").boundingBox();
     if (!articleBox) throw new Error("Project article must be measurable");
-    expect(articleBox.width).toBeLessThanOrEqual(768);
+    expect(articleBox.width).toBeLessThanOrEqual(848);
     expect(articleBox.x).toBeGreaterThanOrEqual(0);
     expect(articleBox.x + articleBox.width).toBeLessThanOrEqual(width);
   }
@@ -212,11 +212,13 @@ test("article pages use the route-aware detail header without index-page copy", 
   });
   await page.goto("/articles/building-an-llm-evaluation-harness");
 
-  await expect(page.locator('[data-slot="site-header"]')).toBeHidden();
-  const header = page.locator('[data-slot="article-header"]');
+  await expect(page.getByRole("banner")).toHaveCount(1);
+  const header = page.locator('[data-slot="site-header"]');
   const navigation = header.getByRole("navigation", { name: "Article navigation" });
+  await expect(header).toBeVisible();
+  await expect(page.locator('[data-slot="article-header"]')).toHaveCount(0);
   await expect(header.getByRole("heading")).toHaveCount(0);
-  await expect(navigation.getByRole("link", { name: "Back to all articles" }))
+  await expect(navigation.getByRole("link", { name: "Back to list" }))
     .toHaveAttribute("href", "/articles");
   await expect(navigation.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
   await expect(page.locator("main#main").getByText("All articles", { exact: true })).toHaveCount(0);
@@ -228,7 +230,12 @@ test("article pages use the route-aware detail header without index-page copy", 
 
   expect(await page.locator("main article > header > *").evaluateAll((elements) =>
     elements.map((element) => element.tagName),
-  )).toEqual(["TIME", "H1", "P", "P"]);
+  )).toEqual(["P", "H1", "P", "P"]);
+  const articleMetadata = page.locator("main article > header > p").first();
+  await expect(articleMetadata).toContainText("March 16, 2026 · 8 min read");
+  await expect(articleMetadata.locator("time")).toHaveAttribute("datetime", "2026-03-16");
+  await expect(articleMetadata.locator("time")).toHaveText("March 16, 2026");
+  await expect(page.locator('[data-slot="article-pagination"]')).toHaveCount(0);
 
   const highlightedCode = page.locator(
     'figure[data-rehype-pretty-code-figure] pre[data-language="csharp"] code[data-language="csharp"]',
@@ -255,6 +262,72 @@ test("article pages use the route-aware detail header without index-page copy", 
   });
   expect(backgrounds.block).not.toBe(backgrounds.muted);
   expect(backgrounds.block).not.toBe(backgrounds.page);
+});
+
+test("article metadata describes the rendered static article", async ({ page }) => {
+  await page.goto("/articles/building-an-llm-evaluation-harness");
+
+  await expect(page).toHaveTitle("Building an LLM Evaluation Harness with Microsoft.Extensions.AI | Nikita Reshetnik");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    /\/articles\/building-an-llm-evaluation-harness$/,
+  );
+  await expect(page.locator('meta[property="og:type"]')).toHaveAttribute("content", "article");
+});
+
+test("article prose keeps its readable shell measure across responsive themes", async ({ page }) => {
+  for (const { width, theme } of [
+    { width: 390, theme: "light" },
+    { width: 414, theme: "dark" },
+    { width: 768, theme: "light" },
+    { width: 1440, theme: "dark" },
+  ]) {
+    await page.setViewportSize({ width, height: 900 });
+    const initScript = await page.addInitScript((selectedTheme) => {
+      localStorage.setItem("theme", selectedTheme);
+    }, theme);
+    try {
+      await page.goto("/articles/building-an-llm-evaluation-harness");
+
+      await expect(page.locator("html")).toHaveClass(new RegExp(theme));
+      expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+      const main = page.locator("main#main");
+      const articleBox = await main.locator(":scope > article").boundingBox();
+      const mainBox = await main.boundingBox();
+      if (!articleBox || !mainBox) throw new Error("Article shell must be measurable");
+      expect(articleBox.width).toBeLessThanOrEqual(848);
+      expect(articleBox.x).toBeGreaterThanOrEqual(mainBox.x);
+      expect(articleBox.x + articleBox.width).toBeLessThanOrEqual(width);
+      expect(articleBox.x).toBeCloseTo(
+        mainBox.x + await main.evaluate((element) => Number.parseFloat(getComputedStyle(element).paddingLeft)),
+        1,
+      );
+    } finally {
+      await initScript.dispose();
+    }
+  }
+});
+
+test("article MDX keeps semantic subheadings, ordered lists, and quotations", async ({ page }) => {
+  await page.goto("/articles/fixing-bugs-with-mcps");
+  const article = page.locator("main#main > article");
+
+  await expect(article.getByRole("heading", { level: 3 }).first()).toBeVisible();
+  await expect(article.locator("ol").first()).toBeVisible();
+  await expect(article.locator("blockquote").first()).toBeVisible();
+});
+
+test("article detail controls remain keyboard reachable", async ({ page, browserName }) => {
+  await page.goto("/articles/building-an-llm-evaluation-harness");
+  const forward = browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab";
+  await page.keyboard.press(forward);
+  await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
+  await page.keyboard.press(forward);
+  await expect(page.getByRole("link", { name: "Home" })).toBeFocused();
+  await page.keyboard.press(forward);
+  const back = page.getByRole("link", { name: "Back to list" });
+  await expect(back).toBeFocused();
+  await expect(back).not.toHaveCSS("outline-style", "none");
 });
 
 test("the Writing index reuses the approved whole-row project composition", async ({ page }) => {
@@ -286,14 +359,39 @@ test("the Writing index reuses the approved whole-row project composition", asyn
     .toHaveAttribute("aria-current", "location");
 });
 
-test("project case-study headers leave their center empty on narrow screens", async ({ page }) => {
+test("collection lists and detail pages share one slightly wider centered pane", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  for (const [indexPath, detailPath] of [
+    ["/projects", "/projects/devbook"],
+    ["/articles", "/articles/building-an-llm-evaluation-harness"],
+  ] as const) {
+    await page.goto(indexPath);
+    const index = await page.locator("main#main").boundingBox();
+    await page.goto(detailPath);
+    const detail = await page.locator("main#main").boundingBox();
+    if (!index || !detail) throw new Error("Collection panes must be measurable");
+    expect(index.width).toBeGreaterThan(768);
+    expect(detail.width).toBe(index.width);
+    expect(index.x + index.width / 2).toBeCloseTo(720, 1);
+    expect(detail.x + detail.width / 2).toBeCloseTo(720, 1);
+    await expect(page.locator("main#main > article")).toHaveCSS("max-width", "none");
+  }
+});
+
+test("project case-study shell headers center the back-to-list link on narrow screens", async ({ page }) => {
   for (const width of [280, 320, 344]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/projects/quartz-tabsdown");
 
-    const header = page.locator('[data-slot="project-header"]');
+    const header = page.locator('[data-slot="site-header"]');
     const homeLink = header.getByRole("link", { name: "Home" });
+    const backLink = header.getByRole("link", { name: "Back to list" });
     await expect(header.getByRole("heading")).toHaveCount(0);
+    await expect(backLink).toBeVisible();
+    const [headerBox, backBox] = await Promise.all([header.boundingBox(), backLink.boundingBox()]);
+    if (!headerBox || !backBox) throw new Error("Detail header and back link must be measurable");
+    expect(backBox.x + backBox.width / 2).toBeCloseTo(headerBox.x + headerBox.width / 2, 1);
     await expect(page.locator('[data-slot="project-hero"]').getByRole("heading", {
       level: 1,
       name: "Quartz Tabsdown",
@@ -313,6 +411,21 @@ test("Home sections keep their semantic order", async ({ page }) => {
 
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
+
+  test("article index and detail content remain usable", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/articles");
+    const firstArticle = page.locator('[data-slot="article-row"]').first();
+    await expect(firstArticle).toBeVisible();
+    await firstArticle.click();
+
+    await expect(page.getByRole("banner")).toHaveCount(1);
+    await expect(page.locator("main#main > article")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to list" })).toHaveAttribute("href", "/articles");
+    await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+    await expect(page.locator('pre[data-language="csharp"] code[data-language="csharp"]').first()).toBeVisible();
+    expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+  });
 
   test("the corrected intro, shell anchors, and long-form routes remain usable", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -381,8 +494,9 @@ test.describe("without JavaScript", () => {
     await page.goto("/projects");
     await page.getByRole("link", { name: "DevBook" }).click();
     await expect(page).toHaveURL(/\/projects\/devbook$/);
+    await expect(page.getByRole("banner")).toHaveCount(1);
     await expect(page.getByRole("navigation", { name: "Project navigation" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Back to all projects" })).toHaveAttribute("href", "/projects");
+    await expect(page.getByRole("link", { name: "Back to list" })).toHaveAttribute("href", "/projects");
     await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
     await expect(
       page.getByRole("heading", { level: 2, name: "One source, different uses" }),

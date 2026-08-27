@@ -1,6 +1,6 @@
 import { MapPin } from "lucide-react";
 import Image from "next/image";
-import { home, profile } from "@/content/structured";
+import { profile } from "@/content/structured";
 import { clsx } from "clsx";
 import styles from "./home-education.module.scss";
 
@@ -52,7 +52,7 @@ export function HomeEducation() {
         id="education-heading"
         className={clsx(styles.sectionLabel, "border-t font-mono font-normal uppercase text-muted-foreground")}
       >
-        {home.education.label}
+        Education
       </h2>
       <div className={clsx(styles.educationRows, "flex flex-col gap-11 md:gap-16 lg:gap-20")}>
         <div className={clsx(styles.educationRow, "flex flex-col gap-4 md:grid md:gap-0")} data-slot="education-row">
@@ -60,7 +60,7 @@ export function HomeEducation() {
             className={clsx(styles.rowLabel, "font-mono font-normal uppercase text-muted-foreground")}
             data-slot="education-row-label"
           >
-            {home.education.degreeLabel}
+            University degree
           </h3>
           <div data-slot="education-row-content">
             <p className={clsx(styles.qualification, "m-0 font-semibold")}>{profile.education.qualification}</p>
@@ -77,7 +77,7 @@ export function HomeEducation() {
             className={clsx(styles.rowLabel, "font-mono font-normal uppercase text-muted-foreground")}
             data-slot="education-row-label"
           >
-            {home.education.certificationsLabel}
+            Industry certifications
           </h3>
           <ul
             className={clsx(styles.certificationList, "m-0 grid list-none grid-cols-2 gap-8 p-0 md:gap-16")}
