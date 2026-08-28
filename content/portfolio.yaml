@@ -87,11 +87,11 @@ profile:
     - title: "Azure AI Fundamentals"
       date: 2025-08
       icon: /certifications/microsoft-azure.svg
-      href: https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134
+      href: "https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134"
     - title: "GitHub Copilot"
       date: 2025-06
       icon: /certifications/github-copilot.svg
-      href: https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url
+      href: "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url"
   learning:
     - { title: "Multi AI Agent Systems with crewAI", provider: "DeepLearning.AI" }
     - { title: "Machine Learning in Production", provider: "DeepLearning.AI" }
@@ -110,10 +110,10 @@ profile:
     - { title: "Observability & CI/CD", skills: ["Grafana", "Prometheus", "Kibana", "Azure DevOps", "GitHub Actions", "GitLab CI/CD"] }
     - { title: "AI Development Tools", skills: ["Claude Code", "Claude Design", "Codex", "Pi", "OpenCode", "Cursor", "CodeRabbit", "GitHub Copilot"] }
   links:
-    - { label: "LinkedIn", href: https://www.linkedin.com/in/nikitareshetnik/ }
-    - { label: "Telegram", href: https://t.me/grafanaKibana }
-    - { label: "GitHub", href: https://github.com/grafanaKibana }
-    - { label: "LeetCode", href: https://leetcode.com/u/grafanaKibana/ }
+    - { label: "LinkedIn", href: "https://www.linkedin.com/in/nikitareshetnik/" }
+    - { label: "Telegram", href: "https://t.me/grafanaKibana" }
+    - { label: "GitHub", href: "https://github.com/grafanaKibana" }
+    - { label: "LeetCode", href: "https://leetcode.com/u/grafanaKibana/" }
 
 home:
   metadataDescription: "AI engineer shipping agents at scale with a software and .NET foundation."
@@ -125,7 +125,7 @@ home:
     lead: "Shipping Agents at scale."
     descriptors: ["AI Engineer", "Software Developer", "UI Design Enthusiast", "Open Source Contributor"]
     descriptorInterval: 3200
-    resumeHref: https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf
+    resumeHref: "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf"
   projects:
     featuredSlugs: [devbook, obsidian-tabsdown, web-portfolio-v1]
     indexDescription: "Projects by Nikita Reshetnik across AI and software engineering."

@@ -57,7 +57,7 @@ export function HomeHero() {
       aria-labelledby="intro-heading"
       className={clsx(styles.hero, "page-shell-gutter box-border flex w-full flex-col items-center justify-center pt-8 text-center")}
     >
-      <div className={clsx(styles.availability, "inline-flex items-center rounded-full py-1.5 text-xs font-medium")}>
+      <div className={clsx(styles.availability, "inline-flex items-center rounded-full py-1.5 text-xs font-medium")} data-page-motion-intro>
         <span
           aria-hidden="true"
           className={clsx(styles.availabilityDot, "size-1.5 animate-pulse rounded-full motion-reduce:animate-none")}
@@ -68,17 +68,17 @@ export function HomeHero() {
           {home.hero.availability.qualifier}
         </span>
       </div>
-      <h1 id="intro-heading" className={clsx(styles.heading, "m-0 font-medium")}>
+      <h1 id="intro-heading" className={clsx(styles.heading, "m-0 font-medium")} data-page-motion-intro>
         <span className="block whitespace-nowrap">{home.hero.title}</span>
         <span className="block whitespace-nowrap text-muted-foreground">{home.hero.lead}</span>
       </h1>
-      <div className={clsx(styles.descriptorSlot, "flex items-center justify-center")}>
+      <div className={clsx(styles.descriptorSlot, "flex items-center justify-center")} data-page-motion-intro>
         <DescriptorRotation
           descriptors={home.hero.descriptors}
           interval={home.hero.descriptorInterval}
         />
       </div>
-      <div className={clsx(styles.actions, "flex w-full flex-col lg:w-auto lg:flex-row lg:items-center")}>
+      <div className={clsx(styles.actions, "flex w-full flex-col lg:w-auto lg:flex-row lg:items-center")} data-page-motion-intro>
         <PrimaryAction download href={home.hero.resumeHref}>
           <Icon name="download" className={clsx(styles.primaryActionIcon)} />
           Download Résumé
@@ -94,7 +94,7 @@ export function HomeHero() {
           />
         </a>
       </div>
-      <ul className={clsx(styles.socialLinks, "desktop-link-row-gap grid w-full grid-cols-2 justify-items-center gap-x-1 gap-y-1 sm:flex sm:flex-wrap sm:justify-center sm:gap-y-0 lg:w-auto")}>
+      <ul className={clsx(styles.socialLinks, "desktop-link-row-gap grid w-full grid-cols-2 justify-items-center gap-x-1 gap-y-1 sm:flex sm:flex-wrap sm:justify-center sm:gap-y-0 lg:w-auto")} data-page-motion-intro>
         {profile.links.map((link) => (
           <li key={link.href}>
             <a

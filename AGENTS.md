@@ -27,10 +27,11 @@ Use a **route-oriented vertical-slice modular monolith**. Keep the implementatio
 
 - Pages, layouts, static UI, structured content, metadata, and MDX remain Server Components by default.
 - Add `"use client"` only for state, effects, event handlers, custom hooks, or browser APIs.
-- Approved client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, and `app/(home)/_components/contact-form/contact-form.tsx`.
+- Approved client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/page-motion/page-motion.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, and `app/(home)/_components/contact-form/contact-form.tsx`.
 - Client modules may receive serializable props and browser-safe shared UI. They must not import `server-only`, Node filesystem/path APIs, MDX discovery, secrets, or server content loaders.
 - Prefer native HTML and CSS before JavaScript: `details/summary` for disclosures, native form validation, and CSS reduced-motion handling.
 - Keep server-rendered content meaningful without hydration. Client decoration must fail open and must never block, hide, or inert core content.
+- Page motion is shared progressive enhancement: each route's intro targets enter from an armed splash handoff, and each marked row reveals once after crossing the 90% viewport line. Rows entering together cascade in document order; explicit nested items may stagger within a row. Cells, controls, and icons remain static.
 
 ## Content, routing, and assets
 

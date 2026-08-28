@@ -55,9 +55,10 @@ export async function HomeCodeActivity() {
   }));
 
   return (
-    <section id="code" aria-labelledby="code-heading" className={clsx(styles.code, "page-shell-gutter w-full")}>
-      <div className="mb-7 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-t pt-3 lg:mb-14 lg:pt-3.5">
+    <section id="code" aria-labelledby="code-heading" className={clsx(styles.code, "page-shell-gutter w-full")} data-page-motion-section>
+      <div className="mb-7 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-t pt-3 lg:mb-14 lg:pt-3.5" data-page-motion-row>
         <h2
+          data-page-motion-trigger
           id="code-heading"
           className={clsx(styles.sectionLabel, "m-0 font-mono font-normal uppercase text-muted-foreground")}
         >
@@ -75,12 +76,12 @@ export async function HomeCodeActivity() {
 
       {activity.pullRequestsAvailable ? groups.filter((group) => group.contributions.length > 0).map((group) => (
         <section className={styles.group} data-slot="pull-request-group" key={group.status}>
-          <h3 className={clsx(styles.groupLabel, "m-0 font-mono font-normal uppercase text-muted-foreground")}>
+          <h3 className={clsx(styles.groupLabel, "m-0 font-mono font-normal uppercase text-muted-foreground")} data-page-motion-row>
             {group.label}
           </h3>
           <ul aria-label={`${group.label} contributions`} className="m-0 mt-4 list-none p-0">
             {group.contributions.map((contribution) => (
-              <li className="border-t first:border-t-0" key={contribution.href}>
+              <li className="border-t first:border-t-0" data-page-motion-row key={contribution.href}>
                 <a
                   className={clsx(styles.contribution, "group block rounded-sm py-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:py-3")}
                   data-slot="pull-request-row"
@@ -118,7 +119,7 @@ export async function HomeCodeActivity() {
       )) : null}
 
       {activity.calendarAvailable ? (
-        <figure className={clsx(styles.activity, "m-0 border-t pt-5")} data-slot="activity-visualization">
+        <figure className={clsx(styles.activity, "m-0 border-t pt-5")} data-page-motion-row data-slot="activity-visualization">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             <figcaption className={clsx(styles.groupLabel, "font-mono uppercase text-muted-foreground")}>
               GitHub activity · last 12 months
@@ -155,7 +156,7 @@ export async function HomeCodeActivity() {
           </ol>
         </figure>
       ) : (
-        <a className={clsx(styles.profileLink, "project-action-link border-t")} href={profileHref} rel="noreferrer" target="_blank">
+        <a className={clsx(styles.profileLink, "project-action-link border-t")} data-page-motion-row href={profileHref} rel="noreferrer" target="_blank">
           <Github aria-hidden="true" className="size-3.5 opacity-60" variant="mono" />
           {profileLabel}
         </a>

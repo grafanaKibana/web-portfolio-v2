@@ -70,7 +70,7 @@ export function ContactForm(props: ContactFormProps) {
     "rounded-md border bg-background px-3 py-2 transition-colors focus:border-foreground focus:outline-none user-invalid:border-destructive motion-reduce:transition-none";
 
   return (
-    <form action={mailtoHref} className={clsx(styles.form, "flex h-full min-w-0 flex-col gap-4")} onSubmit={sendEmail}>
+    <form action={mailtoHref} className={clsx(styles.form, "flex h-full min-w-0 flex-col gap-4")} data-page-motion-row onSubmit={sendEmail}>
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="contact-name">{labels.name}</label>
         <input

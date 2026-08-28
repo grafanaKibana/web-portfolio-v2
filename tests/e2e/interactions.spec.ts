@@ -1,4 +1,28 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+/**
+ * Waits until entrance animations stop affecting layout measurements.
+ *
+ * @param page - Active browser page.
+ * @param selector - Motion targets whose running animations must finish.
+ */
+async function waitForAnimationsToSettle(page: Page, selector: string) {
+  await expect.poll(() => page.locator(selector).evaluateAll((targets) => targets.every((target) =>
+    target.getAnimations().every((animation) => animation.playState !== "running"),
+  ))).toBe(true);
+}
+
+/**
+ * Asserts that one group's item delays keep the approved 75 ms cadence.
+ *
+ * @param delays - Animation delays in reveal order.
+ */
+function expectStaggeredDelays(delays: Array<number | null>) {
+  expect(delays.length).toBeGreaterThan(0);
+  expect(delays[0]).not.toBeNull();
+  const startDelay = Number(delays[0]);
+  for (const [index, delay] of delays.entries()) expect(delay).toBeCloseTo(startDelay + index * 75, 0);
+}
 
 test("desktop navigation and header match the corrected design contract", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 768 });
@@ -224,6 +248,7 @@ test("the home page contains approved content through Phase 9 Contact", async ({
     "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf",
   );
   await expect(page.getByRole("link", { name: "Explore Experience" })).toHaveAttribute("href", "#experience");
+  await waitForAnimationsToSettle(page, "[data-page-motion-intro]");
   const primaryAction = page.getByRole("link", { name: "Download Résumé" });
   const secondaryAction = page.getByRole("link", { name: "Explore Experience" });
   const primaryBox = await primaryAction.boundingBox();
@@ -393,6 +418,9 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
   for (const width of [344, 390, 768]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/#experience");
+    await expect(experience).toHaveAttribute("data-page-motion-revealed", "true");
+    await waitForAnimationsToSettle(page, "#experience [data-page-motion-row]");
+    await expect(experience).toHaveCSS("transform", "none");
     await expect(experience).toHaveCSS("scroll-margin-top", "4px");
     expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
     const compactPeriod = await experience.locator("li").first().locator("p").first().boundingBox();
@@ -445,6 +473,9 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
   for (const width of [1024, 1279, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/#experience");
+    await expect(experience).toHaveAttribute("data-page-motion-revealed", "true");
+    await waitForAnimationsToSettle(page, "#experience [data-page-motion-row]");
+    await expect(experience).toHaveCSS("transform", "none");
     expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
     const geometry = await experience.locator("ol").evaluate((timeline) => {
       const timelineBox = timeline.getBoundingClientRect();
@@ -511,6 +542,9 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/#experience");
+  await expect(experience).toHaveAttribute("data-page-motion-revealed", "true");
+  await waitForAnimationsToSettle(page, "#experience [data-page-motion-row]");
+  await expect(experience).toHaveCSS("transform", "none");
   await expect(experience).toHaveCSS("scroll-margin-top", "-28px");
   const desktopItem = experience.locator("li").first();
   const desktopPeriod = await desktopItem.locator("p").first().boundingBox();
@@ -645,20 +679,31 @@ test("Experience disclosure uses native keyboard behavior and in-flow motion", a
 });
 
 test("Experience is reachable through desktop and compact navigation", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
   await page.setViewportSize({ width: 1280, height: 768 });
   await page.goto("/");
+  await expect(page.locator("html")).not.toHaveAttribute("data-page-motion-pending", "true");
+  const experience = page.locator("#experience");
   await page.getByRole("navigation", { name: "Primary navigation" })
     .getByRole("link", { name: "Experience" })
     .click();
   await expect(page).toHaveURL(/#experience$/);
-  const desktopHeader = await page.locator('[data-slot="site-header"]').boundingBox();
-  const desktopHeading = await page.locator("#experience > div").first().boundingBox();
-  if (!desktopHeader || !desktopHeading) throw new Error("Desktop Experience heading must be measurable");
-  expect(Math.abs(desktopHeading.y - desktopHeader.y - desktopHeader.height)).toBeLessThanOrEqual(1);
+  await expect(experience).toHaveAttribute("data-page-motion-revealed", "true");
+  await waitForAnimationsToSettle(page, "#experience [data-page-motion-row]");
+  await expect(experience).toHaveCSS("transform", "none");
+  await expect.poll(async () => {
+    const header = await page.locator('[data-slot="site-header"]').boundingBox();
+    const heading = await page.locator("#experience > div").first().boundingBox();
+    if (!header || !heading) throw new Error("Desktop Experience heading must be measurable");
+    return Math.abs(heading.y - header.y - header.height);
+  }).toBeLessThanOrEqual(1);
 
   for (const width of [1024, 1279]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/");
+    await expect(page.locator("html")).not.toHaveAttribute("data-page-motion-pending", "true");
     await page.evaluate(() => {
       window.scrollTo(0, 320);
     });
@@ -666,14 +711,20 @@ test("Experience is reachable through desktop and compact navigation", async ({ 
     await page.getByRole("navigation", { name: "Mobile navigation" })
       .getByRole("link", { name: "Experience" })
       .click();
-    const tabletHeader = await page.locator('[data-slot="site-header"]').boundingBox();
-    const tabletHeading = await page.locator("#experience > div").first().boundingBox();
-    if (!tabletHeader || !tabletHeading) throw new Error("Tablet Experience heading must be measurable");
-    expect(Math.abs(tabletHeading.y - tabletHeader.y - tabletHeader.height)).toBeLessThanOrEqual(1);
+    await expect(experience).toHaveAttribute("data-page-motion-revealed", "true");
+    await waitForAnimationsToSettle(page, "#experience [data-page-motion-row]");
+    await expect(experience).toHaveCSS("transform", "none");
+    await expect.poll(async () => {
+      const header = await page.locator('[data-slot="site-header"]').boundingBox();
+      const heading = await page.locator("#experience > div").first().boundingBox();
+      if (!header || !heading) throw new Error("Tablet Experience heading must be measurable");
+      return Math.abs(heading.y - header.y - header.height);
+    }, { message: `Experience anchor offset at ${String(width)}px` }).toBeLessThanOrEqual(1);
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await expect(page.locator("html")).not.toHaveAttribute("data-page-motion-pending", "true");
   await page.evaluate(() => {
     window.scrollTo(0, 320);
   });
@@ -682,16 +733,27 @@ test("Experience is reachable through desktop and compact navigation", async ({ 
     .getByRole("link", { name: "Experience" })
     .click();
   await expect(page).toHaveURL(/#experience$/);
-  const compactHeader = await page.locator('[data-slot="site-header"]').boundingBox();
-  const compactHeading = await page.locator("#experience > div").first().boundingBox();
-  if (!compactHeader || !compactHeading) throw new Error("Compact Experience heading must be measurable");
-  expect(Math.abs(compactHeading.y - compactHeader.y - compactHeader.height)).toBeLessThanOrEqual(1);
+  await expect(experience).toHaveAttribute("data-page-motion-revealed", "true");
+  await waitForAnimationsToSettle(page, "#experience [data-page-motion-row]");
+  await expect(experience).toHaveCSS("transform", "none");
+  await expect.poll(async () => {
+    const header = await page.locator('[data-slot="site-header"]').boundingBox();
+    const heading = await page.locator("#experience > div").first().boundingBox();
+    if (!header || !heading) throw new Error("Compact Experience heading must be measurable");
+    return Math.abs(heading.y - header.y - header.height);
+  }).toBeLessThanOrEqual(1);
 });
 
 test("About clears the sticky header through direct, desktop, and modal navigation", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("/#about");
   const desktopHeading = page.getByRole("heading", { level: 2, name: "About" });
+  await expect(page.locator("#about")).toHaveAttribute("data-page-motion-revealed", "true");
+  await waitForAnimationsToSettle(page, "#about [data-page-motion-row]");
+  await expect(page.locator("#about")).toHaveCSS("transform", "none");
   await expect(page.locator("#about")).toHaveCSS("scroll-margin-top", "-44px");
   const directBox = await desktopHeading.boundingBox();
   const directHeader = await page.locator('[data-slot="site-header"]').boundingBox();
@@ -722,10 +784,14 @@ test("About clears the sticky header through direct, desktop, and modal navigati
 
   await page.setViewportSize({ width: 1280, height: 768 });
   await page.goto("/");
+  await expect(page.locator("html")).not.toHaveAttribute("data-page-motion-pending", "true");
   await page.getByRole("navigation", { name: "Primary navigation" })
     .getByRole("link", { name: "About" })
     .click();
   await expect(page).toHaveURL(/#about$/);
+  await expect(page.locator("#about")).toHaveAttribute("data-page-motion-revealed", "true");
+  await waitForAnimationsToSettle(page, "#about [data-page-motion-row]");
+  await expect(page.locator("#about")).toHaveCSS("transform", "none");
   const desktopClickBox = await desktopHeading.boundingBox();
   const desktopClickHeader = await page.locator('[data-slot="site-header"]').boundingBox();
   if (!desktopClickBox || !desktopClickHeader) throw new Error("About heading must be measurable after desktop navigation");
@@ -733,6 +799,7 @@ test("About clears the sticky header through direct, desktop, and modal navigati
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await expect(page.locator("html")).not.toHaveAttribute("data-page-motion-pending", "true");
   await page.evaluate(() => {
     window.scrollTo(0, 320);
   });
@@ -743,6 +810,9 @@ test("About clears the sticky header through direct, desktop, and modal navigati
     .getByRole("link", { name: "About" })
     .click();
   await expect(page).toHaveURL(/#about$/);
+  await expect(page.locator("#about")).toHaveAttribute("data-page-motion-revealed", "true");
+  await waitForAnimationsToSettle(page, "#about [data-page-motion-row]");
+  await expect(page.locator("#about")).toHaveCSS("transform", "none");
   const mobileBox = await page.getByRole("heading", { level: 2, name: "About" }).boundingBox();
   const mobileHeader = await page.locator('[data-slot="site-header"]').boundingBox();
   if (!mobileBox || !mobileHeader) throw new Error("About heading must be measurable after modal navigation");
@@ -762,6 +832,9 @@ test("Education clears the sticky header at each shell layout", async ({ page })
   for (const width of [390, 768, 1280]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/#education");
+    await expect(page.locator("#education")).toHaveAttribute("data-page-motion-revealed", "true");
+    await waitForAnimationsToSettle(page, "#education [data-page-motion-row]");
+    await expect(page.locator("#education")).toHaveCSS("transform", "none");
     const heading = await page.getByRole("heading", { level: 2, name: "Education" }).boundingBox();
     const header = await page.locator('[data-slot="site-header"]').boundingBox();
     if (!heading || !header) throw new Error("Education heading must be measurable");
@@ -927,6 +1000,9 @@ test("Skills clears the header and wraps without horizontal overflow", async ({ 
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/#skills");
     const skills = page.locator("#skills");
+    await expect(skills).toHaveAttribute("data-page-motion-revealed", "true");
+    await waitForAnimationsToSettle(page, "#skills [data-page-motion-row], #skills [data-page-motion-item]");
+    await expect(skills).toHaveCSS("transform", "none");
 
     expect(await skills.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
     await expect(skills.locator('[data-slot="skill-group"]')).toHaveCount(7);
@@ -946,6 +1022,9 @@ test("Selected work reflows without overflow and clears the sticky header", asyn
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/#projects");
     const projects = page.locator("#projects");
+    await expect(projects).toHaveAttribute("data-page-motion-revealed", "true");
+    await waitForAnimationsToSettle(page, "#projects [data-page-motion-row]");
+    await expect(projects).toHaveCSS("transform", "none");
     const project = projects.locator('[data-slot="home-project"]').first();
 
     expect(await projects.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
@@ -1365,6 +1444,748 @@ test("descriptor follows the reference timing and reduced-motion animation", asy
   await expect(descriptor).toHaveCSS("animation-name", /descriptor-fade/);
 });
 
+test("Page motion markers map five Home intro groups and staged rows across eight stable sections", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+
+  const heroTargets = page.locator("[data-page-motion-intro]");
+  await expect(heroTargets).toHaveCount(5);
+  expect(await heroTargets.evaluateAll((elements) => elements.map((element) => element.tagName))).toEqual([
+    "DIV",
+    "H1",
+    "DIV",
+    "DIV",
+    "UL",
+  ]);
+
+  const expectedSections = ["about", "experience", "education", "skills", "projects", "code", "writing", "contact"];
+  const sectionRoots = page.locator("[data-page-motion-section]");
+  await expect(sectionRoots).toHaveCount(expectedSections.length);
+  expect(await sectionRoots.evaluateAll((sections) => sections.map((section) => ({
+    id: section.id,
+    nestedHeroTargets: section.querySelectorAll("[data-page-motion-intro]").length,
+    nestedSectionTargets: section.querySelectorAll("[data-page-motion-section]").length,
+    rowCount: section.querySelectorAll("[data-page-motion-row]").length,
+    triggerOwnedByRow: Array.from(section.querySelectorAll("[data-page-motion-trigger]")).every((trigger) =>
+      trigger.closest("[data-page-motion-row]")?.closest("[data-page-motion-section]") === section,
+    ),
+    triggerIds: Array.from(section.querySelectorAll("[data-page-motion-trigger]"), (trigger) => trigger.id),
+  })))).toEqual(expectedSections.map((id) => expect.objectContaining({
+    id,
+    nestedHeroTargets: 0,
+    nestedSectionTargets: 0,
+    rowCount: expect.any(Number),
+    triggerOwnedByRow: true,
+    triggerIds: [`${id}-heading`],
+  })));
+  expect(await sectionRoots.evaluateAll((sections) => sections.every((section) =>
+    section.querySelectorAll("[data-page-motion-row]").length >= 2,
+  ))).toBe(true);
+  expect(await page.locator('#skills [data-slot="skill-group"]').evaluateAll((groups) => groups.every((group) =>
+    group.getAttribute("data-page-motion-order") === "center-out"
+      && group.querySelectorAll("[data-page-motion-lead]").length === 1
+      && group.querySelectorAll("[data-page-motion-item]").length > 1,
+  ))).toBe(true);
+});
+
+for (const route of [
+  { introCount: 1, label: "project list", path: "/projects" },
+  { introCount: 3, label: "project detail", path: "/projects/devbook" },
+  { introCount: 1, label: "article list", path: "/articles" },
+  { introCount: 4, label: "article detail", path: "/articles/building-an-llm-evaluation-harness" },
+]) {
+  test(`Page motion animates the ${route.label} route`, async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    });
+    await page.goto(route.path);
+
+    const introTargets = page.locator("[data-page-motion-intro]");
+    const sectionTargets = page.locator("[data-page-motion-section]");
+    await expect(introTargets).toHaveCount(route.introCount);
+    expect(await sectionTargets.count()).toBeGreaterThan(0);
+    expect(await sectionTargets.evaluateAll((sections) => sections.every((section) =>
+      section.matches('[data-page-motion-rows="children"]')
+        ? section.children.length > 0
+        : section.querySelectorAll("[data-page-motion-row]").length > 0,
+    ))).toBe(true);
+    await expect.poll(() => introTargets.first().evaluate((target) => target.getAnimations().some((animation) => {
+      const effect = animation.effect;
+      return effect instanceof KeyframeEffect
+        && effect.getKeyframes().some((frame) => frame.opacity !== undefined);
+    }))).toBe(true);
+    const introDelays = await introTargets.evaluateAll((targets) => targets.map((target) => {
+      const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+      return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
+    }));
+    for (const [index, delay] of introDelays.entries()) expect(delay).toBeCloseTo(40 + index * 75, 0);
+    if (route.path === "/projects" || route.path === "/articles") {
+      const finalRow = page.locator("[data-page-motion-row]").last();
+      await finalRow.focus();
+      await expect(finalRow).toHaveCSS("opacity", "1");
+      await expect(finalRow).toHaveCSS("transform", "none");
+    }
+  });
+}
+
+for (const route of [
+  { headingIndex: 2, label: "project section", path: "/projects/devbook" },
+  { headingIndex: 2, label: "article subsection", path: "/articles/fixing-bugs-with-mcps" },
+]) {
+  test(`Page motion waits to stage each ${route.label} heading group until it reaches the viewport`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.addInitScript(() => {
+      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    });
+    await page.goto(route.path);
+
+    const body = page.locator('[data-page-motion-rows="children"]').first();
+    const headings = body.locator(":scope > :is(h2, h3, h4, h5, h6)");
+    const heading = headings.nth(route.headingIndex), nextHeading = headings.nth(route.headingIndex + 1);
+    await expect(heading).toHaveCSS("opacity", "0");
+    await expect(nextHeading).toHaveCSS("opacity", "0");
+    expect(await heading.evaluate((target) => target.getAnimations().length)).toBe(0);
+
+    await heading.evaluate((element) => {
+      const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
+    });
+    await expect.poll(() => heading.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+    await expect(nextHeading).toHaveCSS("opacity", "0");
+    expect(await nextHeading.evaluate((target) => target.getAnimations().length)).toBe(0);
+
+    const delays = await body.evaluate((root, headingIndex) => {
+      const rows = Array.from(root.children);
+      const starts = rows.map((row, index) => /^H[2-6]$/.test(row.tagName) ? index : -1).filter((index) => index >= 0);
+      const groupStart = starts[headingIndex];
+      const nextStart = starts[headingIndex + 1] ?? rows.length;
+      return rows.slice(groupStart, nextStart).map((row) => {
+        const animation = row.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+        return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
+      });
+    }, route.headingIndex);
+    expect(delays.length).toBeGreaterThanOrEqual(2);
+    expect(delays.every((delay) => delay === delays[0])).toBe(true);
+
+    await nextHeading.evaluate((element) => {
+      const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
+    });
+    await expect.poll(() => nextHeading.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+  });
+}
+
+for (const route of [
+  { path: "/projects", slot: "project-row" },
+  { path: "/articles", slot: "article-row" },
+]) {
+  test(`Page motion stages visible ${route.slot} entries and keeps later entries armed`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.addInitScript(() => {
+      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    });
+    await page.goto(route.path);
+
+    const rows = page.locator(`[data-slot="${route.slot}"]`);
+    const firstRow = rows.nth(0), secondRow = rows.nth(1), finalRow = rows.last();
+    await expect.poll(() => firstRow.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+    await expect.poll(() => secondRow.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+    expect(await rows.evaluateAll((targets) => targets.every((target) =>
+      target.querySelectorAll("article > *").length > 0
+        && Array.from(target.querySelectorAll("article > *")).every((child) => child.getAnimations().length === 0),
+    ))).toBe(true);
+    const finalWasVisible = await rows.last().evaluate((target) => {
+      const bounds = target.getBoundingClientRect();
+      return bounds.bottom > 0 && bounds.top < window.innerHeight * 0.9;
+    });
+    if (finalWasVisible) {
+      await expect.poll(() => finalRow.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+    } else {
+      await expect(finalRow).toHaveCSS("opacity", "0");
+      expect(await finalRow.evaluate((target) => target.getAnimations().length)).toBe(0);
+    }
+
+    const entryDelays = await Promise.all([firstRow, secondRow].map((row) => row.evaluate((target) => {
+      const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+      return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
+    })));
+    expectStaggeredDelays(entryDelays);
+
+    if (!finalWasVisible) {
+      await rows.last().evaluate((element) => {
+        const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
+      });
+      await expect.poll(() => finalRow.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+    }
+    const finalDelay = await finalRow.evaluate((target) => {
+      const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+      return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
+    });
+    expect(finalDelay).not.toBeNull();
+    expect(Number(finalDelay) / 75).toBeCloseTo(Math.round(Number(finalDelay) / 75), 5);
+  });
+}
+
+test("Page motion crosses the splash handoff without a visible-to-hidden frame", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.removeItem("portfolio-opening-splash-seen");
+    const probeWindow = window as typeof window & {
+      __pageMotionFrames?: Array<{ animating: boolean; opacity: number; splashPresent: boolean }>;
+    };
+    probeWindow.__pageMotionFrames = [];
+    /** Samples paint-boundary state until the first intro finishes revealing. */
+    function inspectPaint() {
+      const target = document.querySelector<HTMLElement>("[data-page-motion-intro]");
+      if (target) {
+        const opacity = Number.parseFloat(getComputedStyle(target).opacity);
+        const animating = target.getAnimations().some((animation) => {
+          const effect = animation.effect;
+          return animation.playState === "running"
+            && effect instanceof KeyframeEffect
+            && effect.getKeyframes().some((frame) => frame.opacity !== undefined);
+        });
+        probeWindow.__pageMotionFrames?.push({
+          animating,
+          opacity,
+          splashPresent: document.querySelector('[data-slot="opening-splash"]') !== null,
+        });
+        if (probeWindow.__pageMotionFrames && probeWindow.__pageMotionFrames.length >= 420) return;
+        if (!document.querySelector('[data-slot="opening-splash"]') && opacity >= 0.99 && !animating) return;
+      }
+      requestAnimationFrame(inspectPaint);
+    }
+    requestAnimationFrame(inspectPaint);
+  });
+
+  await page.goto("/");
+  await expect(page.locator('[data-slot="opening-splash"]')).toHaveAttribute("data-state", "visible");
+  await expect(page.locator("html")).toHaveAttribute("data-page-motion-pending", "true");
+  await expect.poll(() => page.evaluate(() => {
+    const frames = (window as typeof window & {
+      __pageMotionFrames?: Array<{ opacity: number; splashPresent: boolean }>;
+    }).__pageMotionFrames ?? [];
+    return frames.some((frame) => !frame.splashPresent && frame.opacity >= 0.99);
+  }), { timeout: 4_500 }).toBe(true);
+
+  const splashFreeFrames = await page.evaluate(() => {
+    const frames = (window as typeof window & {
+      __pageMotionFrames?: Array<{ animating: boolean; opacity: number; splashPresent: boolean }>;
+    }).__pageMotionFrames ?? [];
+    const firstSplashFreeFrame = frames.findIndex((frame) => !frame.splashPresent);
+    return firstSplashFreeFrame < 0 ? [] : frames.slice(firstSplashFreeFrame);
+  });
+  expect(splashFreeFrames.length).toBeGreaterThan(1);
+  expect(splashFreeFrames[0]?.opacity).toBeLessThan(0.25);
+  expect(splashFreeFrames[0]?.animating).toBe(true);
+  expect(splashFreeFrames.some((frame) => frame.animating && frame.opacity > 0 && frame.opacity < 0.95)).toBe(true);
+  expect(splashFreeFrames.every((frame, index) => index === 0
+    || frame.opacity + 0.08 >= (splashFreeFrames[index - 1]?.opacity ?? 0))).toBe(true);
+});
+
+test("Page motion stays exposed when splash completion arrives after preflight concealment ends", async ({ page }) => {
+  await page.goto("/?debugSplash");
+  const root = page.locator("html");
+  const introTargets = page.locator("[data-page-motion-intro]");
+  await expect(page.locator('[data-slot="opening-splash"]')).toHaveAttribute("data-state", "visible");
+  await expect(root).toHaveAttribute("data-page-motion-pending", "true");
+  await expect(introTargets.first()).toHaveCSS("opacity", "0");
+
+  await page.evaluate(() => {
+    delete document.documentElement.dataset.pageMotionPending;
+  });
+  await expect(introTargets.first()).toHaveCSS("opacity", "1");
+  await page.evaluate(() => {
+    document.documentElement.dataset.splashComplete = "true";
+    window.dispatchEvent(new Event("opening-splash-complete"));
+  });
+
+  await expect(introTargets.first()).toHaveCSS("opacity", "1");
+  expect(await introTargets.evaluateAll((targets) => targets.every((target) => {
+    const element = target as HTMLElement;
+    return element.style.opacity === ""
+      && element.style.transform === ""
+      && element.getAnimations().every((animation) => animation.playState !== "running");
+  }))).toBe(true);
+});
+
+test("Page motion preserves preflight across an unstarted effect replacement", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/?debugSplash");
+
+  const root = page.locator("html");
+  const introTarget = page.locator("[data-page-motion-intro]").first();
+  await expect(root).toHaveAttribute("data-page-motion-pending", "true");
+  await expect(introTarget).toHaveCSS("transform", "none");
+
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(introTarget).not.toHaveCSS("transform", "none");
+  await page.waitForTimeout(100);
+  await expect(root).toHaveAttribute("data-page-motion-pending", "true");
+
+  await page.evaluate(() => {
+    document.documentElement.dataset.splashComplete = "true";
+    window.dispatchEvent(new Event("opening-splash-complete"));
+  });
+
+  await expect(root).not.toHaveAttribute("data-page-motion-pending", "true");
+  await expect.poll(() => introTarget.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+});
+
+test("Page motion stays exposed when its first hydration starts after preflight concealment ends", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.removeItem("portfolio-opening-splash-seen");
+  });
+  await page.route("**/*.js", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 4_700));
+    await route.continue();
+  });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const introTargets = page.locator("[data-page-motion-intro]");
+  await expect(page.locator("html")).not.toHaveAttribute("data-page-motion-pending", "true");
+  await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
+  await expect(introTargets.first()).toHaveCSS("opacity", "1");
+  expect(await introTargets.evaluateAll((targets) => targets.every((target) => {
+    const element = target as HTMLElement;
+    return element.style.opacity === ""
+      && element.style.transform === ""
+      && element.getAnimations().every((animation) => animation.playState !== "running");
+  }))).toBe(true);
+});
+
+test("Page intro uses the approved Quiet rise timing and stagger", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  const heroTargets = page.locator("[data-page-motion-intro]");
+  await expect.poll(() => heroTargets.evaluateAll((targets) => targets.every((target) =>
+    target.getAnimations().length > 0,
+  ))).toBe(true);
+
+  const contracts = await heroTargets.evaluateAll((targets) => targets.map((target) => {
+    const opacityAnimation = target.getAnimations().find((candidate) => {
+      const effect = candidate.effect;
+      return effect instanceof KeyframeEffect
+        && effect.getKeyframes().some((frame) => frame.opacity !== undefined);
+    });
+    const transformAnimation = target.getAnimations().find((candidate) => {
+      const effect = candidate.effect;
+      return effect instanceof KeyframeEffect
+        && effect.getKeyframes().some((frame) => frame.transform !== undefined);
+    });
+    if (!opacityAnimation || !(opacityAnimation.effect instanceof KeyframeEffect)
+      || !transformAnimation || !(transformAnimation.effect instanceof KeyframeEffect)) return null;
+    const opacityFrames = opacityAnimation.effect.getKeyframes();
+    const transformFrames = transformAnimation.effect.getKeyframes();
+    const opacityTiming = opacityAnimation.effect.getTiming();
+    const transformTiming = transformAnimation.effect.getTiming();
+    return {
+      opacityDelay: Number(opacityTiming.delay),
+      opacityDuration: Number(opacityTiming.duration),
+      opacityEasing: opacityTiming.easing,
+      transformDelay: Number(transformTiming.delay),
+      transformDuration: Number(transformTiming.duration),
+      transformEasing: transformTiming.easing,
+      firstOpacity: opacityFrames.at(0)?.opacity,
+      firstTransform: transformFrames.at(0)?.transform,
+      lastOpacity: opacityFrames.at(-1)?.opacity,
+      lastTransform: transformFrames.at(-1)?.transform,
+    };
+  }));
+
+  expect(contracts).toHaveLength(5);
+  for (const [index, contract] of contracts.entries()) {
+    expect(contract).not.toBeNull();
+    expect(contract?.opacityDuration).toBeCloseTo(520, 0);
+    expect(contract?.transformDuration).toBeCloseTo(520, 0);
+    expect(contract?.opacityDelay).toBeCloseTo(40 + index * 75, 0);
+    expect(contract?.transformDelay).toBeCloseTo(40 + index * 75, 0);
+    expect(contract?.opacityEasing).toBe("cubic-bezier(0.22, 1, 0.36, 1)");
+    expect(contract?.transformEasing).toBe("cubic-bezier(0.22, 1, 0.36, 1)");
+    expect(contract?.firstOpacity).toBe("0");
+    expect(contract?.firstTransform).toBe("translateY(18px)");
+    expect(contract?.lastOpacity).toBe("1");
+    expect(["none", "translateY(0px)"]).toContain(contract?.lastTransform);
+  }
+});
+
+test("Page reduced motion removes translation and stagger", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    const probeWindow = window as typeof window & {
+      __reducedPageMotionContracts?: Array<{
+        delay: number;
+        duration: number;
+        transforms: unknown[];
+      }>;
+    };
+    /** Captures the brief reduced-motion animation before it completes. */
+    const inspect = () => {
+      const targets = Array.from(document.querySelectorAll<HTMLElement>("[data-page-motion-intro]"));
+      const contracts = targets.map((target) => {
+        const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+        if (!animation || !(animation.effect instanceof KeyframeEffect)) return null;
+        const timing = animation.effect.getTiming();
+        return {
+          delay: Number(timing.delay),
+          duration: Number(timing.duration),
+          transforms: animation.effect.getKeyframes().map((frame) => frame.transform).filter(Boolean),
+        };
+      });
+      if (contracts.length === 5 && contracts.every((contract) => contract !== null)) {
+        probeWindow.__reducedPageMotionContracts = contracts;
+        return;
+      }
+      requestAnimationFrame(inspect);
+    };
+    requestAnimationFrame(inspect);
+  });
+  await page.goto("/");
+  const heroTargets = page.locator("[data-page-motion-intro]");
+  await expect.poll(() => page.evaluate(() => Boolean((window as typeof window & {
+    __reducedPageMotionContracts?: unknown;
+  }).__reducedPageMotionContracts))).toBe(true);
+  const contracts = await page.evaluate(() => (window as typeof window & {
+    __reducedPageMotionContracts?: Array<{ delay: number; duration: number; transforms: unknown[] }>;
+  }).__reducedPageMotionContracts ?? []);
+  expect(contracts.every((contract) => contract.delay === 0 && contract.duration === 120)).toBe(true);
+  expect(contracts.every((contract) => contract.transforms.length === 0)).toBe(true);
+  await expect(heroTargets.first()).toHaveCSS("transform", "none");
+});
+
+test("Page reduced motion remains opacity-only on a non-Home route", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    const probeWindow = window as typeof window & {
+      __reducedProjectMotionContract?: { delay: number; duration: number; transforms: unknown[] };
+    };
+    /** Captures the brief reduced-motion project intro before it completes. */
+    function inspectProjectIntro() {
+      const target = document.querySelector<HTMLElement>("[data-page-motion-intro]");
+      const animation = target?.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+      if (!animation || !(animation.effect instanceof KeyframeEffect)) {
+        requestAnimationFrame(inspectProjectIntro);
+        return;
+      }
+      const timing = animation.effect.getTiming();
+      probeWindow.__reducedProjectMotionContract = {
+        delay: Number(timing.delay),
+        duration: Number(timing.duration),
+        transforms: animation.effect.getKeyframes().map((frame) => frame.transform).filter(Boolean),
+      };
+    }
+    requestAnimationFrame(inspectProjectIntro);
+  });
+  await page.goto("/projects");
+
+  await expect.poll(() => page.evaluate(() => Boolean((window as typeof window & {
+    __reducedProjectMotionContract?: unknown;
+  }).__reducedProjectMotionContract))).toBe(true);
+  expect(await page.evaluate(() => (window as typeof window & {
+    __reducedProjectMotionContract?: unknown;
+  }).__reducedProjectMotionContract)).toEqual({ delay: 0, duration: 120, transforms: [] });
+  await expect(page.locator("[data-page-motion-intro]").first()).toHaveCSS("transform", "none");
+});
+
+test("Page section rows wait for their own viewport trigger and reveal once", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  const entries = page.locator("#experience ol > [data-page-motion-row]");
+  const first = entries.nth(0), second = entries.nth(1);
+  await expect(first).toHaveCSS("opacity", "0");
+  await expect(second).toHaveCSS("opacity", "0");
+
+  await first.evaluate((element) => {
+    const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
+  });
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+  }));
+  await expect.poll(() => first.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+  const revealStart = await first.evaluate((element) => {
+    const animation = element.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+    const timing = animation?.effect instanceof KeyframeEffect ? animation.effect.getTiming() : undefined;
+    return {
+      animating: element.getAnimations().some((animation) => animation.playState === "running"),
+      delay: Number(timing?.delay),
+      duration: Number(timing?.duration),
+      easing: timing?.easing,
+      topRatio: element.getBoundingClientRect().top / window.innerHeight,
+    };
+  });
+  expect(revealStart.topRatio).toBeGreaterThanOrEqual(0.86);
+  expect(revealStart.topRatio).toBeLessThanOrEqual(0.90);
+  expect(revealStart.animating).toBe(true);
+  expect(revealStart.delay).toBeGreaterThanOrEqual(0);
+  expect(revealStart.delay / 75).toBeCloseTo(Math.round(revealStart.delay / 75), 5);
+  expect(revealStart.duration).toBeCloseTo(520, 0);
+  expect(revealStart.easing).toBe("cubic-bezier(0.22, 1, 0.36, 1)");
+  await expect(second).toHaveCSS("opacity", "0");
+  expect(await second.evaluate((target) => target.getAnimations().length)).toBe(0);
+
+  await expect.poll(() => first.evaluate((target) => {
+    const style = getComputedStyle(target);
+    return style.opacity === "1" && style.transform === "none" && (target as HTMLElement).style.willChange === "";
+  })).toBe(true);
+  await second.evaluate((element) => {
+    const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
+  });
+  await expect.poll(() => second.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+
+  await page.locator("#about-heading").scrollIntoViewIfNeeded();
+  await first.evaluate((element) => {
+    element.scrollIntoView({ block: "center" });
+  });
+  await page.waitForTimeout(100);
+  expect(await first.evaluate((target) => target.getAnimations().filter((animation) =>
+    animation.playState === "running",
+  ).length)).toBe(0);
+});
+
+test("Skills reveal each group with a center-out item stagger", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  const group = page.locator('#skills [data-slot="skill-group"]').last();
+  const lead = group.locator("[data-page-motion-lead]");
+  const items = group.locator("[data-page-motion-item]");
+  await expect(items.first()).toHaveCSS("opacity", "0");
+  await group.evaluate((element) => {
+    const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
+  });
+  await expect.poll(() => items.evaluateAll((targets) => targets.every((target) =>
+    target.getAnimations().length > 0,
+  ))).toBe(true);
+
+  const leadDelay = await lead.evaluate((target) => {
+    const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+    return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
+  });
+  expect(leadDelay).not.toBeNull();
+  const delays = await items.evaluateAll((targets) => targets.map((target) => {
+    const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+    return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
+  }));
+  const expectedOrder: number[] = [];
+  let left = Math.floor((delays.length - 1) / 2), right = left + 1;
+  while (left >= 0 || right < delays.length) {
+    if (left >= 0) expectedOrder.push(left--);
+    if (right < delays.length) expectedOrder.push(right++);
+  }
+  expect(delays.map((delay, index) => ({ delay, index })).toSorted((a, b) => Number(a.delay) - Number(b.delay))
+    .map(({ index }) => index)).toEqual(expectedOrder);
+  for (const [staggerIndex, itemIndex] of expectedOrder.entries()) {
+    expect(delays[itemIndex]).toBeCloseTo(Number(leadDelay) + (staggerIndex + 1) * 75, 0);
+  }
+});
+
+test("Home section navigation stages visible rows and keeps later rows armed", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  const rows = page.locator("#projects [data-page-motion-row]");
+  await expect(rows.first()).toHaveCSS("opacity", "0");
+
+  await page.getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("link", { name: "Projects" })
+    .click();
+  await expect(page).toHaveURL(/#projects$/);
+  await expect.poll(() => rows.evaluateAll((targets) => targets.filter((target) =>
+    target.getAnimations().length > 0,
+  ).length)).toBeGreaterThanOrEqual(3);
+
+  const snapshot = await rows.evaluateAll((targets) => targets.map((target) => {
+    const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+    return {
+      delay: animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null,
+      opacity: getComputedStyle(target).opacity,
+      top: target.getBoundingClientRect().top,
+    };
+  }));
+  const visibleDelays = snapshot.filter(({ delay }) => delay !== null).map(({ delay }) => delay);
+  expect(visibleDelays.length).toBeGreaterThanOrEqual(3);
+  for (const [index, delay] of visibleDelays.entries()) expect(delay).toBeCloseTo(index * 75, 0);
+  const armedRows = snapshot.filter(({ top }) => top >= 720 * 0.9);
+  expect(armedRows.length).toBeGreaterThan(0);
+  expect(armedRows.every(({ delay, opacity }) => delay === null && opacity === "0")).toBe(true);
+});
+
+test("same-page section links reveal the target row on Home and across routes", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+
+  const contact = page.locator("#contact");
+  const contactRows = contact.locator("[data-page-motion-row]");
+  await expect(contactRows.first()).toHaveCSS("opacity", "0");
+  await page.getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("link", { name: "Contact" })
+    .click();
+  await expect(contact).toHaveAttribute("data-page-motion-revealed", "true");
+  const contactReveal = await contactRows.first().evaluate((element) => ({
+    animating: element.getAnimations().some((animation) => animation.playState === "running"),
+    opacity: Number.parseFloat(getComputedStyle(element).opacity),
+  }));
+  expect(contactReveal.animating).toBe(true);
+  expect(contactReveal.opacity).toBeLessThan(0.95);
+
+  await page.goto("/#projects");
+  await page.locator('[data-slot="more-projects-link"]').click();
+  await expect(page).toHaveURL(/\/projects$/);
+  await page.getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("link", { name: "Contact" })
+    .click();
+  await expect(page).toHaveURL(/\/#contact$/);
+  await expect(contact).toHaveAttribute("data-page-motion-revealed", "true");
+  await expect.poll(() => contactRows.first().evaluate((element) => element.getAnimations().length)).toBeGreaterThan(0);
+  const routeContactReveal = await contactRows.first().evaluate((element) => ({
+    animating: element.getAnimations().some((animation) => animation.playState === "running"),
+    opacity: Number.parseFloat(getComputedStyle(element).opacity),
+  }));
+  expect(routeContactReveal.animating).toBe(true);
+  expect(routeContactReveal.opacity).toBeLessThan(0.95);
+});
+
+test("real Tab focus finishes an active section reveal synchronously", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  const section = page.locator("#experience");
+  const summary = section.getByText("Details", { exact: true }).first();
+  const focusedRow = summary.locator("xpath=ancestor::*[@data-page-motion-row][1]");
+  const finalHeroLink = page.locator("[data-page-motion-intro]").last().getByRole("link").last();
+  await finalHeroLink.focus();
+  await page.locator("#experience-heading").scrollIntoViewIfNeeded();
+  await expect(section).toHaveAttribute("data-page-motion-revealed", "true");
+  await expect.poll(() => focusedRow.evaluate((element) => getComputedStyle(element).transform)).not.toBe("none");
+
+  await page.keyboard.press("Tab");
+  await expect(summary).toBeFocused();
+  expect(await focusedRow.evaluate((target) => {
+    const style = getComputedStyle(target);
+    return style.opacity === "1" && style.transform === "none" && (target as HTMLElement).style.willChange === "";
+  })).toBe(true);
+  await page.waitForTimeout(650);
+  await expect(focusedRow).toHaveCSS("transform", "none");
+});
+
+test("real Tab focus exposes representative Projects, Writing, and Contact controls", async ({ page, browserName }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+
+  for (const path of [
+    {
+      before: page.locator("#education a").last(),
+      target: page.locator("#projects a").first(),
+    },
+    {
+      before: page.locator("#code a").last(),
+      target: page.locator("#writing a").first(),
+    },
+    {
+      before: page.locator("#writing a").last(),
+      target: page.locator('#contact a[href^="mailto:"]').first(),
+    },
+  ]) {
+    await path.before.focus();
+    await page.keyboard.press(browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab");
+    await expect(path.target).toBeFocused();
+    expect(await path.target.evaluate((target) => {
+      const row = target.closest<HTMLElement>("[data-page-motion-row]");
+      return row !== null && getComputedStyle(row).opacity === "1" && getComputedStyle(row).transform === "none";
+    })).toBe(true);
+  }
+});
+
+test("Page motion recovers focus that predates its listener", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    const observer = new MutationObserver(() => {
+      const summary = document.querySelector<HTMLElement>("#experience summary");
+      if (!summary) return;
+      summary.focus();
+      observer.disconnect();
+    });
+    observer.observe(document, { childList: true, subtree: true });
+  });
+  await page.goto("/");
+
+  const section = page.locator("#experience");
+  const summary = section.getByText("Details", { exact: true }).first();
+  await expect(summary).toBeFocused();
+  await expect(section).toHaveAttribute("data-page-motion-revealed", "true");
+  expect(await summary.evaluate((target) => {
+    const row = target.closest<HTMLElement>("[data-page-motion-row]");
+    return row !== null && getComputedStyle(row).opacity === "1" && getComputedStyle(row).transform === "none";
+  })).toBe(true);
+});
+
+test("Page motion fails open when hydration never starts", async ({ page }) => {
+  await page.route("**/_next/static/**/*.js", (route) => route.abort());
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const root = page.locator("html");
+  const targets = page.locator('[data-page-motion-intro], [data-page-motion-row], [data-page-motion-item], [data-page-motion-rows="children"] > *');
+  await expect(root).toHaveAttribute("data-page-motion-pending", "true");
+  expect(await targets.evaluateAll((elements) => elements.every((element) => {
+    const target = element as HTMLElement;
+    return target.style.opacity === "" && target.style.transform === "" && target.style.willChange === "";
+  }))).toBe(true);
+  await expect(root).not.toHaveAttribute("data-page-motion-pending", "true", { timeout: 5_200 });
+  expect(await targets.evaluateAll((elements) => elements.every((element) => {
+    const style = getComputedStyle(element);
+    return style.opacity === "1" && style.transform === "none";
+  }))).toBe(true);
+});
+
+test("same-document Page remount leaves one fresh animation owner", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  const heroTargets = page.locator("[data-page-motion-intro]");
+  await expect.poll(() => heroTargets.first().evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+
+  await page.getByRole("link", { name: "Read case study" }).first().click();
+  await expect(page).toHaveURL(/\/projects\//);
+  await page.getByRole("navigation", { name: "Project navigation" }).getByRole("link", { name: "Home" }).click();
+  await expect(page).toHaveURL("/");
+  await expect.poll(() => heroTargets.evaluateAll((targets) => targets.every((target) =>
+    target.getAnimations().filter((animation) => animation.playState === "running").length === 2,
+  ))).toBe(true);
+  await page.waitForTimeout(1_000);
+  expect(await heroTargets.evaluateAll((targets) => targets.every((target) => {
+    const element = target as HTMLElement;
+    return element.style.opacity === "" && element.style.transform === "" && element.style.willChange === "";
+  }))).toBe(true);
+});
+
 test("splash fails open when a readiness dependency fails", async ({ page }) => {
   await page.addInitScript(() => {
     // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/unbound-method -- The test intentionally patches this DOM prototype method.
@@ -1495,7 +2316,7 @@ test("splash waits for delayed readiness and fails open on stalled fonts", async
     const querySelector = Document.prototype.querySelector;
     // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/no-unnecessary-type-parameters -- Preserve the DOM method's generic return contract while patching it.
     Document.prototype.querySelector = function <ElementType extends Element = Element>(selector: string) {
-      if (selector === "#intro-heading" && !markerReady) {
+      if (selector === "main#main" && !markerReady) {
         if (!markerTimerStarted) {
           markerTimerStarted = true;
           window.setTimeout(() => {
@@ -1558,6 +2379,33 @@ test("reduced motion disables the splash and availability translation", async ({
 
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
+
+  test("Page motion targets remain visible without JavaScript", async ({ page }) => {
+    await page.goto("/");
+    const targets = page.locator('[data-page-motion-intro], [data-page-motion-row], [data-page-motion-item], [data-page-motion-rows="children"] > *');
+    expect(await targets.count()).toBeGreaterThan(13);
+    expect(await targets.evaluateAll((elements) => elements.every((element) => {
+      const style = getComputedStyle(element);
+      return style.opacity === "1" && style.transform === "none";
+    }))).toBe(true);
+  });
+
+  for (const route of [
+    { label: "project list", path: "/projects" },
+    { label: "project detail", path: "/projects/devbook" },
+    { label: "article list", path: "/articles" },
+    { label: "article detail", path: "/articles/building-an-llm-evaluation-harness" },
+  ]) {
+    test(`the ${route.label} motion targets remain visible without JavaScript`, async ({ page }) => {
+      await page.goto(route.path);
+      const targets = page.locator('[data-page-motion-intro], [data-page-motion-row], [data-page-motion-item], [data-page-motion-rows="children"] > *');
+      expect(await targets.count()).toBeGreaterThan(1);
+      expect(await targets.evaluateAll((elements) => elements.every((element) => {
+        const style = getComputedStyle(element);
+        return style.opacity === "1" && style.transform === "none";
+      }))).toBe(true);
+    });
+  }
 
   for (const width of [390, 768, 1024, 1279, 1280]) {
     test(`the Phase 9 header exposes only approved navigation at ${String(width)}px`, async ({ page }) => {

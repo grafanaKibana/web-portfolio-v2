@@ -1,0 +1,19 @@
+:global(html[data-page-motion-pending="true"]) .scope :global([data-page-motion-intro]),
+:global(html[data-page-motion-pending="true"]) .scope :global([data-page-motion-section]:not([data-page-motion-revealed="true"]) [data-page-motion-row]),
+:global(html[data-page-motion-pending="true"]) .scope :global([data-page-motion-section][data-page-motion-rows="children"]:not([data-page-motion-revealed="true"]) > *) {
+  opacity: 0;
+}
+
+:global(html[data-page-motion-pending="true"]) .scope :global([data-page-motion-intro]),
+:global(html[data-page-motion-pending="true"]) .scope :global([data-page-motion-section]:not([data-page-motion-revealed="true"]) [data-page-motion-row]),
+:global(html[data-page-motion-pending="true"]) .scope :global([data-page-motion-section][data-page-motion-rows="children"]:not([data-page-motion-revealed="true"]) > *) {
+  transform: translateY(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html[data-page-motion-pending="true"]) .scope :global([data-page-motion-intro]),
+  :global(html[data-page-motion-pending="true"]) .scope :global([data-page-motion-section]:not([data-page-motion-revealed="true"]) [data-page-motion-row]),
+  :global(html[data-page-motion-pending="true"]) .scope :global([data-page-motion-section][data-page-motion-rows="children"]:not([data-page-motion-revealed="true"]) > *) {
+    transform: none;
+  }
+}

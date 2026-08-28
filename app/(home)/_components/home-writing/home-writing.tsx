@@ -25,8 +25,11 @@ export async function HomeWriting() {
       id="writing"
       aria-labelledby="writing-heading"
       className="page-shell-gutter w-full scroll-mt-1 py-14 lg:-scroll-mt-11 lg:py-26"
+      data-page-motion-section
     >
       <h2
+        data-page-motion-row
+        data-page-motion-trigger
         id="writing-heading"
         className={clsx(styles.sectionLabel, "mb-6 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-14 lg:pt-3.5")}
       >
@@ -36,7 +39,7 @@ export async function HomeWriting() {
         <>
           <ul className="m-0 list-none p-0">
             {latestArticles.map(({ slug, metadata: article, readingMinutes }) => (
-              <li className="border-t lg:first:border-t-0" key={slug}>
+              <li className="border-t lg:first:border-t-0" data-page-motion-row key={slug}>
                 <article>
                   <Link
                     className="group block py-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:py-5"
@@ -61,6 +64,7 @@ export async function HomeWriting() {
           </ul>
           <Link
             className="flex min-h-12 w-full items-center border-t text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            data-page-motion-row
             data-slot="more-articles-link"
             href="/articles"
           >
@@ -69,7 +73,7 @@ export async function HomeWriting() {
           </Link>
         </>
       ) : (
-        <p className="m-0 text-sm text-muted-foreground">No articles published yet.</p>
+        <p className="m-0 text-sm text-muted-foreground" data-page-motion-row>No articles published yet.</p>
       )}
     </section>
   );

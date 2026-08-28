@@ -26,8 +26,11 @@ export async function HomeProjects() {
       id="projects"
       aria-labelledby="projects-heading"
       className={clsx(styles.projects, "page-shell-gutter w-full last:min-h-screen")}
+      data-page-motion-section
     >
       <h2
+        data-page-motion-row
+        data-page-motion-trigger
         id="projects-heading"
         className={clsx(styles.sectionLabel, "mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5")}
       >
@@ -35,7 +38,7 @@ export async function HomeProjects() {
       </h2>
       <ul className="m-0 list-none p-0">
         {featuredProjects.map(({ slug, metadata: project }) => (
-          <li className={clsx(styles.project, "border-t lg:first:border-t-0")} data-slot="home-project" key={slug}>
+          <li className={clsx(styles.project, "border-t lg:first:border-t-0")} data-page-motion-row data-slot="home-project" key={slug}>
             <article className={styles.projectBody}>
               <h3 className={clsx(styles.projectTitle, "m-0 font-medium tracking-tight")}>{project.title}</h3>
               <p className={clsx(styles.projectDescription, "m-0 mt-2.5 text-muted-foreground")}>
@@ -83,6 +86,7 @@ export async function HomeProjects() {
       </ul>
       <Link
         className="flex min-h-12 w-full items-center border-t text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        data-page-motion-row
         data-slot="more-projects-link"
         href="/projects"
       >

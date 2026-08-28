@@ -15,7 +15,7 @@ import { discoverMdxSlugs } from "../content/discovery"
 import { validateMdxModule } from "../content/load"
 import { validateContentMetadata } from "../content/metadata"
 import { validateSlug } from "../content/slugs"
-import { home, profile } from "../content/structured"
+import { home, profile, validatePortfolio } from "../content/structured"
 
 test("valid article and project metadata is accepted", () => {
   const article = validateContentMetadata(
@@ -340,10 +340,43 @@ test("portfolio YAML contains personal data and configuration, not interface cop
     if (!match?.[1] || !match[2]) return []
     const [, key, value] = match
     if (["id", "chapter"].includes(key)
-      || /^(?:"|'|\[|\{|\/|https?:\/\/|null$|\d)/.test(value)) return []
+      || /^(?:"|'|\[|\{|\/|null$|\d)/.test(value)) return []
     return [`${String(index + 1)}: ${line.trim()}`]
   })
   assert.deepEqual(unquotedStringValues, [])
+})
+
+test("portfolio rejects malformed and reversed ISO calendar months", async () => {
+  const yaml = await readFile(join(process.cwd(), "content", "portfolio.yaml"), "utf8")
+  const source = load(yaml) as {
+    profile: { experience: Array<{ end: unknown; start: unknown }> }
+  }
+  const invalidMonth = structuredClone(source)
+  const invalidMonthExperience = invalidMonth.profile.experience[0]
+  assert.ok(invalidMonthExperience)
+  invalidMonthExperience.start = "2026-13"
+  assert.throws(
+    () => validatePortfolio(invalidMonth),
+    /content\/portfolio\.yaml: profile\.experience\[0\]\.start must use ISO 8601 YYYY-MM format/,
+  )
+
+  const malformedMonth = structuredClone(source)
+  const malformedMonthExperience = malformedMonth.profile.experience[0]
+  assert.ok(malformedMonthExperience)
+  malformedMonthExperience.start = "April 2026"
+  assert.throws(
+    () => validatePortfolio(malformedMonth),
+    /content\/portfolio\.yaml: profile\.experience\[0\]\.start must use ISO 8601 YYYY-MM format/,
+  )
+
+  const reversedRange = structuredClone(source)
+  const reversedRangeExperience = reversedRange.profile.experience[1]
+  assert.ok(reversedRangeExperience)
+  reversedRangeExperience.end = "2024-10"
+  assert.throws(
+    () => validatePortfolio(reversedRange),
+    /content\/portfolio\.yaml: profile\.experience\[1\]\.end must not precede profile\.experience\[1\]\.start/,
+  )
 })
 
 test("one YAML document owns structured profile and approved personal content", () => {

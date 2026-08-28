@@ -11,16 +11,16 @@ import styles from "./home-experience.module.scss";
  */
 export function HomeExperience() {
   return (
-    <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "page-shell-gutter w-full")}>
-      <div className={clsx(styles.experienceHeader, "border-t font-mono uppercase text-muted-foreground")}>
-        <h2 id="experience-heading">Experience</h2>
+    <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "page-shell-gutter w-full")} data-page-motion-section>
+      <div className={clsx(styles.experienceHeader, "border-t font-mono uppercase text-muted-foreground")} data-page-motion-row>
+        <h2 data-page-motion-trigger id="experience-heading">Experience</h2>
       </div>
       <ol className={clsx(styles.timeline, "relative m-0 list-none p-0 pl-5.5 md:pl-0")}>
         {profile.experience.map((experience, index) => {
           const [periodStart, periodEnd] = experience.period.split(" — ", 2);
 
           return (
-            <li className={clsx(styles.experienceItem, "relative pb-10 last:pb-0 md:grid md:pb-14")} key={`${experience.organization}-${experience.role}-${experience.period}`}>
+            <li className={clsx(styles.experienceItem, "relative pb-10 last:pb-0 md:grid md:pb-14")} data-page-motion-row key={`${experience.organization}-${experience.role}-${experience.period}`}>
               <p className={clsx(styles.experiencePeriod, "relative mb-2.5 flex self-start items-center gap-x-2 font-mono text-muted-foreground md:m-0 md:min-h-12 md:flex-col md:items-end md:justify-center md:gap-0 md:pr-8 md:text-right")} data-slot="experience-period">
                 <span
                   aria-hidden="true"

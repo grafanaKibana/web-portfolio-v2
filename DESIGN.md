@@ -38,7 +38,7 @@
 - `/projects` and `/projects/[slug]`: project index and evidence-led case studies.
 - `/articles` and `/articles/[slug]`: writing index and long-form articles.
 - Unknown project and article slugs resolve to static, noindex 404s.
-- Desktop navigation exposes primary destinations inline. Compact layouts use a modal section/navigation sheet. Collection pages keep those destinations pointed at Home section anchors; project case studies keep explicit project-index and Home controls with an intentionally empty header center, while the project title leads the page body.
+- Desktop navigation exposes primary destinations inline. Compact layouts use a modal section/navigation sheet. Collection pages keep those destinations pointed at Home section anchors; project and article details center a Back to list link in the header and retain a Home control, while the content title leads the page body.
 - Order content from identity and relevance to proof and contact. Metadata stays secondary and in flow; it does not become dashboard chrome.
 - About pairs the biography with two quiet career-chapter summaries. Experience begins directly with the timeline and does not repeat those summaries.
 
@@ -53,12 +53,12 @@
 ## Visual language
 
 - Color: use a quiet neutral foundation with strong text contrast, subdued secondary text, and understated dividers. Dark mode should preserve the same hierarchy rather than becoming a separate visual theme. Exact colors come from code tokens.
-- Accent use: descriptor rule, current timeline dot, merged status, article pull-quote rule, and selection. No accent fills or gradients.
+- Accent use: descriptor rule, current timeline dot, merged status, article pull-quote rule, and selection. Avoid decorative accent fills; reserve gradients for semantic icon treatments and the Experience rail's present-to-history fade.
 - Typography: use a confident sans-serif for display, headings, and prose, with a monospaced secondary voice for dates, counts, code, and numbered labels. The hero should feel expressive, section headings clear, body copy comfortable, and metadata deliberately quiet. Exact families, sizes, weights, tracking, and line heights come from code tokens.
 - Measure and rhythm: favor generous outer whitespace, narrow readable prose, clear pauses between sections, and tighter spacing inside related content groups. Long-form pages should feel focused rather than stretched. Exact widths, gutters, and spacing come from code tokens.
 - Shape and depth: keep page surfaces flat, use dividers for structure, and reserve radius or shadow for controls and overlays that need affordance or separation. Shadows use neutral-black alpha in both themes and never derive elevation from foreground or other light colors. Sections are not cards.
 - Iconography: use Lucide interface icons with consistent outline weight and a subtle theme-aware semantic gradient. Technology and brand marks use a theme-aware solid brand color, a restrained two-color gradient when it suits the mark, or theSVG color variant only when the simpler treatments harm recognition. No emoji or unrelated substitute marks. Exact icon sizing comes from code tokens.
-- Motion: keep transitions brief, subtle, and purposeful. Movement should clarify readiness, disclosure, navigation, or state change without becoming a visual event. Home project rows and contribution-calendar squares remain static; project-index and pull-request rows may promote the description to foreground color, while project-action icons remain static. Nothing parallaxes or animates on scroll; exact timing and easing come from code tokens.
+- Motion: keep transitions brief, subtle, and purposeful. Movement should clarify readiness, disclosure, navigation, or state change without becoming a visual event. Each normal route may enter marked intro targets after the opening splash, then reveal each marked row once that row enters the viewport. Explicit nested items may stagger within a row; contribution-calendar squares, controls, and icons remain static. Project-index and pull-request rows may promote the description to foreground color. Nothing parallaxes or replays on scroll; exact timing and easing come from code tokens.
 
 ## Components
 
@@ -77,7 +77,7 @@
 - Preserve visible focus, full keyboard operation, and adequate target sizes. Modal navigation traps focus, closes with Escape, and returns focus to its trigger.
 - Maintain AA contrast for text, controls, dividers that convey meaning, focus indicators, and light/dark themes; do not rely on emerald or motion alone to communicate state.
 - Keep readable line lengths and allow text reflow/zoom without clipped content or horizontal page scrolling; code blocks may scroll locally.
-- Under reduced motion, remove translation and pulsing, cross-fade the descriptor in place, and show a static splash. Maintain usable no-JavaScript fallbacks.
+- Under reduced motion, remove translation, stagger, and pulsing, cross-fade the descriptor in place, and show a static splash. Home entrances may use a brief opacity-only transition. Maintain usable no-JavaScript fallbacks.
 
 ## Responsive behavior
 
@@ -90,7 +90,8 @@
 
 ## Interaction states
 
-- Splash: a quiet typographic uppercase-surname/role lockup with no progress bar and a deliberate reading pause before exit. A first-load pre-paint marker makes it fully opaque before page content can paint; only its departure animates. Refreshes and internal navigation never replay it. Keep it decorative, pointer-transparent, non-focusable, light/dark aware, terminal on success or failure, static for reduced motion, absent as a blocker under no-JavaScript, and indefinitely visible only under the explicit debug query.
+- Splash: a quiet typographic uppercase-surname/role lockup with no progress bar and a deliberate reading pause before exit. A first-load pre-paint marker makes it fully opaque before page content can paint; only its departure animates. Publish completion while the splash still covers the page so route motion is armed before removal. Refreshes and internal navigation never replay it. Keep it decorative, pointer-transparent, non-focusable, light/dark aware, terminal on success or failure, static for reduced motion, absent as a blocker under no-JavaScript, and indefinitely visible only under the explicit debug query.
+- Page entrance: begin each route's semantic intro targets from the covered splash handoff. Keep later section roots stable, then reveal their meaningful rows once the trigger crosses the 90% viewport-height line. Rows entering together cascade in document order, while nested row items keep the same quiet stagger. Fail open terminally for keyboard focus and hydration/setup errors, and keep server-rendered content visible when JavaScript is unavailable.
 - Navigation: transparent/quiet at rest, separated by a border when scrolled; highlight the desktop and compact link whose section top has reached the sticky-header edge. Keep the closed compact selector unchanged while its content-height phone and tablet sheet shares one continuous background, typography, color, width, and flat styling with the open header. Omit a redundant visible menu title, and replace the header theme control with the dialog close control while open. Preserve the blurred backdrop, selected-section state, Escape, focus containment, and focus return without a floating-modal treatment.
 - Disclosure: collapsed and expanded in document flow with native keyboard semantics; avoid overlaying or hiding its content.
 - Contact: empty, focused, invalid, ready, and native mail-app handoff states. Keep the direct `mailto:` address as fallback; do not imply server delivery.
@@ -109,7 +110,7 @@
 ## Implementation constraints
 
 - Preserve the route-oriented vertical-slice modular monolith: routes own routing, metadata, Server Components composition, static parameters, not-found decisions, route rendering, and route tests.
-- Server Components remain the default. The exact client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, and `app/(home)/_components/contact-form/contact-form.tsx`.
+- Server Components remain the default. The exact client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/page-motion/page-motion.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, and `app/(home)/_components/contact-form/contact-form.tsx`.
 - `app/layout.tsx` is the sole application layout. `app/(home)/page.tsx` owns `/`, and the `(home)` group has no layout or URL segment.
 - Keep structured portfolio data as typed TypeScript records and local repository-authored MDX as trusted executable content. Validate imported metadata, normalized slugs, and case-insensitive duplicates.
 - Project and article detail routes use static parameters with dynamic params disabled; optional activity cannot delay or remove curated content.

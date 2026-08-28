@@ -25,14 +25,15 @@ export default async function ArticlesPage() {
 
   return (
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
-      <h1 className="text-4xl font-semibold tracking-tight">Articles</h1>
+      <h1 className="text-4xl font-semibold tracking-tight" data-page-motion-intro>Articles</h1>
       {articles.length ? (
         <ul className="mt-10 divide-y">
           {articles.map(({ slug, metadata: article, readingMinutes }) => (
-            <li key={slug}>
+            <li data-page-motion-section key={slug}>
               <Link
                 aria-labelledby={`${slug}-article-title`}
                 className="group block rounded-sm py-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                data-page-motion-row
                 data-slot="article-row"
                 href={`/articles/${slug}`}
               >
@@ -43,7 +44,7 @@ export default async function ArticlesPage() {
                     </time>
                     {` · ${String(readingMinutes)} min read`}
                   </p>
-                  <h2 id={`${slug}-article-title`} className="mt-3 break-words text-2xl font-semibold tracking-tight">
+                  <h2 data-page-motion-trigger id={`${slug}-article-title`} className="mt-3 break-words text-2xl font-semibold tracking-tight">
                     {article.title}
                   </h2>
                   <p className="mt-3 max-w-3xl leading-7 text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">

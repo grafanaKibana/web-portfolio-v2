@@ -320,7 +320,7 @@ function parseProfile(sourceProfile: RecordValue): PortfolioProfile {
  * @returns The validated portfolio profile and home content.
  * @throws When any required content field is missing or malformed.
  */
-function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: HomeContent } {
+export function validatePortfolio(value: unknown): { profile: PortfolioProfile; home: HomeContent } {
   const root = record(value, "root");
   const sourceProfile = record(root.profile, "profile");
   const sourceHome = record(root.home, "home");

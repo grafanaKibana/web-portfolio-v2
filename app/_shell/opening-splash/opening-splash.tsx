@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
 import styles from "./opening-splash.module.scss";
 
 const MINIMUM_VISIBLE_MS = 1_800;
 const READINESS_DEADLINE_MS = 3_000;
 const EXIT_DURATION_MS = 320;
-const REQUIRED_SELECTORS = ["[data-theme-root]", "header", "#intro-heading"] as const;
+const REQUIRED_SELECTORS = ["[data-theme-root]", "header", "main#main"] as const;
 
 type SplashPhase = "inactive" | "visible" | "exiting" | "hidden";
 
@@ -44,6 +44,7 @@ function waitForRequiredMarkers(onObserver: (observer: MutationObserver) => void
  */
 export function OpeningSplash({ name, role }: { name: string; role: string }) {
   const [phase, setPhase] = useState<SplashPhase>("inactive");
+  const completionPublished = useRef(false);
   const surname = name.trim().split(/\s+/).at(-1) ?? name;
 
   useEffect(() => {
@@ -53,9 +54,20 @@ export function OpeningSplash({ name, role }: { name: string; role: string }) {
     let deadlineTimer: number | undefined;
     let exitTimer: number | undefined;
     const debug = new URLSearchParams(window.location.search).has("debugSplash");
+
+    /** Publishes readiness before the splash leaves the document. */
+    function publishCompletion() {
+      if (completionPublished.current) return;
+
+      completionPublished.current = true;
+      document.documentElement.dataset.splashComplete = "true";
+      window.dispatchEvent(new Event("opening-splash-complete"));
+    }
+
     const activationFrame = window.requestAnimationFrame(() => {
       const preactivated = document.documentElement.dataset.splashPending === "true";
       if (!debug && !preactivated) {
+        publishCompletion();
         setPhase("hidden");
         return;
       }
@@ -90,6 +102,7 @@ export function OpeningSplash({ name, role }: { name: string; role: string }) {
         delete document.documentElement.dataset.splashPending;
         setPhase("exiting");
         exitTimer = window.setTimeout(() => {
+          publishCompletion();
           setPhase("hidden");
         }, EXIT_DURATION_MS);
       });

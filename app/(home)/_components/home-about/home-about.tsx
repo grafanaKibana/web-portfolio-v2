@@ -9,14 +9,16 @@ import styles from "./home-about.module.scss";
  */
 export function HomeAbout() {
   return (
-    <section id="about" aria-labelledby="about-heading" className={clsx(styles.about, "page-shell-gutter w-full")}>
+    <section id="about" aria-labelledby="about-heading" className={clsx(styles.about, "page-shell-gutter w-full")} data-page-motion-section>
       <h2
+        data-page-motion-row
+        data-page-motion-trigger
         id="about-heading"
         className={clsx(styles.sectionLabel, "border-t font-mono font-normal uppercase text-muted-foreground")}
       >
         About
       </h2>
-      <div className="flex flex-col gap-12 lg:grid lg:grid-cols-2 lg:gap-0">
+      <div className="flex flex-col gap-12 lg:grid lg:grid-cols-2 lg:gap-0" data-page-motion-row>
         <div className={clsx(styles.summary, "flex flex-col")}>
           {profile.summary.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </div>
@@ -34,7 +36,7 @@ export function HomeAbout() {
           ))}
         </div>
       </div>
-      <dl className={clsx(styles.facts, "border-t")}>
+      <dl className={clsx(styles.facts, "border-t")} data-page-motion-row>
         {profile.facts.map((fact) => (
           <div key={fact.label}>
             <dt className={clsx(styles.factLabel, "font-mono uppercase text-muted-foreground")}>

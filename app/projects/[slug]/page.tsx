@@ -62,7 +62,7 @@ export default async function ProjectPage({
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
       <article>
         <header className="border-b pb-10" data-slot="project-hero">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" data-slot="project-title-row">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" data-page-motion-intro data-slot="project-title-row">
             <h1 className="min-w-0 text-4xl font-semibold tracking-tight">{project.metadata.title}</h1>
             {project.metadata.links?.length ? (
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-6" data-slot="project-actions">
@@ -90,17 +90,17 @@ export default async function ProjectPage({
               </div>
             ) : null}
           </div>
-          <p className="mt-5 text-lg leading-8 text-muted-foreground">
+          <p className="mt-5 text-lg leading-8 text-muted-foreground" data-page-motion-intro>
             {project.metadata.description}
           </p>
           {project.metadata.tags?.length ? (
-            <p className="mt-6 font-mono text-xs text-muted-foreground">
+            <p className="mt-6 font-mono text-xs text-muted-foreground" data-page-motion-intro>
               {project.metadata.tags.join(" · ")}
             </p>
           ) : null}
         </header>
 
-        <div className="pt-6">
+        <div className="pt-6" data-page-motion-rows="children" data-page-motion-section data-page-motion-trigger>
           <project.Content />
         </div>
       </article>
@@ -108,6 +108,9 @@ export default async function ProjectPage({
         <nav
           aria-label="Project pagination"
           className="mt-20 border-t pt-8"
+          data-page-motion-rows="children"
+          data-page-motion-section
+          data-page-motion-trigger
           data-slot="project-pagination"
         >
           <Link

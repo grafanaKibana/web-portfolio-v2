@@ -47,15 +47,18 @@ export function HomeEducation() {
       id="education"
       aria-labelledby="education-heading"
       className={clsx(styles.education, "page-shell-gutter w-full")}
+      data-page-motion-section
     >
       <h2
+        data-page-motion-row
+        data-page-motion-trigger
         id="education-heading"
         className={clsx(styles.sectionLabel, "border-t font-mono font-normal uppercase text-muted-foreground")}
       >
         Education
       </h2>
       <div className={clsx(styles.educationRows, "flex flex-col gap-11 md:gap-16 lg:gap-20")}>
-        <div className={clsx(styles.educationRow, "flex flex-col gap-4 md:grid md:gap-0")} data-slot="education-row">
+        <div className={clsx(styles.educationRow, "flex flex-col gap-4 md:grid md:gap-0")} data-page-motion-row data-slot="education-row">
           <h3
             className={clsx(styles.rowLabel, "font-mono font-normal uppercase text-muted-foreground")}
             data-slot="education-row-label"
@@ -72,7 +75,7 @@ export function HomeEducation() {
           </div>
         </div>
 
-        <div className={clsx(styles.educationRow, "flex flex-col gap-4 md:grid md:gap-0")} data-slot="education-row">
+        <div className={clsx(styles.educationRow, "flex flex-col gap-4 md:grid md:gap-0")} data-page-motion-row data-slot="education-row">
           <h3
             className={clsx(styles.rowLabel, "font-mono font-normal uppercase text-muted-foreground")}
             data-slot="education-row-label"

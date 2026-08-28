@@ -123,7 +123,7 @@ const skillIcons: Readonly<Record<string, ReactNode>> = {
  */
 export function HomeSkills() {
   return (
-    <section id="skills" aria-labelledby="skills-heading" className={clsx(styles.skills, "page-shell-gutter w-full")}>
+    <section id="skills" aria-labelledby="skills-heading" className={clsx(styles.skills, "page-shell-gutter w-full")} data-page-motion-section>
       <svg aria-hidden="true" className="absolute size-0 overflow-hidden">
         <defs>
           <linearGradient id="codex-icon-gradient" x1="0" x2="1" y1="0" y2="1">
@@ -134,6 +134,8 @@ export function HomeSkills() {
         </defs>
       </svg>
       <h2
+        data-page-motion-row
+        data-page-motion-trigger
         id="skills-heading"
         className={clsx(styles.sectionLabel, "border-t font-mono font-normal uppercase text-muted-foreground")}
       >
@@ -141,14 +143,24 @@ export function HomeSkills() {
       </h2>
       <div>
         {profile.skills.map((group) => (
-          <section className={styles.skillGroup} data-slot="skill-group" key={group.title}>
-            <h3 className={clsx(styles.groupLabel, "font-mono font-normal uppercase text-muted-foreground")}>
+          <section
+            className={styles.skillGroup}
+            data-page-motion-order="center-out"
+            data-page-motion-row
+            data-slot="skill-group"
+            key={group.title}
+          >
+            <h3 className={clsx(
+              styles.groupLabel,
+              "m-0 flex items-center gap-6 text-center font-mono font-normal uppercase text-muted-foreground",
+            )} data-page-motion-lead>
               {group.title}
             </h3>
             <ul className="m-0 mt-4.5 flex list-none flex-wrap justify-center gap-x-5.5 gap-y-3.5 p-0 md:gap-x-8 lg:mt-6.5 lg:gap-x-10 lg:gap-y-4.5">
               {group.skills.map((skill) => (
                 <li
                   className="inline-flex items-center gap-2 text-sm leading-snug lg:gap-2.5 lg:text-base"
+                  data-page-motion-item
                   data-slot="skill"
                   key={skill}
                 >
