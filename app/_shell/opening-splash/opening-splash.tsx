@@ -6,7 +6,8 @@ import styles from "./opening-splash.module.scss";
 
 const MINIMUM_VISIBLE_MS = 1_800;
 const READINESS_DEADLINE_MS = 3_000;
-const EXIT_DURATION_MS = 320;
+const EXIT_DURATION_MS = 700;
+const REVEAL_LEAD_MS = 500;
 const REQUIRED_SELECTORS = ["[data-theme-root]", "header", "main#main"] as const;
 
 type SplashPhase = "inactive" | "visible" | "exiting" | "hidden";
@@ -103,8 +104,10 @@ export function OpeningSplash({ name, role }: { name: string; role: string }) {
         setPhase("exiting");
         exitTimer = window.setTimeout(() => {
           publishCompletion();
-          setPhase("hidden");
-        }, EXIT_DURATION_MS);
+          exitTimer = window.setTimeout(() => {
+            setPhase("hidden");
+          }, REVEAL_LEAD_MS);
+        }, EXIT_DURATION_MS - REVEAL_LEAD_MS);
       });
     });
 

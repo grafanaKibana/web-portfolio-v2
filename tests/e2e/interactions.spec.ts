@@ -1626,7 +1626,7 @@ for (const route of [
   });
 }
 
-test("Page motion reveals beneath the sliding splash without a visible-to-hidden frame", async ({ page }) => {
+test("Page motion overlaps the final splash slide without a visible-to-hidden frame", async ({ page }) => {
   await page.addInitScript(() => {
     sessionStorage.removeItem("portfolio-opening-splash-seen");
     const probeWindow = window as typeof window & {
@@ -1676,7 +1676,8 @@ test("Page motion reveals beneath the sliding splash without a visible-to-hidden
   expect(frames.some((frame) => frame.splashPresent
     && frame.animating && frame.opacity > 0 && frame.opacity < 0.95)).toBe(true);
   const firstSplashFreeFrame = frames.find((frame) => !frame.splashPresent);
-  expect(firstSplashFreeFrame?.opacity).toBeGreaterThanOrEqual(0.99);
+  expect(firstSplashFreeFrame?.animating).toBe(true);
+  expect(firstSplashFreeFrame?.opacity).toBeLessThan(0.95);
   expect(frames.every((frame, index) => index === 0
     || frame.opacity + 0.08 >= (frames[index - 1]?.opacity ?? 0))).toBe(true);
 });
