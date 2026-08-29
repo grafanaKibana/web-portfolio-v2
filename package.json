@@ -23,6 +23,8 @@
     "@mdx-js/react": "^3.1.1",
     "@next/mdx": "16.3.1",
     "@thesvg/react": "^3.3.1",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.1",
     "js-yaml": "^4.3.1",
     "lucide-react": "^1.33.0",
