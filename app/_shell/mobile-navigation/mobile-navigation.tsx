@@ -76,6 +76,9 @@ function useSectionNavigationState(
         if (section.getBoundingClientRect().top > headerBottom + 1) break;
         reachedSection = section;
       }
+      if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1) {
+        reachedSection = sections.at(-1);
+      }
 
       const item = reachedSection
         ? items.find(({ href }) => href === `#${reachedSection.id}`)

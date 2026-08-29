@@ -15,8 +15,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const paths = [
     "",
+    "/accessibility",
     "/articles",
+    "/for-robots",
+    "/privacy",
     "/projects",
+    "/terms",
     ...getArticleSlugs().map((slug) => `/articles/${slug}`),
     ...getProjectSlugs().map((slug) => `/projects/${slug}`),
   ];

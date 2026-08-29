@@ -37,6 +37,7 @@
 - `/`: editorial overview with hero, About, Experience, Education, Skills, Selected work, Code activity, Writing, and Contact anchors.
 - `/projects` and `/projects/[slug]`: project index and evidence-led case studies.
 - `/articles` and `/articles/[slug]`: writing index and long-form articles.
+- `/privacy`, `/terms`, `/accessibility`, and `/for-robots`: global footer site information, with `/llms.txt` as the companion machine-readable guide.
 - Unknown project and article slugs resolve to static, noindex 404s.
 - Desktop navigation exposes primary destinations inline. Compact layouts use a modal section/navigation sheet. Collection pages keep those destinations pointed at Home section anchors; project and article details center a Back to list link in the header and retain a Home control, while the content title leads the page body.
 - Order content from identity and relevance to proof and contact. Metadata stays secondary and in flow; it does not become dashboard chrome.

@@ -1,0 +1,22 @@
+# Nikita Reshetnik
+
+> Personal portfolio of an AI engineer with a software and .NET foundation.
+
+This file helps language-model agents navigate the portfolio's public content. It is informational, does not replace [robots.txt](/robots.txt), and grants no permissions; see the [Terms & Conditions](/terms).
+
+## Main
+
+- [Home](/): Professional profile, experience, skills, selected work, code activity, and contact details.
+- [Projects](/projects): Index of public project case studies.
+- [Articles](/articles): Index of public technical articles.
+
+## Site information
+
+- [Privacy Policy](/privacy): Analytics, performance measurements, email contact, and external-link information.
+- [Terms & Conditions](/terms): Site-content rights and source-code license boundaries.
+- [Accessibility Statement](/accessibility): Accessibility measures, status, limitations, and feedback.
+- [For Robots](/for-robots): Human-readable explanation of llms.txt and robots.txt.
+
+## External
+
+- [GitHub profile](https://github.com/grafanaKibana): Public repositories linked from this portfolio.

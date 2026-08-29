@@ -22,10 +22,16 @@ test("metadata routes include every known static content route", () => {
   process.env.NEXT_PUBLIC_SITE_URL = "https://portfolio.example.test";
 
   try {
-    assert.deepEqual(sitemap().map(({ url }) => url), [
+    const urls = sitemap().map(({ url }) => url);
+
+    assert.deepEqual(urls, [
       "https://portfolio.example.test",
+      "https://portfolio.example.test/accessibility",
       "https://portfolio.example.test/articles",
+      "https://portfolio.example.test/for-robots",
+      "https://portfolio.example.test/privacy",
       "https://portfolio.example.test/projects",
+      "https://portfolio.example.test/terms",
       "https://portfolio.example.test/articles/building-an-llm-evaluation-harness",
       "https://portfolio.example.test/articles/fixing-bugs-with-mcps",
       "https://portfolio.example.test/articles/microsoft-agent-framework-setup",
@@ -38,6 +44,7 @@ test("metadata routes include every known static content route", () => {
       "https://portfolio.example.test/projects/web-portfolio-v1",
       "https://portfolio.example.test/projects/web-portfolio-v2",
     ]);
+    assert.equal(urls.some((url) => url.endsWith("/llms.txt")), false);
     assert.equal(robots().sitemap, "https://portfolio.example.test/sitemap.xml");
   } finally {
     if (previous === undefined) delete process.env.NEXT_PUBLIC_SITE_URL;

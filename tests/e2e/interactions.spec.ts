@@ -69,6 +69,22 @@ test("desktop navigation highlights the section at the sticky-header edge", asyn
   }
 });
 
+test("desktop navigation highlights Contact when its link reaches the page end", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1200 });
+  await page.goto("/#writing");
+  const navigation = page.getByRole("navigation", { name: "Primary navigation" });
+
+  await expect(navigation.getByRole("link", { name: "Writing" }))
+    .toHaveAttribute("aria-current", "location");
+  await navigation.getByRole("link", { name: "Contact" }).click();
+
+  await expect(page).toHaveURL(/\/#contact$/);
+  await expect(navigation.getByRole("link", { name: "Contact" }))
+    .toHaveAttribute("aria-current", "location");
+  await expect(navigation.getByRole("link", { name: "Writing" }))
+    .not.toHaveAttribute("aria-current", "location");
+});
+
 test("the shell stays compact with tablet gutters through 1279px", async ({ page }) => {
   for (const width of [768, 1024, 1279]) {
     await page.setViewportSize({ width, height: 844 });
