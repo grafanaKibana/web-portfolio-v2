@@ -135,6 +135,14 @@
   content: "—";
 }
 
+.recommendationTrack {
+  scrollbar-width: none;
+}
+
+.recommendationTrack::-webkit-scrollbar {
+  display: none;
+}
+
 @media (max-width: 20rem) {
   .experiencePeriod {
     flex-direction: column;

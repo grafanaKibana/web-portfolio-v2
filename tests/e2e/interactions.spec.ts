@@ -306,9 +306,30 @@ test("the home page contains approved content through Phase 9 Contact", async ({
     "Europe",
   ]);
   const experience = page.locator("#experience");
+  const recommendations = experience.locator('[data-slot="experience-recommendations"]');
+  await expect(recommendations.getByRole("heading", { level: 3, name: "Recommendations" })).toBeVisible();
+  await expect(recommendations.locator("blockquote")).toHaveCount(3);
+  await expect(recommendations.locator('[data-slot="recommendation-author"]')).toHaveText([
+    "Khrystyna Velychko",
+    "Yaroslav Zubets",
+    "Antony Melnyk",
+  ]);
+  await expect(recommendations.locator('[data-slot="recommendation-position"]')).toHaveText([
+    "Senior Project Manager | PMI Rising Leader ’24",
+    "Software Engineer @ Meta",
+    "Software Developer, Assistant Lecturer",
+  ]);
+  const recommendationTrack = recommendations.locator('[data-slot="recommendation-track"]');
+  await expect(recommendationTrack).toHaveCSS("overflow-x", "auto");
+  await expect(recommendationTrack).toHaveCSS("scrollbar-width", "none");
+  expect(await recommendationTrack.evaluate((track) => track.scrollWidth > track.clientWidth)).toBe(true);
+  const captionBottoms = await recommendations.locator("figcaption").evaluateAll((captions) =>
+    captions.map((caption) => caption.getBoundingClientRect().bottom));
+  expect(Math.max(...captionBottoms) - Math.min(...captionBottoms)).toBeLessThanOrEqual(1);
+  expect(await recommendations.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
   await expect(experience.getByRole("heading", { level: 2, name: "Experience" })).toHaveText("Experience");
   await expect(experience.getByText("7 roles · 2021—Present", { exact: true })).toHaveCount(0);
-  await expect(experience.getByRole("heading", { level: 3 })).toHaveText([
+  await expect(experience.locator("article").getByRole("heading", { level: 3 })).toHaveText([
     "Senior AI Engineer",
     "AI Engineer",
     "Software Engineer",
@@ -1952,6 +1973,29 @@ test("Page section rows wait for their own viewport trigger and reveal once", as
   expect(await first.evaluate((target) => target.getAnimations().filter((animation) =>
     animation.playState === "running",
   ).length)).toBe(0);
+});
+
+test("Recommendations stagger in when the horizontal strip enters the viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  const track = page.locator('[data-slot="recommendation-track"]');
+  const recommendations = track.locator("li");
+  await expect(recommendations.first()).toHaveCSS("opacity", "0");
+  await expect(recommendations.last()).toHaveCSS("opacity", "0");
+
+  await track.evaluate((element) => {
+    element.scrollIntoView({ block: "center" });
+  });
+  await expect.poll(() => recommendations.evaluateAll((elements) => elements.every((element) =>
+    element.getAnimations().length > 0,
+  ))).toBe(true);
+  await expect.poll(() => recommendations.evaluateAll((elements) => elements.every((element) => {
+    const style = getComputedStyle(element);
+    return style.opacity === "1" && style.transform === "none";
+  }))).toBe(true);
 });
 
 test("Skills reveal each group with a center-out item stagger", async ({ page }) => {

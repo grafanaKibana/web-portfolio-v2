@@ -5,7 +5,7 @@ import { clsx } from "clsx";
 import styles from "./home-experience.module.scss";
 
 /**
- * Renders the chronological experience timeline and native disclosures.
+ * Renders the chronological experience timeline, disclosures, and recommendations.
  *
  * @returns The Home Experience section.
  */
@@ -64,6 +64,51 @@ export function HomeExperience() {
           );
         })}
       </ol>
+      <section
+        aria-labelledby="experience-recommendations-heading"
+        className="mt-16 border-t pt-3 lg:mt-32 lg:pt-3.5"
+        data-slot="experience-recommendations"
+      >
+        <h3
+          className="m-0 font-mono text-[0.6875rem] font-normal uppercase tracking-[0.14em] text-muted-foreground"
+          data-page-motion-row
+          id="experience-recommendations-heading"
+        >
+          Recommendations
+        </h3>
+        <ul
+          aria-label="Recommendations"
+          className={clsx(styles.recommendationTrack, "m-0 mt-10 flex snap-x snap-mandatory list-none gap-6 overflow-x-auto overscroll-x-contain p-0 pb-4 pr-[12%] focus-visible:outline-2 focus-visible:outline-offset-4 md:gap-8 md:pr-[20%] lg:mt-14 lg:gap-12 lg:pr-[14%]")}
+          data-page-motion-row
+          data-slot="recommendation-track"
+          tabIndex={0}
+        >
+          {profile.recommendations.map((recommendation) => (
+            <li
+              className="flex min-w-0 shrink-0 basis-[84%] snap-start md:basis-[65%] lg:basis-[48%]"
+              data-page-motion-item
+              key={recommendation.author}
+            >
+              <figure className="m-0 flex min-w-0 flex-1 flex-col">
+                <blockquote className="m-0">
+                  <span aria-hidden="true" className="block text-[2rem] font-bold leading-none text-border">
+                    “
+                  </span>
+                  <p className="m-0 mt-4 text-base leading-7 text-muted-foreground">
+                    {recommendation.quote}
+                  </p>
+                </blockquote>
+                <figcaption className="mt-auto pt-5 text-sm">
+                  <span className="block font-medium" data-slot="recommendation-author">{recommendation.author}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground" data-slot="recommendation-position">
+                    {recommendation.position}
+                  </span>
+                </figcaption>
+              </figure>
+            </li>
+          ))}
+        </ul>
+      </section>
     </section>
   );
 }

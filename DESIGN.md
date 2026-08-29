@@ -3,7 +3,7 @@
 ## Source of truth
 
 - Status: Active
-- Last refreshed: 2026-08-25
+- Last refreshed: 2026-08-29
 - This document explains the intended look, feel, and design behavior. It is not a token registry and does not depend on `design/` to remain complete or available.
 - Authority is divided by domain: code owns every exact design token and implementation value; `DESIGN.md` owns qualitative design direction; `AGENTS.md`, application code, and tests govern technical behavior, accessibility, architecture, and safety; validated records and local MDX under `content/` govern production facts.
 - Optional supporting snapshots and evidence inspected during authoring include `design/Home Desktop.dc.html`, `design/Home Mobile.dc.html`, `design/Project Case Study.dc.html`, `design/Article.dc.html`, `design/States and System.dc.html`, and `design/_ds/`. They are not live dependencies or governing authority. GitHub's validated live responses are the Code section's factual source, not the illustrative prototype data.
@@ -40,7 +40,7 @@
 - Unknown project and article slugs resolve to static, noindex 404s.
 - Desktop navigation exposes primary destinations inline. Compact layouts use a modal section/navigation sheet. Collection pages keep those destinations pointed at Home section anchors; project and article details center a Back to list link in the header and retain a Home control, while the content title leads the page body.
 - Order content from identity and relevance to proof and contact. Metadata stays secondary and in flow; it does not become dashboard chrome.
-- About pairs the biography with two quiet career-chapter summaries. Experience begins directly with the timeline and does not repeat those summaries.
+- About pairs the biography with two quiet career-chapter summaries. Experience begins directly with the timeline, does not repeat those summaries, and ends with a restrained, attributed recommendation strip that scrolls horizontally without carousel controls.
 
 ## Design principles
 

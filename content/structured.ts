@@ -46,12 +46,19 @@ export interface SkillGroup {
   skills: readonly string[];
 }
 
+export interface Recommendation {
+  author: string;
+  position: string;
+  quote: string;
+}
+
 export interface PortfolioProfile {
   name: string;
   headline: string;
   summary: readonly string[];
   careerChapters: readonly CareerChapter[];
   facts: readonly { label: string; value: string }[];
+  recommendations: readonly Recommendation[];
   experience: readonly Experience[];
   education: Education;
   certifications: readonly { title: string; date: string; icon: string; href: string }[];
@@ -281,6 +288,14 @@ function parseProfile(sourceProfile: RecordValue): PortfolioProfile {
     facts: array(sourceProfile.facts, "profile.facts", (value, path) => {
       const item = record(value, path);
       return { label: string(item.label, `${path}.label`), value: string(item.value, `${path}.value`) };
+    }),
+    recommendations: array(sourceProfile.recommendations, "profile.recommendations", (value, path) => {
+      const item = record(value, path);
+      return {
+        author: string(item.author, `${path}.author`),
+        position: string(item.position, `${path}.position`),
+        quote: string(item.quote, `${path}.quote`),
+      };
     }),
     experience,
     education: {

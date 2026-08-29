@@ -292,6 +292,7 @@ test("portfolio YAML contains personal data and configuration, not interface cop
       certifications?: Array<{ date?: unknown }>
       education?: { end?: unknown; start?: unknown }
       experience?: Array<{ end?: unknown; period?: unknown; start?: unknown }>
+      recommendations?: Array<{ author?: unknown; position?: unknown; quote?: unknown }>
     }
   }
   const sourceHome = document.home ?? {}
@@ -334,6 +335,10 @@ test("portfolio YAML contains personal data and configuration, not interface cop
   assert.match(String(sourceProfile.education?.end), /^\d{4}-(?:0[1-9]|1[0-2])$/)
   assert.ok(sourceProfile.certifications?.every(({ date }) =>
     typeof date === "string" && /^\d{4}-(?:0[1-9]|1[0-2])$/.test(date)))
+  assert.ok(sourceProfile.recommendations?.every(({ author, position, quote }) =>
+    typeof author === "string" && author.length > 0
+    && typeof position === "string" && position.length > 0
+    && typeof quote === "string" && quote.length > 0))
 
   const unquotedStringValues = yaml.split("\n").flatMap((line, index) => {
     const match = /^\s*(?:-\s+)?([\w]+):\s+(.+)$/.exec(line)
@@ -423,6 +428,23 @@ test("one YAML document owns structured profile and approved personal content", 
   assert.deepEqual(home.writing, {
     indexDescription: "Articles by Nikita Reshetnik about AI and software engineering.",
   })
+  assert.deepEqual(profile.recommendations, [
+    {
+      author: "Khrystyna Velychko",
+      position: "Senior Project Manager | PMI Rising Leader ’24",
+      quote: "I worked with Nikita for over 2 years and I would strongly recommend to work with him as a software engineer. I want to emphasize that Nikita is not just a developer who writes code - he is a true engineer, curious about modern problems, innovative technologies and is always ready to take on new challenges. Nikita is eager to gain new knowledge that might be helpful in his line of work, which makes him a valuable asset for every team.",
+    },
+    {
+      author: "Yaroslav Zubets",
+      position: "Software Engineer @ Meta",
+      quote: "I had the pleasure of working with Nikita and can confidently say that he is a highly talented and driven professional. Despite being early in his career, he demonstrates exceptional analytical skills and a mature, thoughtful approach to problem-solving. He has strong ability to think outside the box when the situation calls for it. He consistently brought fresh, well-grounded ideas to the table that added real value to our work. Collaborating with him was both productive and enjoyable. He’s a quick learner, proactive, and has great potential for growth.",
+    },
+    {
+      author: "Antony Melnyk",
+      position: "Software Developer, Assistant Lecturer",
+      quote: "It is a great pleasure working with Nikita. Nikita is result-oriented, a fast learner, and often completes tasks much faster than expected. Nikita is also great at team communication and collaboration. Highly recommend Nikita.",
+    },
+  ])
   assert.deepEqual(profile.education, {
     institution: "State University of Information and Communication Technologies",
     qualification: "Bachelor of Software Engineering",

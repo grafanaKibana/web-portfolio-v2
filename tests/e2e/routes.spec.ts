@@ -449,6 +449,7 @@ test.describe("without JavaScript", () => {
       links.map((link) => link.getAttribute("href")),
     )).toEqual(["/#top"]);
     await expect(page.locator("#about")).toHaveCount(1);
+    await expect(page.locator('#experience [data-slot="experience-recommendations"] blockquote')).toHaveCount(3);
     await expect(page.locator("#experience")).toHaveCount(1);
     await expect(page.locator("#education")).toHaveCount(1);
     await expect(page.locator("#skills")).toHaveCount(1);
