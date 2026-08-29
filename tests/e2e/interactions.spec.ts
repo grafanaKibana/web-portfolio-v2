@@ -1311,7 +1311,7 @@ test("Contact native validation focuses an invalid email", async ({ page }) => {
   expect(await email.evaluate((input: HTMLInputElement) => input.validity.typeMismatch)).toBe(true);
 });
 
-test("Contact computes the ready mail-app handoff from all fields", async ({ page }) => {
+test("Contact keeps the ready mail-app handoff out of the form action", async ({ page }) => {
   await page.goto("/#contact");
   const contact = page.locator("#contact");
 
@@ -1323,10 +1323,7 @@ test("Contact computes the ready mail-app handoff from all fields", async ({ pag
   await expect(contact.getByText("Opens your mail app", { exact: true })).toHaveCount(0);
   await expect(contact.getByText("Subject: Portfolio message from Anna Sokolova", { exact: true }))
     .toHaveCount(0);
-  await expect(contact.locator("form")).toHaveAttribute(
-    "action",
-    "mailto:reshetnik.nikita@gmail.com?subject=Portfolio%20message%20from%20Anna%20Sokolova&body=From%3A%20Anna%20Sokolova%20%3Canna%40example.com%3E%0A%0AHello%20there",
-  );
+  expect(await contact.locator("form").getAttribute("action")).toBeNull();
 });
 
 test("Contact reflows without overflow in both themes", async ({ page }) => {
@@ -1629,7 +1626,7 @@ for (const route of [
   });
 }
 
-test("Page motion crosses the splash handoff without a visible-to-hidden frame", async ({ page }) => {
+test("Page motion reveals beneath the sliding splash without a visible-to-hidden frame", async ({ page }) => {
   await page.addInitScript(() => {
     sessionStorage.removeItem("portfolio-opening-splash-seen");
     const probeWindow = window as typeof window & {
@@ -1670,19 +1667,18 @@ test("Page motion crosses the splash handoff without a visible-to-hidden frame",
     return frames.some((frame) => !frame.splashPresent && frame.opacity >= 0.99);
   }), { timeout: 4_500 }).toBe(true);
 
-  const splashFreeFrames = await page.evaluate(() => {
+  const frames = await page.evaluate(() => {
     const frames = (window as typeof window & {
       __pageMotionFrames?: Array<{ animating: boolean; opacity: number; splashPresent: boolean }>;
     }).__pageMotionFrames ?? [];
-    const firstSplashFreeFrame = frames.findIndex((frame) => !frame.splashPresent);
-    return firstSplashFreeFrame < 0 ? [] : frames.slice(firstSplashFreeFrame);
+    return frames;
   });
-  expect(splashFreeFrames.length).toBeGreaterThan(1);
-  expect(splashFreeFrames[0]?.opacity).toBeLessThan(0.25);
-  expect(splashFreeFrames[0]?.animating).toBe(true);
-  expect(splashFreeFrames.some((frame) => frame.animating && frame.opacity > 0 && frame.opacity < 0.95)).toBe(true);
-  expect(splashFreeFrames.every((frame, index) => index === 0
-    || frame.opacity + 0.08 >= (splashFreeFrames[index - 1]?.opacity ?? 0))).toBe(true);
+  expect(frames.some((frame) => frame.splashPresent
+    && frame.animating && frame.opacity > 0 && frame.opacity < 0.95)).toBe(true);
+  const firstSplashFreeFrame = frames.find((frame) => !frame.splashPresent);
+  expect(firstSplashFreeFrame?.opacity).toBeGreaterThanOrEqual(0.99);
+  expect(frames.every((frame, index) => index === 0
+    || frame.opacity + 0.08 >= (frames[index - 1]?.opacity ?? 0))).toBe(true);
 });
 
 test("Page motion stays exposed when splash completion arrives after preflight concealment ends", async ({ page }) => {
@@ -2207,7 +2203,7 @@ test("splash fails open when a readiness dependency fails", async ({ page }) => 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hi, I’m Nikita Reshetnik.");
 });
 
-test("splash remains noticeable and supports an indefinite debug flag", async ({ page }) => {
+test("splash slides down and supports an indefinite debug flag", async ({ page }) => {
   await page.addInitScript(() => {
     const timingWindow = window as typeof window & { __splashVisibleAt?: number };
     const observer = new MutationObserver(() => {
@@ -2246,11 +2242,14 @@ test("splash remains noticeable and supports an indefinite debug flag", async ({
   const visibleAt = await page.evaluate(() =>
     (window as typeof window & { __splashVisibleAt?: number }).__splashVisibleAt ?? performance.now());
   await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 2_000 });
+  await expect(splash).toHaveCSS("opacity", "1");
+  await expect(splash).toHaveCSS("transition-property", "transform");
+  await expect.poll(async () => (await splash.boundingBox())?.y ?? 0).toBeGreaterThan(0);
   const exitElapsed = await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt);
   expect(exitElapsed).toBeGreaterThanOrEqual(1_700);
   expect(exitElapsed).toBeLessThanOrEqual(2_000);
-  await expect(splash).toHaveCount(0, { timeout: 400 });
-  expect(await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt)).toBeLessThanOrEqual(2_400);
+  await expect(splash).toHaveCount(0, { timeout: 800 });
+  expect(await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt)).toBeLessThanOrEqual(2_800);
 
   await page.reload();
   await expect(splash).toHaveCount(0, { timeout: 500 });
@@ -2339,7 +2338,7 @@ test("splash waits for delayed readiness and fails open on stalled fonts", async
   const delayedExitElapsed = await page.evaluate((startedAt) => performance.now() - startedAt, delayedVisibleAt);
   expect(delayedExitElapsed).toBeGreaterThanOrEqual(2_000);
   expect(delayedExitElapsed).toBeLessThanOrEqual(2_300);
-  await expect(splash).toHaveCount(0, { timeout: 400 });
+  await expect(splash).toHaveCount(0, { timeout: 800 });
 
   await page.evaluate(() => {
     sessionStorage.removeItem("portfolio-opening-splash-seen");
