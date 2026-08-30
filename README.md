@@ -32,9 +32,3 @@ All automated tests live under `tests/`; browser specifications are grouped in `
 | `tests/` | Documentation, content, SEO, contrast, and browser contracts. |
 
 `layout.tsx` wraps routes with shared UI; a `page.tsx` exposes the route for its folder. Private `_components` folders are not routes. The only route group is `(home)`, and it deliberately has no layout so `app/layout.tsx` remains authoritative for every page.
-
-Pages, layouts, and static sections stay Server Components. Exactly six interaction leaves allow `use client`: theme, mobile navigation, opening splash, local time, descriptor rotation, and the preserved future contact form. Article and project loaders discover local MDX with Node APIs, validate slugs and module metadata, then use the approved fixed-prefix, explicit-suffix dynamic import documented in the project brief.
-
-The Home Code section reads external pull requests from GitHub's public Search API and its contribution graph from GitHub's public calendar endpoint. Responses revalidate every five minutes and fail open independently. `GITHUB_TOKEN` is optional and server-only; setting it raises the REST API rate limit without exposing it to the browser.
-
-Set `NEXT_PUBLIC_SITE_URL` to the deployed HTTPS origin (for example, `https://portfolio.example.com`). Vercel deployments may use `VERCEL_PROJECT_PRODUCTION_URL` instead. Without either value, local builds keep `robots.txt` valid and publish an empty sitemap rather than inventing a production domain.

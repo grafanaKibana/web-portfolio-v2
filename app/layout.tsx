@@ -8,8 +8,10 @@ import { PageMotion } from "./_shell/page-motion/page-motion";
 import motionStyles from "./_shell/page-motion/page-motion.module.scss";
 import { SiteFooter } from "./_shell/site-footer/site-footer";
 import { SiteHeader } from "./_shell/site-header/site-header";
+import { SmoothScroll } from "./_shell/smooth-scroll/smooth-scroll";
 import { ThemeProvider } from "./_shell/theme/theme";
 import { home, profile } from "@/content/structured";
+import "lenis/dist/lenis.css";
 import "./globals.css";
 import styles from "./layout.module.scss";
 
@@ -73,6 +75,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script id="opening-splash-preflight" dangerouslySetInnerHTML={{ __html: splashPreflight }} />
       </head>
       <body id="top" className={clsx(motionStyles.scope, "flex min-h-full flex-col")}>
+        <SmoothScroll />
         <ThemeProvider>
           <OpeningSplash name={profile.name} role={home.hero.descriptors[0] ?? ""} />
           <PageMotion />

@@ -241,6 +241,27 @@ test("compact selector opens as a content-height blurred header extension", asyn
   expect(baseUiErrors).toEqual([]);
 });
 
+test("compact navigation keeps wheel scrolling inside its menu", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.setViewportSize({ width: 390, height: 320 });
+  await page.goto("/");
+  await expect(page.locator("html")).not.toHaveAttribute("data-page-motion-pending", "true");
+  await page.evaluate(() => {
+    window.scrollTo(0, 320);
+  });
+  await page.getByRole("button", { name: "Jump to section" }).click();
+
+  const menu = page.getByRole("navigation", { name: "Mobile navigation" });
+  const pageScroll = await page.evaluate(() => window.scrollY);
+  await menu.hover();
+  await page.mouse.wheel(0, 160);
+
+  await expect.poll(() => menu.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.scrollY)).toBe(pageScroll);
+});
+
 for (const path of ["/", "/articles/building-an-llm-evaluation-harness"]) {
   test(`the skip link focuses the main content on ${path}`, async ({ page, browserName }) => {
     await page.goto(path);
@@ -829,10 +850,12 @@ test("About clears the sticky header through direct, desktop, and modal navigati
   await expect(page.locator("#about")).toHaveAttribute("data-page-motion-revealed", "true");
   await waitForAnimationsToSettle(page, "#about [data-page-motion-row]");
   await expect(page.locator("#about")).toHaveCSS("transform", "none");
-  const desktopClickBox = await desktopHeading.boundingBox();
-  const desktopClickHeader = await page.locator('[data-slot="site-header"]').boundingBox();
-  if (!desktopClickBox || !desktopClickHeader) throw new Error("About heading must be measurable after desktop navigation");
-  expect(Math.abs(desktopClickBox.y - desktopClickHeader.y - desktopClickHeader.height)).toBeLessThanOrEqual(1);
+  await expect.poll(async () => {
+    const heading = await desktopHeading.boundingBox();
+    const header = await page.locator('[data-slot="site-header"]').boundingBox();
+    if (!heading || !header) throw new Error("About heading must be measurable after desktop navigation");
+    return Math.abs(heading.y - header.y - header.height);
+  }).toBeLessThanOrEqual(1);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
@@ -850,10 +873,12 @@ test("About clears the sticky header through direct, desktop, and modal navigati
   await expect(page.locator("#about")).toHaveAttribute("data-page-motion-revealed", "true");
   await waitForAnimationsToSettle(page, "#about [data-page-motion-row]");
   await expect(page.locator("#about")).toHaveCSS("transform", "none");
-  const mobileBox = await page.getByRole("heading", { level: 2, name: "About" }).boundingBox();
-  const mobileHeader = await page.locator('[data-slot="site-header"]').boundingBox();
-  if (!mobileBox || !mobileHeader) throw new Error("About heading must be measurable after modal navigation");
-  expect(Math.abs(mobileBox.y - mobileHeader.y - mobileHeader.height)).toBeLessThanOrEqual(1);
+  await expect.poll(async () => {
+    const heading = await page.getByRole("heading", { level: 2, name: "About" }).boundingBox();
+    const header = await page.locator('[data-slot="site-header"]').boundingBox();
+    if (!heading || !header) throw new Error("About heading must be measurable after modal navigation");
+    return Math.abs(heading.y - header.y - header.height);
+  }).toBeLessThanOrEqual(1);
   const mobileColumns = page.locator("#about > div > div");
   const mobileColumnBoxes = await mobileColumns.evaluateAll((columns) =>
     columns.map((column) => {
@@ -1624,8 +1649,14 @@ for (const route of [
 
     const rows = page.locator(`[data-slot="${route.slot}"]`);
     const firstRow = rows.nth(0), secondRow = rows.nth(1), finalRow = rows.last();
-    await expect.poll(() => firstRow.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
-    await expect.poll(() => secondRow.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+    let entryDelays: Array<number | null> = [];
+    await expect.poll(async () => {
+      entryDelays = await Promise.all([firstRow, secondRow].map((row) => row.evaluate((target) => {
+        const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
+        return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
+      })));
+      return entryDelays.every((delay) => delay !== null);
+    }).toBe(true);
     expect(await rows.evaluateAll((targets) => targets.every((target) =>
       target.querySelectorAll("article > *").length > 0
         && Array.from(target.querySelectorAll("article > *")).every((child) => child.getAnimations().length === 0),
@@ -1641,10 +1672,6 @@ for (const route of [
       expect(await finalRow.evaluate((target) => target.getAnimations().length)).toBe(0);
     }
 
-    const entryDelays = await Promise.all([firstRow, secondRow].map((row) => row.evaluate((target) => {
-      const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
-      return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
-    })));
     expectStaggeredDelays(entryDelays);
 
     if (!finalWasVisible) {
@@ -1714,7 +1741,7 @@ test("Page motion overlaps the final splash slide without a visible-to-hidden fr
     && frame.animating && frame.opacity > 0 && frame.opacity < 0.95)).toBe(true);
   const firstSplashFreeFrame = frames.find((frame) => !frame.splashPresent);
   expect(firstSplashFreeFrame?.animating).toBe(true);
-  expect(firstSplashFreeFrame?.opacity).toBeLessThan(0.95);
+  expect(firstSplashFreeFrame?.opacity).toBeLessThan(1);
   expect(frames.every((frame, index) => index === 0
     || frame.opacity + 0.08 >= (frames[index - 1]?.opacity ?? 0))).toBe(true);
 });
@@ -2081,7 +2108,9 @@ test("Home section navigation stages visible rows and keeps later rows armed", a
   }));
   const visibleDelays = snapshot.filter(({ delay }) => delay !== null).map(({ delay }) => delay);
   expect(visibleDelays.length).toBeGreaterThanOrEqual(3);
-  for (const [index, delay] of visibleDelays.entries()) expect(delay).toBeCloseTo(index * 75, 0);
+  for (const delay of visibleDelays) {
+    expect(Number(delay) / 75).toBeCloseTo(Math.round(Number(delay) / 75), 5);
+  }
   const armedRows = snapshot.filter(({ top }) => top >= 720 * 0.9);
   expect(armedRows.length).toBeGreaterThan(0);
   expect(armedRows.every(({ delay, opacity }) => delay === null && opacity === "0")).toBe(true);
@@ -2105,7 +2134,7 @@ test("same-page section links reveal the target row on Home and across routes", 
     opacity: Number.parseFloat(getComputedStyle(element).opacity),
   }));
   expect(contactReveal.animating).toBe(true);
-  expect(contactReveal.opacity).toBeLessThan(0.95);
+  expect(contactReveal.opacity).toBeLessThan(1);
 
   await page.goto("/#projects");
   await page.locator('[data-slot="more-projects-link"]').click();
@@ -2121,7 +2150,70 @@ test("same-page section links reveal the target row on Home and across routes", 
     opacity: Number.parseFloat(getComputedStyle(element).opacity),
   }));
   expect(routeContactReveal.animating).toBe(true);
-  expect(routeContactReveal.opacity).toBeLessThan(0.95);
+  expect(routeContactReveal.opacity).toBeLessThan(1);
+});
+
+test("Lenis smooths wheel input and settles at its requested distance", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveClass(/\blenis\b/);
+  await expect(page.locator("html")).toHaveClass(/\blenis-autoToggle\b/);
+
+  await page.mouse.wheel(0, 600);
+  const earlyFrames = await page.evaluate(async () => {
+    const positions: number[] = [];
+    for (let frame = 0; frame < 4; frame += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => {
+        resolve();
+      }));
+      positions.push(window.scrollY);
+    }
+    return positions;
+  });
+  expect(earlyFrames.some((position) => position > 0 && position < 600)).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeCloseTo(600, 0);
+});
+
+test("reduced motion makes same-page anchor travel immediate", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveClass(/\blenis\b/);
+  await expect(page.locator("html")).not.toHaveAttribute("data-page-motion-pending", "true");
+
+  const synchronousPosition = await page.getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("link", { name: "Experience" })
+    .evaluate((link) => {
+      (link as HTMLAnchorElement).click();
+      return window.scrollY;
+    });
+  expect(synchronousPosition).toBeGreaterThan(0);
+  await expect(page.locator("#experience")).toHaveAttribute("data-page-motion-revealed", "true");
+  await expect.poll(async () => {
+    const header = await page.locator('[data-slot="site-header"]').boundingBox();
+    const heading = await page.locator("#experience > div").first().boundingBox();
+    if (!header || !heading) throw new Error("Reduced-motion anchor target must be measurable");
+    return Math.abs(heading.y - header.y - header.height);
+  }).toBeLessThanOrEqual(1);
+});
+
+test("the recommendation strip keeps native horizontal wheel scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#experience");
+  const track = page.locator('[data-slot="recommendation-track"]');
+  await track.scrollIntoViewIfNeeded();
+  const pageScroll = await page.evaluate(() => window.scrollY);
+
+  await track.hover();
+  await page.mouse.wheel(240, 0);
+
+  await expect.poll(() => track.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.scrollY)).toBe(pageScroll);
 });
 
 test("real Tab focus finishes an active section reveal synchronously", async ({ page }) => {

@@ -232,7 +232,11 @@ export function MobileNavigation({
             >
               <X aria-hidden="true" className="size-ui-icon" />
             </Dialog.Close>
-            <nav aria-label={navigationLabel} className={clsx(styles.menu, "overflow-y-auto p-3")}>
+            <nav
+              aria-label={navigationLabel}
+              className={clsx(styles.menu, "overflow-y-auto p-3")}
+              data-lenis-prevent
+            >
               {items.map((item) => {
                 const current = item.label === activeLabel;
                 return (
