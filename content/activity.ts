@@ -1,13 +1,12 @@
 import "server-only";
 
-export type CodeContributionStatus = "merged" | "under-review";
+export type CodeContributionStatus = "merged" | "under-review" | "draft";
 
 export interface CodeContribution {
   repository: string;
   number: number;
   date: string;
   title: string;
-  summary: string;
   href: string;
 }
 
@@ -21,6 +20,7 @@ export interface GitHubActivityResult {
   pullRequestsAvailable: boolean;
   merged: readonly CodeContribution[];
   underReview: readonly CodeContribution[];
+  draft: readonly CodeContribution[];
   calendarAvailable: boolean;
   calendar: readonly ContributionDay[];
 }
@@ -32,7 +32,9 @@ interface GitHubRequestInit extends RequestInit {
 export type GitHubFetch = (input: string, init: GitHubRequestInit) => Promise<Response>;
 
 const revalidateSeconds = 300;
-const unavailablePullRequests = { merged: [], underReview: [] } as const;
+const searchPageSize = 100;
+const searchPageLimit = 10;
+const unavailablePullRequests = { merged: [], underReview: [], draft: [] } as const;
 
 /**
  * Delegates a GitHub request to the platform fetch implementation.
@@ -68,27 +70,6 @@ function dateTime(value: unknown): string | null {
 }
 
 /**
- * Extracts a concise factual sentence from a pull-request body.
- *
- * @param body - GitHub's plain-text pull-request body.
- * @returns The first meaningful sentence, shortened for the editorial list.
- */
-function summarize(body: string): string {
-  const line = body
-    .split(/\n+/)
-    .map((part) => part.trim())
-    .find((part) => part.length >= 32
-      && !/^(?:closes?|fixes?|resolves?)\s+#/i.test(part)
-      && !/^(?:summary|motivation|what changed|changes|verification|risk|tests?|docs?)\s*:?\s*$/i.test(part));
-  if (!line) return "";
-
-  const sentence = /^(.{32,}?[.!?])(?:\s|$)/.exec(line)?.[1] ?? line;
-  if (sentence.length <= 260) return sentence;
-  const clipped = sentence.slice(0, 257);
-  return `${clipped.slice(0, Math.max(clipped.lastIndexOf(" "), 220))}…`;
-}
-
-/**
  * Validates a GitHub Search API response for one pull-request state.
  *
  * @param input - Untrusted GitHub JSON response.
@@ -111,7 +92,7 @@ export function parsePullRequestSearch(
     const href = item?.html_url;
     const repositoryUrl = item?.repository_url;
     const createdAt = dateTime(item?.created_at);
-    const mergedAt = dateTime(pullRequest?.merged_at);
+    const date = status === "merged" ? dateTime(pullRequest?.merged_at) : createdAt;
     const repository = typeof repositoryUrl === "string"
       ? /^https:\/\/api\.github\.com\/repos\/([^/]+\/[^/]+)$/.exec(repositoryUrl)?.[1]
       : undefined;
@@ -120,8 +101,9 @@ export function parsePullRequestSearch(
     if (!Number.isInteger(number) || Number(number) <= 0
       || typeof title !== "string" || !title.trim()
       || typeof href !== "string" || !repository
-      || item?.state !== expectedState || !createdAt
-      || (status === "merged" && !mergedAt)
+      || !pullRequest
+      || pullRequest.url !== `https://api.github.com/repos/${repository}/pulls/${String(number)}`
+      || item?.state !== expectedState || !createdAt || !date
       || href !== `https://github.com/${repository}/pull/${String(number)}`) {
       return null;
     }
@@ -129,9 +111,8 @@ export function parsePullRequestSearch(
     contributions.push({
       repository,
       number: Number(number),
-      date: mergedAt ?? createdAt,
+      date,
       title,
-      summary: typeof item.body_text === "string" ? summarize(item.body_text) : "",
       href,
     });
   }
@@ -214,7 +195,6 @@ export function parseContributionCalendar(html: string): readonly ContributionDa
  *
  * @param username - GitHub account whose external contributions are queried.
  * @param status - Pull-request state to fetch.
- * @param limit - Maximum number of displayed results.
  * @param fetcher - Server fetch implementation.
  * @param token - Optional server-only GitHub token.
  * @returns Validated pull requests.
@@ -223,28 +203,35 @@ export function parseContributionCalendar(html: string): readonly ContributionDa
 async function fetchPullRequests(
   username: string,
   status: CodeContributionStatus,
-  limit: number,
   fetcher: GitHubFetch,
   token: string | undefined,
 ): Promise<readonly CodeContribution[]> {
   const url = new URL("https://api.github.com/search/issues");
-  const state = status === "merged" ? "is:merged" : "is:open";
-  url.searchParams.set("q", `author:${username} is:pr ${state} -user:${username}`);
+  let state = "is:open draft:false";
+  if (status === "merged") state = "is:merged";
+  else if (status === "draft") state = "is:open draft:true";
+  url.searchParams.set("q", `author:${username} is:pr ${state} is:public -user:${username}`);
   url.searchParams.set("sort", "updated");
   url.searchParams.set("order", "desc");
-  url.searchParams.set("per_page", String(limit));
+  url.searchParams.set("per_page", String(searchPageSize));
   const headers: Record<string, string> = {
-    Accept: "application/vnd.github.text+json",
+    Accept: "application/vnd.github+json",
     "User-Agent": "web-portfolio-v2",
     "X-GitHub-Api-Version": "2022-11-28",
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetcher(url.toString(), { headers, next: { revalidate: revalidateSeconds } });
-  if (!response.ok) throw new Error(`GitHub search returned ${String(response.status)}`);
-  const parsed = parsePullRequestSearch(await response.json() as unknown, status);
-  if (!parsed) throw new Error("GitHub search returned invalid data");
-  return parsed;
+  const contributions: CodeContribution[] = [];
+  for (let page = 1; page <= searchPageLimit; page += 1) {
+    url.searchParams.set("page", String(page));
+    const response = await fetcher(url.toString(), { headers, next: { revalidate: revalidateSeconds } });
+    if (!response.ok) throw new Error(`GitHub search returned ${String(response.status)}`);
+    const parsed = parsePullRequestSearch(await response.json() as unknown, status);
+    if (!parsed) throw new Error("GitHub search returned invalid data");
+    contributions.push(...parsed);
+    if (parsed.length < searchPageSize) break;
+  }
+  return contributions.toSorted((left, right) => right.date.localeCompare(left.date));
 }
 
 /**
@@ -282,15 +269,20 @@ export async function loadGitHubActivity(
   fetcher: GitHubFetch = defaultFetch,
   token = process.env.GITHUB_TOKEN,
 ): Promise<GitHubActivityResult> {
-  let pullRequests: { merged: readonly CodeContribution[]; underReview: readonly CodeContribution[] } = unavailablePullRequests;
+  let pullRequests: {
+    merged: readonly CodeContribution[];
+    underReview: readonly CodeContribution[];
+    draft: readonly CodeContribution[];
+  } = unavailablePullRequests;
   let pullRequestsAvailable = false;
   let calendar: readonly ContributionDay[] = [];
   let calendarAvailable = false;
 
   try {
-    const merged = await fetchPullRequests(username, "merged", 2, fetcher, token);
-    const underReview = await fetchPullRequests(username, "under-review", 1, fetcher, token);
-    pullRequests = { merged, underReview };
+    const merged = await fetchPullRequests(username, "merged", fetcher, token);
+    const underReview = await fetchPullRequests(username, "under-review", fetcher, token);
+    const draft = await fetchPullRequests(username, "draft", fetcher, token);
+    pullRequests = { merged, underReview, draft };
     pullRequestsAvailable = true;
   } catch (error) {
     console.warn("GitHub pull requests unavailable", error);

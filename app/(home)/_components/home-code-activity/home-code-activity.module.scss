@@ -21,48 +21,70 @@
 }
 
 .contribution {
+  display: grid;
+  min-width: 0;
+  min-height: 2.75rem;
+  grid-template-columns: 1.1rem minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.625rem;
+  padding-block: 0.5rem;
   color: var(--foreground);
 }
 
-.meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.5rem;
+.statusIcon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--accent-em);
+}
+
+.statusIcon[data-status="under-review"] {
+  color: oklch(0.55 0.14 65);
+}
+
+.statusIcon[data-status="draft"] {
+  color: var(--muted-foreground);
+}
+
+:global(.dark) .statusIcon[data-status="under-review"] {
+  color: oklch(0.78 0.14 75);
+}
+
+.copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.repository,
+.period {
+  color: var(--muted-foreground);
   font-size: 0.6875rem;
-}
-
-.statusDot {
-  width: 0.4375rem;
-  height: 0.4375rem;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--accent-em);
-}
-
-.statusDot[data-status="under-review"] {
-  border: 1px solid var(--muted-foreground);
-  background: transparent;
+  transition: color 150ms;
 }
 
 .repository {
   overflow-wrap: anywhere;
-  color: var(--foreground);
 }
 
 .period {
-  margin-left: auto;
+  white-space: nowrap;
+}
+
+.contribution:is(:hover, :focus-visible) :is(.repository, .period) {
+  color: var(--foreground);
 }
 
 .title {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 1rem;
 }
 
-.summary {
-  max-width: 45rem;
-  font-size: 0.875rem;
-  line-height: 1.65;
-  overflow-wrap: anywhere;
+@media (prefers-color-scheme: dark) {
+  :global(:root:not(.light, .dark)) .statusIcon[data-status="under-review"] {
+    color: oklch(0.78 0.14 75);
+  }
 }
 
 .activity {
@@ -142,8 +164,8 @@
     margin-top: 3.5rem;
   }
 
-  .meta {
-    gap: 0.625rem;
+  .repository,
+  .period {
     font-size: 0.75rem;
   }
 

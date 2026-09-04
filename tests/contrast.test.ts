@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs"
 import test from "node:test"
 
 const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8")
+const codeActivityCss = readFileSync(
+  new URL("../app/(home)/_components/home-code-activity/home-code-activity.module.scss", import.meta.url),
+  "utf8",
+)
 
 /**
  * Reads one OKLCH token from a theme selector.
@@ -75,6 +79,31 @@ test("semantic emerald and selection styles share the approved accent role", () 
   assert.deepEqual(token(".dark", "accent-em"), [0.74, 0.11, 165])
   assert.doesNotMatch(css, /primary-text/)
   assert.match(css, /::selection\s*\{[\s\S]*background:\s*color-mix\([^;]*var\(--accent-em\)/)
+})
+
+test("pull-request status icons retain distinct accessible theme colors", () => {
+  assert.match(codeActivityCss, /\.statusIcon\s*\{[\s\S]*?color:\s*var\(--accent-em\)/)
+  assert.match(codeActivityCss, /\.statusIcon\[data-status="draft"\]\s*\{[\s\S]*?color:\s*var\(--muted-foreground\)/)
+  assert.match(codeActivityCss, /:global\(\.dark\) \.statusIcon\[data-status="under-review"\]/)
+  assert.match(codeActivityCss, /:global\(:root:not\(\.light, \.dark\)\) \.statusIcon\[data-status="under-review"\]/)
+
+  const underReviewColors = [...codeActivityCss.matchAll(/color:\s*oklch\(([^)]+)\)/g)].map((match) => {
+    const value = match[1]
+    assert.ok(value)
+    const channels = value.split(/\s+/).map(Number)
+    assert.equal(channels.length, 3)
+    assert.ok(channels.every(Number.isFinite))
+    return channels as [number, number, number]
+  })
+  assert.deepEqual(underReviewColors, [[0.55, 0.14, 65], [0.78, 0.14, 75], [0.78, 0.14, 75]])
+  const [lightUnderReview, darkUnderReview] = underReviewColors
+  assert.ok(lightUnderReview && darkUnderReview)
+  assert.ok(contrast(token(":root", "accent-em"), token(":root", "background")) >= 3)
+  assert.ok(contrast(token(".dark", "accent-em"), token(".dark", "background")) >= 3)
+  assert.ok(contrast(token(":root", "muted-foreground"), token(":root", "background")) >= 3)
+  assert.ok(contrast(token(".dark", "muted-foreground"), token(".dark", "background")) >= 3)
+  assert.ok(contrast(lightUnderReview, token(":root", "background")) >= 3)
+  assert.ok(contrast(darkUnderReview, token(".dark", "background")) >= 3)
 })
 
 test("no-JavaScript system dark tokens stay aligned with the explicit dark theme", () => {

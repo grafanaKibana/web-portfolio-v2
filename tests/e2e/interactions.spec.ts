@@ -1,4 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
+import { compile } from "sass";
+
+const homeCodeActivityCss = compile(
+  "app/(home)/_components/home-code-activity/home-code-activity.module.scss",
+).css;
 
 /**
  * Waits until entrance animations stop affecting layout measurements.
@@ -1165,6 +1170,119 @@ test("project rows keep the approved static and color-only hover treatments", as
   await expect(projectActions.first().locator("svg")).toHaveCSS("transform", "none");
 });
 
+test("compact pull-request rows preserve geometry and wrapping through production styles", async ({ page }) => {
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.setContent(`
+      <style>
+        :root {
+          --accent-em: oklch(0.55 0.15 150);
+          --background: oklch(0.98 0 0);
+          --foreground: oklch(0.2 0 0);
+          --muted-foreground: oklch(0.5 0 0);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        main { padding: 1rem; }
+        ${homeCodeActivityCss}
+      </style>
+      <main>
+        <a class="contribution" data-slot="pull-request-row" href="https://github.com/example/extremely-long-repository-name-for-responsive-verification/pull/1234">
+          <svg aria-hidden="true" class="statusIcon" data-slot="pull-request-status" data-status="merged" viewBox="0 0 24 24">
+            <circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v10M18 6v8M14 10l4-4 4 4"></path>
+          </svg>
+          <span class="copy" data-slot="pull-request-copy">
+            <span class="repository">example/extremely-long-repository-name-for-responsive-verification #1234</span>
+            <span class="title" data-slot="pull-request-title">Implement an intentionally long pull request title that must wrap cleanly without clipping or horizontal overflow</span>
+          </span>
+          <time class="period" datetime="2026-09-04T00:00:00Z" data-slot="pull-request-date">Sep 2026</time>
+        </a>
+      </main>
+    `);
+
+    const row = page.locator('[data-slot="pull-request-row"]');
+    const geometry = await row.evaluate((row) => {
+      const box = row.getBoundingClientRect();
+      const icon = row.querySelector<SVGElement>('[data-slot="pull-request-status"]')?.getBoundingClientRect();
+      const copyElement = row.querySelector<HTMLElement>('[data-slot="pull-request-copy"]');
+      const copy = copyElement?.getBoundingClientRect();
+      const repositoryElement = row.querySelector<HTMLElement>('.repository');
+      const repository = repositoryElement?.getBoundingClientRect();
+      const titleElement = row.querySelector<HTMLElement>('[data-slot="pull-request-title"]');
+      const title = titleElement?.getBoundingClientRect();
+      const dateElement = row.querySelector<HTMLElement>('[data-slot="pull-request-date"]');
+      const date = dateElement?.getBoundingClientRect();
+      if (!icon || !copyElement || !copy || !repository || !repositoryElement || !title || !titleElement || !date || !dateElement) {
+        throw new Error("Compact pull-request fixture must be measurable");
+      }
+      const repositoryRange = document.createRange();
+      repositoryRange.selectNodeContents(repositoryElement);
+      const titleRange = document.createRange();
+      titleRange.selectNodeContents(titleElement);
+      const dateRange = document.createRange();
+      dateRange.selectNodeContents(dateElement);
+      return {
+        row: { right: box.right, height: box.height, center: box.top + box.height / 2 },
+        iconCenter: icon.top + icon.height / 2,
+        copyRight: copy.right,
+        copyGap: getComputedStyle(copyElement).rowGap,
+        repository: {
+          left: repository.left,
+          bottom: repository.bottom,
+          lines: repositoryRange.getClientRects().length,
+          clipped: repositoryElement.scrollHeight > repositoryElement.clientHeight
+            || repositoryElement.scrollWidth > repositoryElement.clientWidth,
+        },
+        title: {
+          left: title.left,
+          top: title.top,
+          lines: titleRange.getClientRects().length,
+          clipped: titleElement.scrollHeight > titleElement.clientHeight || titleElement.scrollWidth > titleElement.clientWidth,
+        },
+        date: {
+          left: date.left,
+          right: date.right,
+          center: date.top + date.height / 2,
+          lines: dateRange.getClientRects().length,
+          whiteSpace: getComputedStyle(dateElement).whiteSpace,
+        },
+        rowOverflows: row.scrollWidth > row.clientWidth,
+        documentOverflows: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      };
+    });
+
+    expect(geometry.row.height).toBeGreaterThanOrEqual(44);
+    expect(Math.abs(geometry.iconCenter - geometry.row.center)).toBeLessThanOrEqual(2);
+    expect(Math.abs(geometry.date.center - geometry.row.center)).toBeLessThanOrEqual(2);
+    expect(geometry.copyGap).toBe("4px");
+    expect(Math.abs(geometry.repository.left - geometry.title.left)).toBeLessThanOrEqual(1);
+    expect(geometry.repository.bottom).toBeLessThanOrEqual(geometry.title.top);
+    expect(geometry.date.left).toBeGreaterThanOrEqual(geometry.copyRight);
+    expect(geometry.date.right).toBeLessThanOrEqual(geometry.row.right);
+    expect(geometry.date.lines).toBe(1);
+    expect(geometry.date.whiteSpace).toBe("nowrap");
+    expect(geometry.repository.clipped).toBe(false);
+    expect(geometry.title.clipped).toBe(false);
+    expect(geometry.rowOverflows).toBe(false);
+    expect(geometry.documentOverflows).toBe(false);
+    if (width === 390) {
+      expect(geometry.repository.lines).toBeGreaterThan(1);
+      expect(geometry.title.lines).toBeGreaterThan(1);
+    }
+
+    const metadata = row.locator(".repository, .period");
+    const restingColors = await metadata.evaluateAll((elements) =>
+      elements.map((element) => getComputedStyle(element).color));
+    expect(new Set(restingColors).size).toBe(1);
+    await row.hover();
+    await expect.poll(async () => {
+      const colors = await metadata.evaluateAll((elements) =>
+        elements.map((element) => getComputedStyle(element).color));
+      return new Set(colors).size === 1 && colors[0] !== restingColors[0];
+    }).toBe(true);
+  }
+});
+
 test("Code activity renders live GitHub data and fails open without empty UI", async ({ page }) => {
   for (const width of [390, 768, 1024, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -1181,7 +1299,10 @@ test("Code activity renders live GitHub data and fails open without empty UI", a
     if (await summary.count()) {
       const merged = code.getByRole("list", { name: "Merged contributions" }).getByRole("link");
       const underReview = code.getByRole("list", { name: "Under review contributions" }).getByRole("link");
-      await expect(summary).toHaveText(`${String(await merged.count())} merged · ${String(await underReview.count())} under review`);
+      const draft = code.getByRole("list", { name: "Draft contributions" }).getByRole("link");
+      await expect(summary).toHaveText(
+        `${String(await merged.count())} merged · ${String(await underReview.count())} under review · ${String(await draft.count())} draft`,
+      );
       for (const href of await code.locator('[data-slot="pull-request-group"] a').evaluateAll((links) =>
         links.map((link) => link.getAttribute("href")),
       )) expect(href).toMatch(/^https:\/\/github\.com\/.+\/pull\/\d+$/);
@@ -1198,16 +1319,65 @@ test("Code activity renders live GitHub data and fails open without empty UI", a
     expect(await code.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
   }
 
-  const firstPullRequest = page.locator('[data-slot="pull-request-row"]').first();
-  const firstPullRequestSummary = firstPullRequest.locator('[data-slot="pull-request-summary"]');
-  if (await firstPullRequestSummary.count()) {
-    const title = firstPullRequest.locator('[data-slot="pull-request-title"]');
-    const titleStart = await title.boundingBox();
-    await firstPullRequest.hover();
-    if (!titleStart) throw new Error("Pull-request title must be measurable");
-    expect((await title.boundingBox())?.x).toBe(titleStart.x);
-    await expect.poll(() => firstPullRequestSummary.evaluate((element) => getComputedStyle(element).color))
-      .toBe(await title.evaluate((element) => getComputedStyle(element).color));
+  const groupContracts = [
+    { label: "Under review contributions", status: "under-review", icon: /(?:^|\s)lucide-message-circle-more(?:\s|$)/ },
+    { label: "Draft contributions", status: "draft", icon: /(?:^|\s)lucide-git-pull-request-draft(?:\s|$)/ },
+    { label: "Merged contributions", status: "merged", icon: /(?:^|\s)lucide-git-pull-request(?:\s|$)/ },
+  ] as const;
+  for (const contract of groupContracts) {
+    const list = page.getByRole("list", { name: contract.label });
+    if (!await list.count()) continue;
+    const rows = list.locator('[data-slot="pull-request-row"]');
+    for (const row of await rows.all()) {
+      const status = row.locator('[data-slot="pull-request-status"]');
+      const copy = row.locator('[data-slot="pull-request-copy"]');
+      const repository = copy.locator("span").first();
+      const title = row.locator('[data-slot="pull-request-title"]');
+      const date = row.locator('time[data-slot="pull-request-date"]');
+      await expect(status).toHaveAttribute("aria-hidden", "true");
+      await expect(status).toHaveAttribute("data-status", contract.status);
+      await expect(status).toHaveClass(contract.icon);
+      await expect(repository).toContainText(/.+ #\d+$/);
+      await expect(title).not.toBeEmpty();
+      await expect(date).toHaveAttribute("datetime", /\d{4}-\d{2}-\d{2}/);
+      await expect(date).toHaveText(/^[A-Z][a-z]{2} \d{4}$/);
+      await expect(row.locator('[data-slot="pull-request-summary"]')).toHaveCount(0);
+    }
+  }
+
+  const liveRow = page.locator('[data-slot="pull-request-row"]').first();
+  if (await liveRow.count()) {
+    const geometry = await liveRow.evaluate((row) => {
+      const box = row.getBoundingClientRect();
+      const icon = row.querySelector<SVGElement>('[data-slot="pull-request-status"]')?.getBoundingClientRect();
+      const copy = row.querySelector<HTMLElement>('[data-slot="pull-request-copy"]')?.getBoundingClientRect();
+      const date = row.querySelector<HTMLElement>('[data-slot="pull-request-date"]')?.getBoundingClientRect();
+      if (!icon || !copy || !date) throw new Error("Live pull-request row must be measurable");
+      return {
+        centers: [icon, copy, date].map((item) => item.top + item.height / 2),
+        iconRight: icon.right,
+        copyLeft: copy.left,
+        copyRight: copy.right,
+        dateLeft: date.left,
+        rowCenter: box.top + box.height / 2,
+        rowOverflows: row.scrollWidth > row.clientWidth,
+      };
+    });
+    for (const center of geometry.centers) expect(Math.abs(center - geometry.rowCenter)).toBeLessThanOrEqual(2);
+    expect(geometry.iconRight).toBeLessThanOrEqual(geometry.copyLeft);
+    expect(geometry.copyRight).toBeLessThanOrEqual(geometry.dateLeft);
+    expect(geometry.rowOverflows).toBe(false);
+
+    await expect(liveRow).toHaveAttribute("target", "_blank");
+    await expect(liveRow).toHaveAttribute("rel", /(?:^|\s)noreferrer(?:\s|$)/);
+    await liveRow.focus();
+    await expect(liveRow).toBeFocused();
+    const focusOutline = await liveRow.evaluate((row) => {
+      const style = getComputedStyle(row);
+      return { style: style.outlineStyle, width: Number.parseFloat(style.outlineWidth) };
+    });
+    expect(focusOutline.style).not.toBe("none");
+    expect(focusOutline.width).toBeGreaterThan(0);
   }
 
   const contributionDay = page.locator('[data-slot="contribution-day"]').first();

@@ -9,6 +9,7 @@ import {
   loadGitHubActivity,
   parseContributionCalendar,
   parsePullRequestSearch,
+  type CodeContributionStatus,
   type GitHubFetch,
 } from "../content/activity"
 import { discoverMdxSlugs } from "../content/discovery"
@@ -167,28 +168,46 @@ test("representative repository content is discoverable", () => {
 /**
  * Creates one valid GitHub Search API fixture.
  *
- * @param state - Pull-request state represented by the fixture.
+ * @param status - Pull-request status represented by the fixture.
+ * @param count - Number of pull requests in the response page.
+ * @param offset - Offset used to keep generated pull-request numbers unique.
  * @returns A valid search response.
  */
-function pullRequestSearch(state: "open" | "closed") {
-  const merged = state === "closed";
+function pullRequestSearch(status: CodeContributionStatus, count = 1, offset = 0) {
+  const merged = status === "merged"
+  let repository = "Dygmalab/Bazecor"
+  if (merged) repository = "oleeskild/obsidian-digital-garden"
+  else if (status === "draft") repository = "microsoft/semantic-kernel"
   return {
     incomplete_results: false,
-    items: [{
-      number: merged ? 801 : 1092,
-      title: merged ? "feat: add content base directory" : "fix: enhance RGB to RGBW conversion",
-      body_text: "Summary\nAdds a sufficiently detailed live pull-request summary for the portfolio list.",
-      html_url: merged
-        ? "https://github.com/oleeskild/obsidian-digital-garden/pull/801"
-        : "https://github.com/Dygmalab/Bazecor/pull/1092",
-      repository_url: merged
-        ? "https://api.github.com/repos/oleeskild/obsidian-digital-garden"
-        : "https://api.github.com/repos/Dygmalab/Bazecor",
-      state,
-      created_at: "2026-07-03T17:38:50Z",
-      pull_request: { merged_at: merged ? "2026-07-17T12:52:49Z" : null },
-    }],
+    items: Array.from({ length: count }, (_, index) => {
+      const number = (merged ? 801 : 1092) + offset + index;
+      return {
+        number,
+        title: merged ? "feat: add content base directory" : "fix: enhance RGB to RGBW conversion",
+        html_url: `https://github.com/${repository}/pull/${String(number)}`,
+        repository_url: `https://api.github.com/repos/${repository}`,
+        state: merged ? "closed" : "open",
+        created_at: "2026-07-03T17:38:50Z",
+        pull_request: {
+          merged_at: merged ? "2026-07-17T12:52:49Z" : null,
+          url: `https://api.github.com/repos/${repository}/pulls/${String(number)}`,
+        },
+      }
+    }),
   }
+}
+
+/**
+ * Identifies the pull-request status encoded in a search query.
+ *
+ * @param query - GitHub Search API query.
+ * @returns The represented pull-request status.
+ */
+function pullRequestStatus(query: string): CodeContributionStatus {
+  if (query.includes("is:merged")) return "merged"
+  if (query.includes("draft:true")) return "draft"
+  return "under-review"
 }
 
 /**
@@ -212,16 +231,47 @@ function contributionCalendar(dayCount = 350): string {
 }
 
 test("live GitHub parsers validate PRs and the public contribution calendar", () => {
-  assert.deepEqual(parsePullRequestSearch(pullRequestSearch("closed"), "merged"), [{
+  assert.deepEqual(parsePullRequestSearch(pullRequestSearch("merged"), "merged"), [{
     repository: "oleeskild/obsidian-digital-garden",
     number: 801,
     date: "2026-07-17T12:52:49Z",
     title: "feat: add content base directory",
-    summary: "Adds a sufficiently detailed live pull-request summary for the portfolio list.",
     href: "https://github.com/oleeskild/obsidian-digital-garden/pull/801",
   }])
-  assert.equal(parsePullRequestSearch(pullRequestSearch("open"), "merged"), null)
+  assert.deepEqual(parsePullRequestSearch(pullRequestSearch("under-review"), "under-review"), [{
+    repository: "Dygmalab/Bazecor",
+    number: 1092,
+    date: "2026-07-03T17:38:50Z",
+    title: "fix: enhance RGB to RGBW conversion",
+    href: "https://github.com/Dygmalab/Bazecor/pull/1092",
+  }])
+  assert.deepEqual(parsePullRequestSearch(pullRequestSearch("draft"), "draft"), [{
+    repository: "microsoft/semantic-kernel",
+    number: 1092,
+    date: "2026-07-03T17:38:50Z",
+    title: "fix: enhance RGB to RGBW conversion",
+    href: "https://github.com/microsoft/semantic-kernel/pull/1092",
+  }])
+  for (const status of ["under-review", "draft"] as const) {
+    const response = pullRequestSearch(status)
+    const item = response.items[0]
+    assert.ok(item)
+    item.pull_request.merged_at = "2026-08-01T10:00:00Z"
+    assert.equal(parsePullRequestSearch(response, status)?.[0]?.date, item.created_at)
+  }
+  assert.equal(parsePullRequestSearch(pullRequestSearch("under-review"), "merged"), null)
   assert.equal(parsePullRequestSearch({ incomplete_results: true, items: [] }, "under-review"), null)
+  assert.equal(parsePullRequestSearch({ incomplete_results: false, items: {} }, "draft"), null)
+
+  for (const status of ["merged", "under-review", "draft"] as const) {
+    for (const pullRequest of [undefined, null, [], "not a pull request", {}]) {
+      const response = pullRequestSearch(status)
+      const item = response.items[0]
+      assert.ok(item)
+      Object.assign(item, { pull_request: pullRequest })
+      assert.equal(parsePullRequestSearch(response, status), null)
+    }
+  }
 
   const calendar = parseContributionCalendar(contributionCalendar())
   assert.equal(calendar?.length, 350)
@@ -230,7 +280,7 @@ test("live GitHub parsers validate PRs and the public contribution calendar", ()
   assert.equal(parseContributionCalendar("<td>changed markup</td>"), null)
 })
 
-test("live GitHub loading caches requests and fails open independently", async (t) => {
+test("live GitHub loading uses public status queries and bounded pagination", async () => {
   const requests: Array<{ input: string; init: Parameters<GitHubFetch>[1] }> = []
   /**
    * Returns deterministic GitHub responses while recording request options.
@@ -242,35 +292,110 @@ test("live GitHub loading caches requests and fails open independently", async (
   const fetcher: GitHubFetch = (input, init) => {
     requests.push({ input, init })
     if (input.includes("/contributions")) return Promise.resolve(new Response(contributionCalendar()))
-    const query = new URL(input).searchParams.get("q") ?? ""
-    return Promise.resolve(Response.json(pullRequestSearch(query.includes("is:merged") ? "closed" : "open")))
+    const url = new URL(input)
+    const query = url.searchParams.get("q") ?? ""
+    const page = Number(url.searchParams.get("page"))
+    const status = pullRequestStatus(query)
+    const count = status === "merged" && page === 1 ? 100 : 1
+    const response = pullRequestSearch(status, count, (page - 1) * 100)
+    if (status === "merged" && page === 1) {
+      const oldest = response.items[0]
+      const newest = response.items[1]
+      assert.ok(oldest && newest)
+      oldest.pull_request.merged_at = "2026-01-01T00:00:00Z"
+      newest.pull_request.merged_at = "2026-08-01T00:00:00Z"
+    }
+    return Promise.resolve(Response.json(response))
   }
   const activity = await loadGitHubActivity("grafanaKibana", fetcher, "secret")
   assert.equal(activity.pullRequestsAvailable, true)
-  assert.equal(activity.merged.length, 1)
+  assert.equal(activity.merged.length, 101)
+  assert.equal(activity.merged[0]?.number, 802)
+  assert.equal(activity.merged.at(-1)?.number, 801)
   assert.equal(activity.underReview.length, 1)
+  assert.equal(activity.draft.length, 1)
   assert.equal(activity.calendarAvailable, true)
   assert.equal(activity.calendar.length, 350)
-  assert.equal(requests.length, 3)
-  assert.ok(requests.slice(0, 2).every(({ input }) => new URL(input).searchParams.get("q")?.includes("-user:grafanaKibana")))
+  assert.equal(requests.length, 5)
+  const searchRequests = requests.filter(({ input }) => input.includes("/search/issues"))
+  assert.deepEqual(searchRequests.map(({ input }) => new URL(input).searchParams.get("q")), [
+    "author:grafanaKibana is:pr is:merged is:public -user:grafanaKibana",
+    "author:grafanaKibana is:pr is:merged is:public -user:grafanaKibana",
+    "author:grafanaKibana is:pr is:open draft:false is:public -user:grafanaKibana",
+    "author:grafanaKibana is:pr is:open draft:true is:public -user:grafanaKibana",
+  ])
+  assert.ok(searchRequests.every(({ input }) => new URL(input).searchParams.get("per_page") === "100"))
+  assert.deepEqual(searchRequests.map(({ input }) => new URL(input).searchParams.get("page")), ["1", "2", "1", "1"])
+  assert.ok(searchRequests.every(({ init }) =>
+    new Headers(init.headers).get("Accept") === "application/vnd.github+json"))
+  assert.ok(searchRequests.every(({ init }) =>
+    !new Headers(init.headers).get("Accept")?.includes("text")))
   assert.ok(requests.every(({ init }) => init.next.revalidate === 300))
   assert.equal(new Headers(requests[0]?.init.headers).get("Authorization"), "Bearer secret")
+})
 
+test("live GitHub loading never requests beyond page ten", async () => {
+  const searchPages: number[] = []
+  /**
+   * Returns full merged pages while recording requested page numbers.
+   *
+   * @param input - Requested GitHub URL.
+   * @returns The matching fixture response.
+   */
+  const fetcher: GitHubFetch = (input) => {
+    if (input.includes("/contributions")) return Promise.resolve(new Response(contributionCalendar()))
+    const url = new URL(input)
+    const query = url.searchParams.get("q") ?? ""
+    const page = Number(url.searchParams.get("page"))
+    searchPages.push(page)
+    const status = pullRequestStatus(query)
+    const count = status === "merged" ? 100 : 1
+    return Promise.resolve(Response.json(pullRequestSearch(status, count, (page - 1) * 100)))
+  }
+
+  const activity = await loadGitHubActivity("grafanaKibana", fetcher)
+  assert.equal(activity.merged.length, 1_000)
+  assert.equal(Math.max(...searchPages), 10)
+  assert.equal(searchPages.filter((page) => page === 10).length, 1)
+})
+
+test("live GitHub loading keeps PR and calendar failures independent", async (t) => {
   const warnings: string[] = []
   const warn = console.warn
   console.warn = (message) => warnings.push(String(message))
   t.after(() => { console.warn = warn })
-  const unavailable = await loadGitHubActivity(
-    "grafanaKibana",
-    () => Promise.resolve(new Response(null, { status: 503 })),
-  )
-  assert.deepEqual(unavailable, {
+
+  const calendarOnly = await loadGitHubActivity("grafanaKibana", (input) => {
+    if (input.includes("/contributions")) return Promise.resolve(new Response(contributionCalendar()))
+    const query = new URL(input).searchParams.get("q") ?? ""
+    if (query.includes("draft:true")) {
+      return Promise.resolve(Response.json({ incomplete_results: true, items: [] }))
+    }
+    return Promise.resolve(Response.json(pullRequestSearch(
+      query.includes("is:merged") ? "merged" : "under-review",
+    )))
+  })
+  assert.deepEqual(calendarOnly, {
     pullRequestsAvailable: false,
     merged: [],
     underReview: [],
-    calendarAvailable: false,
-    calendar: [],
+    draft: [],
+    calendarAvailable: true,
+    calendar: parseContributionCalendar(contributionCalendar()),
   })
+
+  const pullRequestsOnly = await loadGitHubActivity("grafanaKibana", (input) => {
+    if (input.includes("/contributions")) return Promise.resolve(new Response(null, { status: 503 }))
+    const query = new URL(input).searchParams.get("q") ?? ""
+    const status = pullRequestStatus(query)
+    return Promise.resolve(Response.json(pullRequestSearch(status)))
+  })
+  assert.equal(pullRequestsOnly.pullRequestsAvailable, true)
+  assert.equal(pullRequestsOnly.merged.length, 1)
+  assert.equal(pullRequestsOnly.underReview.length, 1)
+  assert.equal(pullRequestsOnly.draft.length, 1)
+  assert.equal(pullRequestsOnly.calendarAvailable, false)
+  assert.deepEqual(pullRequestsOnly.calendar, [])
   assert.equal(warnings.length, 2)
 })
 

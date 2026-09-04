@@ -1,11 +1,12 @@
 import { Github } from "@thesvg/react";
 import { clsx } from "clsx";
+import { GitPullRequest, GitPullRequestDraft, MessageCircleMore } from "lucide-react";
 
 import { loadGitHubActivity, type ContributionDay } from "@/content/activity";
 import { home } from "@/content/structured";
 import styles from "./home-code-activity.module.scss";
 
-const pullRequestPeriod = new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" });
+const pullRequestPeriod = new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" });
 const activityMonth = new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" });
 const activityDate = new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -43,11 +44,12 @@ export async function HomeCodeActivity() {
   const profileHref = `https://github.com/${codeActivity.username}`;
   const profileLabel = `github.com/${codeActivity.username}`;
   const groups = [
-    { status: "merged", label: "Merged", contributions: activity.merged },
-    { status: "under-review", label: "Under review", contributions: activity.underReview },
+    { status: "under-review", label: "Under review", contributions: activity.underReview, icon: MessageCircleMore },
+    { status: "draft", label: "Draft", contributions: activity.draft, icon: GitPullRequestDraft },
+    { status: "merged", label: "Merged", contributions: activity.merged, icon: GitPullRequest },
   ] as const;
   const summary = activity.pullRequestsAvailable
-    ? `${String(activity.merged.length)} merged · ${String(activity.underReview.length)} under review`
+    ? `${String(activity.merged.length)} merged · ${String(activity.underReview.length)} under review · ${String(activity.draft.length)} draft`
     : null;
   const calendarDays = activity.calendar.map((day) => ({
     ...day,
@@ -74,49 +76,51 @@ export async function HomeCodeActivity() {
         ) : null}
       </div>
 
-      {activity.pullRequestsAvailable ? groups.filter((group) => group.contributions.length > 0).map((group) => (
-        <section className={styles.group} data-slot="pull-request-group" key={group.status}>
-          <h3 className={clsx(styles.groupLabel, "m-0 font-mono font-normal uppercase text-muted-foreground")} data-page-motion-row>
-            {group.label}
-          </h3>
-          <ul aria-label={`${group.label} contributions`} className="m-0 mt-4 list-none p-0">
-            {group.contributions.map((contribution) => (
-              <li className="border-t first:border-t-0" data-page-motion-row key={contribution.href}>
-                <a
-                  className={clsx(styles.contribution, "group block rounded-sm py-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:py-3")}
-                  data-slot="pull-request-row"
-                  href={contribution.href}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  <span className={styles.meta}>
-                    <span aria-hidden="true" className={styles.statusDot} data-status={group.status} />
-                    <span className={clsx(styles.repository, "font-mono")}>{contribution.repository}</span>
-                    <span className="font-mono text-muted-foreground">#{contribution.number}</span>
-                    <span className={clsx(styles.period, "font-mono text-muted-foreground")}>
-                      {pullRequestPeriod.format(new Date(contribution.date))}
-                    </span>
-                  </span>
-                  <span
-                    className={clsx(styles.title, "mt-2 block break-all font-medium tracking-tight")}
-                    data-slot="pull-request-title"
+      {activity.pullRequestsAvailable ? groups.filter((group) => group.contributions.length > 0).map((group) => {
+        const StatusIcon = group.icon;
+        return (
+          <section className={styles.group} data-slot="pull-request-group" key={group.status}>
+            <h3 className={clsx(styles.groupLabel, "m-0 font-mono font-normal uppercase text-muted-foreground")} data-page-motion-row>
+              {group.label}
+            </h3>
+            <ul aria-label={`${group.label} contributions`} className="m-0 mt-4 list-none p-0">
+              {group.contributions.map((contribution) => (
+                <li className="border-t first:border-t-0" data-page-motion-row key={contribution.href}>
+                  <a
+                    className={clsx(styles.contribution, "rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
+                    data-slot="pull-request-row"
+                    href={contribution.href}
+                    rel="noreferrer"
+                    target="_blank"
                   >
-                    {contribution.title}
-                  </span>
-                  {contribution.summary ? (
-                    <span
-                      className={clsx(styles.summary, "mt-2 block text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground")}
-                      data-slot="pull-request-summary"
-                    >
-                      {contribution.summary}
+                    <StatusIcon
+                      aria-hidden="true"
+                      className={styles.statusIcon}
+                      data-slot="pull-request-status"
+                      data-status={group.status}
+                    />
+                    <span className={styles.copy} data-slot="pull-request-copy">
+                      <span className={clsx(styles.repository, "font-mono")}>
+                        {contribution.repository} #{contribution.number}
+                      </span>
+                      <span className={clsx(styles.title, "font-medium tracking-tight")} data-slot="pull-request-title">
+                        {contribution.title}
+                      </span>
                     </span>
-                  ) : null}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )) : null}
+                    <time
+                      className={clsx(styles.period, "font-mono")}
+                      dateTime={contribution.date}
+                      data-slot="pull-request-date"
+                    >
+                      {pullRequestPeriod.format(new Date(contribution.date))}
+                    </time>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      }) : null}
 
       {activity.calendarAvailable ? (
         <figure className={clsx(styles.activity, "m-0 border-t pt-5")} data-page-motion-row data-slot="activity-visualization">

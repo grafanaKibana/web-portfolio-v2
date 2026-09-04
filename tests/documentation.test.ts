@@ -7,6 +7,7 @@ import ts from "typescript";
 
 const sourceRoots = ["app", "components", "content", "lib", "scripts", "tests"];
 const rootSources = ["mdx-components.tsx"];
+const codeActivityPath = "app/(home)/_components/home-code-activity/home-code-activity.tsx";
 
 /**
  * Recursively collects TypeScript and JavaScript source files.
@@ -22,6 +23,20 @@ function collectSourceFiles(directory: string): string[] {
     if (entry.isDirectory()) return collectSourceFiles(source);
     return /\.(?:mjs|ts|tsx)$/.test(entry.name) ? [source] : [];
   });
+}
+
+/**
+ * Collects every descendant of one syntax node in source order.
+ *
+ * @param node - Syntax node whose descendants should be collected.
+ * @returns Descendant syntax nodes in source order.
+ */
+function descendants(node: ts.Node): ts.Node[] {
+  const nodes: ts.Node[] = [];
+  node.forEachChild((child) => {
+    nodes.push(child, ...descendants(child));
+  });
+  return nodes;
 }
 
 /**
@@ -300,4 +315,83 @@ test("named functions and classes have concise TSDoc with accurate contract tags
   assert.deepEqual(missing, [], `Missing JSDoc:\n${missing.join("\n")}`);
   assert.deepEqual(verbose, [], `TSDoc summary exceeds 160 characters:\n${verbose.join("\n")}`);
   assert.deepEqual(invalid, [], `Invalid TSDoc tags:\n${invalid.join("\n")}`);
+});
+
+test("Code activity keeps the compact pull-request row structure", () => {
+  const source = readFileSync(codeActivityPath, "utf8");
+  const sourceFile = ts.createSourceFile(
+    codeActivityPath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const imports = sourceFile.statements.filter(ts.isImportDeclaration);
+  const lucideImport = imports.find((statement) => statement.moduleSpecifier.getText(sourceFile) === '"lucide-react"');
+  assert.ok(lucideImport);
+  const lucideBindings = lucideImport.importClause?.namedBindings;
+  assert.ok(lucideBindings && ts.isNamedImports(lucideBindings));
+  const importedIcons = new Map(lucideBindings.elements.map((element) => [
+    element.name.text,
+    element.propertyName?.text ?? element.name.text,
+  ]));
+  assert.equal(importedIcons.get("GitPullRequest"), "GitPullRequest");
+  assert.equal(importedIcons.get("GitPullRequestDraft"), "GitPullRequestDraft");
+  assert.equal(importedIcons.get("MessageCircleMore"), "MessageCircleMore");
+
+  const groupsDeclaration = descendants(sourceFile).find((node): node is ts.VariableDeclaration =>
+    ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === "groups");
+  assert.ok(groupsDeclaration?.initializer);
+  let groupsExpression = groupsDeclaration.initializer;
+  while (
+    ts.isAsExpression(groupsExpression)
+    || ts.isSatisfiesExpression(groupsExpression)
+    || ts.isParenthesizedExpression(groupsExpression)
+  ) groupsExpression = groupsExpression.expression;
+  assert.ok(ts.isArrayLiteralExpression(groupsExpression));
+  const iconByStatus = Object.fromEntries(groupsExpression.elements.map((element) => {
+    assert.ok(ts.isObjectLiteralExpression(element));
+    const status = element.properties.find((property): property is ts.PropertyAssignment =>
+      ts.isPropertyAssignment(property) && property.name.getText(sourceFile) === "status");
+    const icon = element.properties.find((property): property is ts.PropertyAssignment =>
+      ts.isPropertyAssignment(property) && property.name.getText(sourceFile) === "icon");
+    assert.ok(status && ts.isStringLiteral(status.initializer));
+    assert.ok(icon && ts.isIdentifier(icon.initializer));
+    return [status.initializer.text, icon.initializer.text];
+  }));
+  assert.deepEqual(iconByStatus, {
+    "under-review": "MessageCircleMore",
+    draft: "GitPullRequestDraft",
+    merged: "GitPullRequest",
+  });
+  assert.match(source, /month: "short", year: "numeric", timeZone: "UTC"/);
+
+  const slottedElements = descendants(sourceFile)
+    .filter((node): node is ts.JsxOpeningElement | ts.JsxSelfClosingElement =>
+      ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node))
+    .flatMap((element) => {
+      const slot = element.attributes.properties.find((property): property is ts.JsxAttribute =>
+        ts.isJsxAttribute(property) && property.name.getText(sourceFile) === "data-slot");
+      return slot?.initializer && ts.isStringLiteral(slot.initializer)
+        ? [[slot.initializer.text, element] as const]
+        : [];
+    });
+  const slots = new Map(slottedElements);
+  const row = slots.get("pull-request-row");
+  const status = slots.get("pull-request-status");
+  const copy = slots.get("pull-request-copy");
+  const title = slots.get("pull-request-title");
+  const period = slots.get("pull-request-date");
+  assert.ok(row && status && copy && title && period);
+  assert.match(row.getText(sourceFile), /styles\.contribution/);
+  assert.match(status.getText(sourceFile), /styles\.statusIcon/);
+  assert.match(copy.getText(sourceFile), /styles\.copy/);
+  assert.match(title.getText(sourceFile), /styles\.title/);
+  assert.match(period.getText(sourceFile), /styles\.period/);
+  assert.ok(status.getStart() < copy.getStart() && copy.getStart() < period.getStart());
+  const repositoryStart = source.indexOf("styles.repository");
+  assert.ok(repositoryStart >= 0 && repositoryStart < title.getStart());
+  assert.equal(period.tagName.getText(sourceFile), "time");
+  assert.match(status.getText(sourceFile), /aria-hidden="true"/);
+  assert.doesNotMatch(source, /pull-request-summary|contribution\.summary|body_text/);
 });
