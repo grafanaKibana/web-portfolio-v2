@@ -81,6 +81,20 @@ test("semantic emerald and selection styles share the approved accent role", () 
   assert.match(css, /::selection\s*\{[\s\S]*background:\s*color-mix\([^;]*var\(--accent-em\)/)
 })
 
+test("pull-request line counts use the approved semantic tokens at text contrast", () => {
+  assert.deepEqual(token(":root", "destructive"), [0.577, 0.245, 27.325])
+  assert.deepEqual(token(".dark", "destructive"), [0.704, 0.191, 22.216])
+  assert.match(codeActivityCss, /\.additions\s*\{\s*color:\s*var\(--accent-em\);\s*\}/)
+  assert.match(codeActivityCss, /\.deletions\s*\{\s*color:\s*var\(--destructive\);\s*\}/)
+  assert.doesNotMatch(codeActivityCss, /--(?:accent-em|destructive)\s*:/)
+
+  for (const selector of [":root", ".dark"] as const) {
+    const background = token(selector, "background")
+    assert.ok(contrast(token(selector, "accent-em"), background) >= 4.5)
+    assert.ok(contrast(token(selector, "destructive"), background) >= 4.5)
+  }
+})
+
 test("pull-request status icons retain distinct accessible theme colors", () => {
   assert.match(codeActivityCss, /\.statusIcon\s*\{[\s\S]*?color:\s*var\(--accent-em\)/)
   assert.match(codeActivityCss, /\.statusIcon\[data-status="draft"\]\s*\{[\s\S]*?color:\s*var\(--muted-foreground\)/)

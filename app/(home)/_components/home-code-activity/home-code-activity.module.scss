@@ -59,12 +59,36 @@
 .repository,
 .period {
   color: var(--muted-foreground);
-  font-size: 0.6875rem;
   transition: color 150ms;
 }
 
 .repository {
   overflow-wrap: anywhere;
+  font-size: 0.6875rem;
+}
+
+.meta {
+  display: flex;
+  align-self: center;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+
+.diff {
+  display: inline-flex;
+  gap: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.additions {
+  color: var(--accent-em);
+}
+
+.deletions {
+  color: var(--destructive);
 }
 
 .period {
@@ -165,7 +189,7 @@
   }
 
   .repository,
-  .period {
+  .meta {
     font-size: 0.75rem;
   }
 

@@ -8,6 +8,8 @@ export interface CodeContribution {
   date: string;
   title: string;
   href: string;
+  additions: number;
+  deletions: number;
 }
 
 export interface ContributionDay {
@@ -32,9 +34,34 @@ interface GitHubRequestInit extends RequestInit {
 export type GitHubFetch = (input: string, init: GitHubRequestInit) => Promise<Response>;
 
 const revalidateSeconds = 300;
-const searchPageSize = 100;
 const searchPageLimit = 10;
 const unavailablePullRequests = { merged: [], underReview: [], draft: [] } as const;
+const pullRequestQuery = `query PullRequests($query: String!, $cursor: String) {
+  search(query: $query, type: ISSUE, first: 100, after: $cursor) {
+    nodes {
+      __typename
+      ... on PullRequest {
+        number
+        title
+        url
+        createdAt
+        mergedAt
+        state
+        isDraft
+        additions
+        deletions
+        repository {
+          nameWithOwner
+          isPrivate
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}`;
 
 /**
  * Delegates a GitHub request to the platform fetch implementation.
@@ -66,57 +93,94 @@ function record(value: unknown): Record<string, unknown> | null {
  * @returns The validated string or null.
  */
 function dateTime(value: unknown): string | null {
-  return typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : null;
+  if (typeof value !== "string") return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/.exec(value);
+  if (!match) return null;
+  const parsed = new Date(value);
+  const matchesValue = Number.isFinite(parsed.getTime())
+    && parsed.getUTCFullYear() === Number(match[1])
+    && parsed.getUTCMonth() + 1 === Number(match[2])
+    && parsed.getUTCDate() === Number(match[3])
+    && parsed.getUTCHours() === Number(match[4])
+    && parsed.getUTCMinutes() === Number(match[5])
+    && parsed.getUTCSeconds() === Number(match[6]);
+  return matchesValue ? value : null;
+}
+
+interface PullRequestPage {
+  contributions: readonly CodeContribution[];
+  hasNextPage: boolean;
+  endCursor: string | null;
 }
 
 /**
- * Validates a GitHub Search API response for one pull-request state.
+ * Validates a GitHub GraphQL response for one pull-request state.
  *
  * @param input - Untrusted GitHub JSON response.
  * @param status - State represented by the search query.
- * @returns Validated pull requests, or null when the response is incomplete or malformed.
+ * @returns A validated pull-request page, or null when the response is malformed.
  */
-export function parsePullRequestSearch(
+export function parsePullRequestPage(
   input: unknown,
   status: CodeContributionStatus,
-): readonly CodeContribution[] | null {
+): PullRequestPage | null {
   const root = record(input);
-  if (!root || root.incomplete_results !== false || !Array.isArray(root.items)) return null;
+  const errors = root?.errors;
+  if (!root || errors !== undefined && (!Array.isArray(errors) || errors.length > 0)) return null;
+  const search = record(record(root.data)?.search);
+  const pageInfo = record(search?.pageInfo);
+  const nodes = search?.nodes;
+  const hasNextPage = pageInfo?.hasNextPage;
+  const endCursor = pageInfo?.endCursor;
+  if (!Array.isArray(nodes)
+    || typeof hasNextPage !== "boolean"
+    || endCursor !== null && (typeof endCursor !== "string" || !endCursor.trim())
+    || hasNextPage && typeof endCursor !== "string") return null;
 
   const contributions: CodeContribution[] = [];
-  for (const value of root.items) {
-    const item = record(value);
-    const pullRequest = record(item?.pull_request);
-    const number = item?.number;
-    const title = item?.title;
-    const href = item?.html_url;
-    const repositoryUrl = item?.repository_url;
-    const createdAt = dateTime(item?.created_at);
-    const date = status === "merged" ? dateTime(pullRequest?.merged_at) : createdAt;
-    const repository = typeof repositoryUrl === "string"
-      ? /^https:\/\/api\.github\.com\/repos\/([^/]+\/[^/]+)$/.exec(repositoryUrl)?.[1]
-      : undefined;
-    const expectedState = status === "merged" ? "closed" : "open";
+  const merged = status === "merged";
+  const draft = status === "draft";
+  for (const value of nodes) {
+    const node = record(value);
+    const repositoryRecord = record(node?.repository);
+    const repository = repositoryRecord?.nameWithOwner;
+    const number = node?.number;
+    const title = node?.title;
+    const href = node?.url;
+    const createdAt = dateTime(node?.createdAt);
+    const mergedAt = dateTime(node?.mergedAt);
+    const additions = node?.additions;
+    const deletions = node?.deletions;
+    const date = merged ? mergedAt : createdAt;
 
-    if (!Number.isInteger(number) || Number(number) <= 0
+    if (node?.__typename !== "PullRequest"
+      || repositoryRecord?.isPrivate !== false
+      || typeof repository !== "string"
+      || !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\/[A-Za-z0-9._-]{1,100}$/.test(repository)
+      || typeof number !== "number" || !Number.isSafeInteger(number) || number <= 0
       || typeof title !== "string" || !title.trim()
-      || typeof href !== "string" || !repository
-      || !pullRequest
-      || pullRequest.url !== `https://api.github.com/repos/${repository}/pulls/${String(number)}`
-      || item?.state !== expectedState || !createdAt || !date
+      || typeof href !== "string"
+      || !createdAt || !date
+      || node.state !== (merged ? "MERGED" : "OPEN")
+      || node.isDraft !== draft
+      || !merged && node.mergedAt !== null
+      || typeof additions !== "number" || !Number.isSafeInteger(additions) || additions < 0
+      || typeof deletions !== "number" || !Number.isSafeInteger(deletions) || deletions < 0
       || href !== `https://github.com/${repository}/pull/${String(number)}`) {
       return null;
     }
 
     contributions.push({
       repository,
-      number: Number(number),
+      number,
       date,
       title,
       href,
+      additions,
+      deletions,
     });
   }
-  return contributions;
+  return { contributions, hasNextPage, endCursor };
 }
 
 /**
@@ -196,7 +260,7 @@ export function parseContributionCalendar(html: string): readonly ContributionDa
  * @param username - GitHub account whose external contributions are queried.
  * @param status - Pull-request state to fetch.
  * @param fetcher - Server fetch implementation.
- * @param token - Optional server-only GitHub token.
+ * @param token - Server-only GitHub token.
  * @returns Validated pull requests.
  * @throws When GitHub fails or returns an invalid response.
  */
@@ -206,32 +270,44 @@ async function fetchPullRequests(
   fetcher: GitHubFetch,
   token: string | undefined,
 ): Promise<readonly CodeContribution[]> {
-  const url = new URL("https://api.github.com/search/issues");
+  const authenticationToken = token?.trim();
+  if (!authenticationToken) throw new Error("GitHub token is required");
   let state = "is:open draft:false";
   if (status === "merged") state = "is:merged";
   else if (status === "draft") state = "is:open draft:true";
-  url.searchParams.set("q", `author:${username} is:pr ${state} is:public -user:${username}`);
-  url.searchParams.set("sort", "updated");
-  url.searchParams.set("order", "desc");
-  url.searchParams.set("per_page", String(searchPageSize));
+  const searchQuery = `author:${username} is:pr ${state} is:public -user:${username} sort:updated-desc`;
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
+    Authorization: `Bearer ${authenticationToken}`,
+    "Content-Type": "application/json",
     "User-Agent": "web-portfolio-v2",
     "X-GitHub-Api-Version": "2022-11-28",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
 
   const contributions: CodeContribution[] = [];
+  const cursors = new Set<string>();
+  let cursor: string | null = null;
   for (let page = 1; page <= searchPageLimit; page += 1) {
-    url.searchParams.set("page", String(page));
-    const response = await fetcher(url.toString(), { headers, next: { revalidate: revalidateSeconds } });
-    if (!response.ok) throw new Error(`GitHub search returned ${String(response.status)}`);
-    const parsed = parsePullRequestSearch(await response.json() as unknown, status);
-    if (!parsed) throw new Error("GitHub search returned invalid data");
-    contributions.push(...parsed);
-    if (parsed.length < searchPageSize) break;
+    const body = JSON.stringify({ query: pullRequestQuery, variables: { query: searchQuery, cursor } });
+    const response = await fetcher("https://api.github.com/graphql", {
+      method: "POST",
+      headers,
+      body,
+      cache: "force-cache",
+      next: { revalidate: revalidateSeconds },
+    });
+    if (!response.ok) throw new Error(`GitHub GraphQL returned ${String(response.status)}`);
+    const parsed = parsePullRequestPage(await response.json() as unknown, status);
+    if (!parsed) throw new Error("GitHub GraphQL returned invalid data");
+    contributions.push(...parsed.contributions);
+    if (!parsed.hasNextPage) break;
+    if (!parsed.endCursor || cursors.has(parsed.endCursor)) {
+      throw new Error("GitHub GraphQL returned an invalid cursor");
+    }
+    cursors.add(parsed.endCursor);
+    cursor = parsed.endCursor;
   }
-  return contributions.toSorted((left, right) => right.date.localeCompare(left.date));
+  return contributions.toSorted((left, right) => Date.parse(right.date) - Date.parse(left.date));
 }
 
 /**
@@ -261,7 +337,7 @@ async function fetchContributionCalendar(
  *
  * @param username - GitHub account displayed by the Code section.
  * @param fetcher - Injectable server fetch implementation.
- * @param token - Optional server-only token for higher REST limits.
+ * @param token - Server-only token required for pull-request rows.
  * @returns Live activity with independent fail-open availability flags.
  */
 export async function loadGitHubActivity(
@@ -284,8 +360,8 @@ export async function loadGitHubActivity(
     const draft = await fetchPullRequests(username, "draft", fetcher, token);
     pullRequests = { merged, underReview, draft };
     pullRequestsAvailable = true;
-  } catch (error) {
-    console.warn("GitHub pull requests unavailable", error);
+  } catch {
+    console.warn("GitHub pull requests unavailable");
   }
 
   try {

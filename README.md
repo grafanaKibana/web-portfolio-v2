@@ -18,6 +18,8 @@ npm run test:e2e
 
 All automated tests live under `tests/`; browser specifications are grouped in `tests/e2e/`.
 
+Code activity pull-request rows require a server-only `GITHUB_TOKEN` deployment secret. Without it, the independently fetched public contribution calendar can still render; never expose the token with a `NEXT_PUBLIC_` prefix.
+
 ## Directory map
 
 | Path | Responsibility |

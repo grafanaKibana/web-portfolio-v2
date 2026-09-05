@@ -7,6 +7,7 @@ import { home } from "@/content/structured";
 import styles from "./home-code-activity.module.scss";
 
 const pullRequestPeriod = new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" });
+const pullRequestCount = new Intl.NumberFormat("en-US");
 const activityMonth = new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" });
 const activityDate = new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -107,13 +108,26 @@ export async function HomeCodeActivity() {
                         {contribution.title}
                       </span>
                     </span>
-                    <time
-                      className={clsx(styles.period, "font-mono")}
-                      dateTime={contribution.date}
-                      data-slot="pull-request-date"
-                    >
-                      {pullRequestPeriod.format(new Date(contribution.date))}
-                    </time>
+                    <span className={clsx(styles.meta, "font-mono")} data-slot="pull-request-meta">
+                      <time
+                        className={styles.period}
+                        dateTime={contribution.date}
+                        data-slot="pull-request-date"
+                      >
+                        {pullRequestPeriod.format(new Date(contribution.date))}
+                      </time>
+                      <span className={styles.diff} data-slot="pull-request-diff">
+                        <span aria-hidden="true" className={styles.additions}>
+                          +{pullRequestCount.format(contribution.additions)}
+                        </span>
+                        <span aria-hidden="true" className={styles.deletions}>
+                          −{pullRequestCount.format(contribution.deletions)}
+                        </span>
+                        <span className="sr-only">
+                          {pullRequestCount.format(contribution.additions)} {contribution.additions === 1 ? "addition" : "additions"} and {pullRequestCount.format(contribution.deletions)} {contribution.deletions === 1 ? "deletion" : "deletions"}
+                        </span>
+                      </span>
+                    </span>
                   </a>
                 </li>
               ))}

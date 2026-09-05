@@ -1176,14 +1176,16 @@ test("compact pull-request rows preserve geometry and wrapping through productio
     await page.setContent(`
       <style>
         :root {
-          --accent-em: oklch(0.55 0.15 150);
+          --accent-em: oklch(0.52 0.1 163);
           --background: oklch(0.98 0 0);
+          --destructive: oklch(0.577 0.245 27.325);
           --foreground: oklch(0.2 0 0);
           --muted-foreground: oklch(0.5 0 0);
         }
         * { box-sizing: border-box; }
         body { margin: 0; }
         main { padding: 1rem; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
         ${homeCodeActivityCss}
       </style>
       <main>
@@ -1195,7 +1197,14 @@ test("compact pull-request rows preserve geometry and wrapping through productio
             <span class="repository">example/extremely-long-repository-name-for-responsive-verification #1234</span>
             <span class="title" data-slot="pull-request-title">Implement an intentionally long pull request title that must wrap cleanly without clipping or horizontal overflow</span>
           </span>
-          <time class="period" datetime="2026-09-04T00:00:00Z" data-slot="pull-request-date">Sep 2026</time>
+          <span class="meta" data-slot="pull-request-meta">
+            <time class="period" datetime="2026-09-04T00:00:00Z" data-slot="pull-request-date">Sep 2026</time>
+            <span class="diff" data-slot="pull-request-diff">
+              <span aria-hidden="true" class="additions">+15,289</span>
+              <span aria-hidden="true" class="deletions">−2,756</span>
+              <span class="sr-only">15,289 additions and 2,756 deletions</span>
+            </span>
+          </span>
         </a>
       </main>
     `);
@@ -1210,9 +1219,15 @@ test("compact pull-request rows preserve geometry and wrapping through productio
       const repository = repositoryElement?.getBoundingClientRect();
       const titleElement = row.querySelector<HTMLElement>('[data-slot="pull-request-title"]');
       const title = titleElement?.getBoundingClientRect();
+      const metaElement = row.querySelector<HTMLElement>('[data-slot="pull-request-meta"]');
+      const meta = metaElement?.getBoundingClientRect();
       const dateElement = row.querySelector<HTMLElement>('[data-slot="pull-request-date"]');
       const date = dateElement?.getBoundingClientRect();
-      if (!icon || !copyElement || !copy || !repository || !repositoryElement || !title || !titleElement || !date || !dateElement) {
+      const diffElement = row.querySelector<HTMLElement>('[data-slot="pull-request-diff"]');
+      const diff = diffElement?.getBoundingClientRect();
+      const additions = row.querySelector<HTMLElement>('.additions');
+      const deletions = row.querySelector<HTMLElement>('.deletions');
+      if (!icon || !copyElement || !copy || !repository || !repositoryElement || !title || !titleElement || !meta || !metaElement || !date || !dateElement || !diff || !diffElement || !additions || !deletions) {
         throw new Error("Compact pull-request fixture must be measurable");
       }
       const repositoryRange = document.createRange();
@@ -1221,9 +1236,15 @@ test("compact pull-request rows preserve geometry and wrapping through productio
       titleRange.selectNodeContents(titleElement);
       const dateRange = document.createRange();
       dateRange.selectNodeContents(dateElement);
+      const additionsRange = document.createRange();
+      additionsRange.selectNodeContents(additions);
+      const deletionsRange = document.createRange();
+      deletionsRange.selectNodeContents(deletions);
       return {
         row: { right: box.right, height: box.height, center: box.top + box.height / 2 },
         iconCenter: icon.top + icon.height / 2,
+        metaCenter: meta.top + meta.height / 2,
+        metaLeft: meta.left,
         copyRight: copy.right,
         copyGap: getComputedStyle(copyElement).rowGap,
         repository: {
@@ -1240,12 +1261,23 @@ test("compact pull-request rows preserve geometry and wrapping through productio
           clipped: titleElement.scrollHeight > titleElement.clientHeight || titleElement.scrollWidth > titleElement.clientWidth,
         },
         date: {
-          left: date.left,
           right: date.right,
-          center: date.top + date.height / 2,
+          bottom: date.bottom,
           lines: dateRange.getClientRects().length,
           whiteSpace: getComputedStyle(dateElement).whiteSpace,
+          fontSize: getComputedStyle(dateElement).fontSize,
         },
+        diff: {
+          top: diff.top,
+          right: diff.right,
+          lines: Math.max(additionsRange.getClientRects().length, deletionsRange.getClientRects().length),
+          aligned: Math.abs(additions.getBoundingClientRect().top - deletions.getBoundingClientRect().top) <= 1,
+          whiteSpace: getComputedStyle(diffElement).whiteSpace,
+          fontSize: getComputedStyle(diffElement).fontSize,
+          gap: getComputedStyle(diffElement).columnGap,
+          fontVariantNumeric: getComputedStyle(diffElement).fontVariantNumeric,
+        },
+        countColors: [getComputedStyle(additions).color, getComputedStyle(deletions).color],
         rowOverflows: row.scrollWidth > row.clientWidth,
         documentOverflows: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       };
@@ -1253,14 +1285,23 @@ test("compact pull-request rows preserve geometry and wrapping through productio
 
     expect(geometry.row.height).toBeGreaterThanOrEqual(44);
     expect(Math.abs(geometry.iconCenter - geometry.row.center)).toBeLessThanOrEqual(2);
-    expect(Math.abs(geometry.date.center - geometry.row.center)).toBeLessThanOrEqual(2);
+    expect(Math.abs(geometry.metaCenter - geometry.row.center)).toBeLessThanOrEqual(2);
     expect(geometry.copyGap).toBe("4px");
     expect(Math.abs(geometry.repository.left - geometry.title.left)).toBeLessThanOrEqual(1);
     expect(geometry.repository.bottom).toBeLessThanOrEqual(geometry.title.top);
-    expect(geometry.date.left).toBeGreaterThanOrEqual(geometry.copyRight);
+    expect(geometry.metaLeft).toBeGreaterThanOrEqual(geometry.copyRight);
     expect(geometry.date.right).toBeLessThanOrEqual(geometry.row.right);
     expect(geometry.date.lines).toBe(1);
     expect(geometry.date.whiteSpace).toBe("nowrap");
+    expect(geometry.date.bottom).toBeLessThanOrEqual(geometry.diff.top);
+    expect(Math.abs(geometry.date.right - geometry.diff.right)).toBeLessThanOrEqual(1);
+    expect(geometry.diff.lines).toBe(1);
+    expect(geometry.diff.aligned).toBe(true);
+    expect(geometry.diff.whiteSpace).toBe("nowrap");
+    expect(geometry.date.fontSize).toBe(geometry.diff.fontSize);
+    expect(geometry.date.fontSize).toBe(width === 390 ? "11px" : "12px");
+    expect(geometry.diff.gap).toBe("8px");
+    expect(geometry.diff.fontVariantNumeric).toContain("tabular-nums");
     expect(geometry.repository.clipped).toBe(false);
     expect(geometry.title.clipped).toBe(false);
     expect(geometry.rowOverflows).toBe(false);
@@ -1273,6 +1314,7 @@ test("compact pull-request rows preserve geometry and wrapping through productio
     const metadata = row.locator(".repository, .period");
     const restingColors = await metadata.evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color));
+    const semanticColors = geometry.countColors;
     expect(new Set(restingColors).size).toBe(1);
     await row.hover();
     await expect.poll(async () => {
@@ -1280,6 +1322,16 @@ test("compact pull-request rows preserve geometry and wrapping through productio
         elements.map((element) => getComputedStyle(element).color));
       return new Set(colors).size === 1 && colors[0] !== restingColors[0];
     }).toBe(true);
+    expect(await row.locator(".additions, .deletions").evaluateAll((elements) =>
+      elements.map((element) => getComputedStyle(element).color))).toEqual(semanticColors);
+    await row.focus();
+    await expect.poll(async () => {
+      const colors = await metadata.evaluateAll((elements) =>
+        elements.map((element) => getComputedStyle(element).color));
+      return new Set(colors).size === 1 && colors[0] !== restingColors[0];
+    }).toBe(true);
+    expect(await row.locator(".additions, .deletions").evaluateAll((elements) =>
+      elements.map((element) => getComputedStyle(element).color))).toEqual(semanticColors);
   }
 });
 
@@ -1333,7 +1385,9 @@ test("Code activity renders live GitHub data and fails open without empty UI", a
       const copy = row.locator('[data-slot="pull-request-copy"]');
       const repository = copy.locator("span").first();
       const title = row.locator('[data-slot="pull-request-title"]');
+      const meta = row.locator('[data-slot="pull-request-meta"]');
       const date = row.locator('time[data-slot="pull-request-date"]');
+      const diff = row.locator('[data-slot="pull-request-diff"]');
       await expect(status).toHaveAttribute("aria-hidden", "true");
       await expect(status).toHaveAttribute("data-status", contract.status);
       await expect(status).toHaveClass(contract.icon);
@@ -1341,6 +1395,15 @@ test("Code activity renders live GitHub data and fails open without empty UI", a
       await expect(title).not.toBeEmpty();
       await expect(date).toHaveAttribute("datetime", /\d{4}-\d{2}-\d{2}/);
       await expect(date).toHaveText(/^[A-Z][a-z]{2} \d{4}$/);
+      await expect(meta.locator(":scope > *")).toHaveCount(2);
+      await expect(meta.locator(":scope > *").first()).toHaveAttribute("data-slot", "pull-request-date");
+      await expect(meta.locator(":scope > *").nth(1)).toHaveAttribute("data-slot", "pull-request-diff");
+      const signedCounts = diff.locator('span[aria-hidden="true"]');
+      await expect(signedCounts).toHaveCount(2);
+      await expect(signedCounts.first()).toHaveText(/^\+[\d,]+$/);
+      await expect(signedCounts.nth(1)).toHaveText(/^−[\d,]+$/);
+      await expect(diff.locator(".sr-only")).toHaveText(/^[\d,]+ additions? and [\d,]+ deletions?$/);
+      await expect(row).toHaveAccessibleName(/[\d,]+ additions? and [\d,]+ deletions?/);
       await expect(row.locator('[data-slot="pull-request-summary"]')).toHaveCount(0);
     }
   }
@@ -1351,21 +1414,27 @@ test("Code activity renders live GitHub data and fails open without empty UI", a
       const box = row.getBoundingClientRect();
       const icon = row.querySelector<SVGElement>('[data-slot="pull-request-status"]')?.getBoundingClientRect();
       const copy = row.querySelector<HTMLElement>('[data-slot="pull-request-copy"]')?.getBoundingClientRect();
+      const meta = row.querySelector<HTMLElement>('[data-slot="pull-request-meta"]')?.getBoundingClientRect();
       const date = row.querySelector<HTMLElement>('[data-slot="pull-request-date"]')?.getBoundingClientRect();
-      if (!icon || !copy || !date) throw new Error("Live pull-request row must be measurable");
+      const diff = row.querySelector<HTMLElement>('[data-slot="pull-request-diff"]')?.getBoundingClientRect();
+      if (!icon || !copy || !meta || !date || !diff) throw new Error("Live pull-request row must be measurable");
       return {
-        centers: [icon, copy, date].map((item) => item.top + item.height / 2),
+        centers: [icon, copy, meta].map((item) => item.top + item.height / 2),
         iconRight: icon.right,
         copyLeft: copy.left,
         copyRight: copy.right,
-        dateLeft: date.left,
+        metaLeft: meta.left,
+        metadataRightDelta: Math.abs(date.right - diff.right),
+        metadataOrder: date.bottom <= diff.top,
         rowCenter: box.top + box.height / 2,
         rowOverflows: row.scrollWidth > row.clientWidth,
       };
     });
     for (const center of geometry.centers) expect(Math.abs(center - geometry.rowCenter)).toBeLessThanOrEqual(2);
     expect(geometry.iconRight).toBeLessThanOrEqual(geometry.copyLeft);
-    expect(geometry.copyRight).toBeLessThanOrEqual(geometry.dateLeft);
+    expect(geometry.copyRight).toBeLessThanOrEqual(geometry.metaLeft);
+    expect(geometry.metadataRightDelta).toBeLessThanOrEqual(1);
+    expect(geometry.metadataOrder).toBe(true);
     expect(geometry.rowOverflows).toBe(false);
 
     await expect(liveRow).toHaveAttribute("target", "_blank");
