@@ -35,6 +35,7 @@ interface MobileNavigationProps {
     change: string;
     switchToDark: string;
     switchToLight: string;
+    switchToSystem: string;
   };
   triggerLabel: string;
 }

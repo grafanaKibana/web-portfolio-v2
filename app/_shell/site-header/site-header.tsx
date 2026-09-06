@@ -51,6 +51,7 @@ export function SiteHeader() {
           change: "Change color theme",
           switchToDark: "Switch to dark theme",
           switchToLight: "Switch to light theme",
+          switchToSystem: "Switch to system theme",
         }}
         triggerLabel="Jump to section"
       />

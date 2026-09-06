@@ -48,7 +48,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Toggles the resolved color theme after hydration.
+ * Cycles between system, light, and dark themes after hydration.
  *
  * @param labels - Accessible labels for each theme state.
  * @returns The accessible theme toggle.
@@ -57,25 +57,28 @@ export function ThemeToggle({ labels }: { labels: {
   change: string;
   switchToDark: string;
   switchToLight: string;
+  switchToSystem: string;
 } }) {
   const mounted = useHydrated();
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
-  const dark = mounted && resolvedTheme === "dark";
+  const selectedTheme = mounted ? (theme ?? "system") : "system";
+  const nextTheme = selectedTheme === "system" ? "light" : selectedTheme === "light" ? "dark" : "system";
   const label = mounted
-    ? (dark ? labels.switchToLight : labels.switchToDark)
+    ? (nextTheme === "light" ? labels.switchToLight : nextTheme === "dark" ? labels.switchToDark : labels.switchToSystem)
     : labels.change;
-  const Icon = mounted ? (dark ? Sun : Moon) : SunMoon;
+  const Icon = selectedTheme === "light" ? Sun : selectedTheme === "dark" ? Moon : SunMoon;
 
   return (
     <button
       type="button"
       aria-label={label}
+      title={mounted ? `Theme: ${selectedTheme}. ${label}` : labels.change}
       className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:size-8"
       data-slot="theme-toggle"
       disabled={!mounted}
       onClick={() => {
-        setTheme(dark ? "light" : "dark");
+        setTheme(nextTheme);
       }}
     >
       <Icon aria-hidden className="size-ui-icon opacity-70" />
