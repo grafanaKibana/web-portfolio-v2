@@ -1451,13 +1451,35 @@ test("Code activity renders live GitHub data and fails open without empty UI", a
 
   const contributionDay = page.locator('[data-slot="contribution-day"]').first();
   if (await contributionDay.count()) {
-    await expect(contributionDay).toHaveAttribute(
-      "title",
-      /^(?:No contributions|\d+ contributions?) on \w+ \d{1,2}, \d{4}$/,
-    );
+    await expect(contributionDay).not.toHaveAttribute("title");
+    const label = await contributionDay.getAttribute("aria-label") ?? "";
+    expect(label).toMatch(/^(?:No contributions|\d+ contributions?) on \w+ \d{1,2}, \d{4}$/);
+    await contributionDay.scrollIntoViewIfNeeded();
+    await waitForAnimationsToSettle(page, "#code [data-page-motion-row]");
     await contributionDay.hover();
+    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveText(label);
     await expect(contributionDay).toHaveCSS("scale", "none");
     await expect(contributionDay).toHaveCSS("box-shadow", "none");
+    await page.keyboard.press("Escape");
+    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveCount(0);
+    await page.mouse.move(0, 0);
+    await contributionDay.focus();
+    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveText(label);
+    await page.keyboard.press("ArrowRight");
+    const nextWeek = page.locator('[data-slot="contribution-day"]').nth(7);
+    await expect(nextWeek).toBeFocused();
+    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveText(await nextWeek.getAttribute("aria-label") ?? "");
+    await expect(page.locator('[data-slot="contribution-day"][tabindex="0"]')).toHaveCount(1);
+    await page.keyboard.press("Home");
+    await expect(contributionDay).toBeFocused();
+    await page.keyboard.press("ArrowLeft");
+    await expect(contributionDay).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(page.locator('[data-slot="contribution-day"]').last()).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(page.locator('[data-slot="contribution-day"]').last()).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveCount(0);
   }
 });
 
@@ -2493,7 +2515,7 @@ test("real Tab focus exposes representative Projects, Writing, and Contact contr
       target: page.locator("#projects a").first(),
     },
     {
-      before: page.locator("#code a").last(),
+      before: page.locator('#code a, #code [data-slot="contribution-day"][tabindex="0"]').last(),
       target: page.locator("#writing a").first(),
     },
     {

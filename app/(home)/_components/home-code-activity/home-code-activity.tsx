@@ -4,6 +4,7 @@ import { GitPullRequest, GitPullRequestDraft, MessageCircleMore } from "lucide-r
 
 import { loadGitHubActivity, type ContributionDay } from "@/content/activity";
 import { home } from "@/content/structured";
+import { CalendarDays } from "./calendar-days";
 import styles from "./home-code-activity.module.scss";
 
 const pullRequestPeriod = new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" });
@@ -148,30 +149,15 @@ export async function HomeCodeActivity() {
             </a>
           </div>
           <div className={styles.chartScroll}>
-            <div aria-hidden="true" className={styles.chart}>
+            <div className={styles.chart}>
               <div className={styles.chartMonths}>
                 {calendarMonthLabels(activity.calendar).map((label, index) => (
                   <span key={`${String(index)}-${label}`}>{label}</span>
                 ))}
               </div>
-              <div className={styles.chartDays}>
-                {calendarDays.map((day) => (
-                  <span
-                    className={styles.chartDay}
-                    data-level={day.level}
-                    data-slot="contribution-day"
-                    key={day.date}
-                    title={day.label}
-                  />
-                ))}
-              </div>
+              <CalendarDays days={calendarDays} />
             </div>
           </div>
-          <ol className="sr-only">
-            {calendarDays.map((day) => (
-              <li key={day.date}>{day.label}</li>
-            ))}
-          </ol>
         </figure>
       ) : (
         <a className={clsx(styles.profileLink, "project-action-link border-t")} data-page-motion-row href={profileHref} rel="noreferrer" target="_blank">
