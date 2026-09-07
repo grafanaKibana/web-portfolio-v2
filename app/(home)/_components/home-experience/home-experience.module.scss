@@ -68,6 +68,7 @@
 }
 
 .roleSummary {
+  max-width: 78ch;
   font-size: 0.875rem;
   line-height: 1.7;
 }
@@ -121,6 +122,10 @@
 .roleDetails[open] .detailsContent {
   visibility: visible;
   transition-delay: 0s;
+}
+
+.highlights {
+  max-width: 78ch;
 }
 
 .highlights li {

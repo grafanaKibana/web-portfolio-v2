@@ -43,17 +43,17 @@ export function HomeExperience() {
                     </p>
                   </div>
                 </div>
-                <p className={clsx(styles.roleSummary, "mt-3 text-muted-foreground md:mt-4")}>
+                <p className={clsx(styles.roleSummary, "mt-3")}>
                   {experience.summary}
                 </p>
                 {experience.highlights.length > 0 && (
-                  <details className={clsx(styles.roleDetails, "mt-2.5 md:mt-3")}>
+                  <details className={clsx(styles.roleDetails, "mt-2")}>
                     <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-mono uppercase text-muted-foreground">
                       <ChevronRight aria-hidden="true" className={styles.detailsIcon} />
-                      Details
+                      Highlights
                     </summary>
                     <div className={styles.detailsContent} data-slot="details-content">
-                      <ul className="m-0 flex list-none flex-col gap-3 pt-3 md:pt-4">
+                      <ul className={clsx(styles.highlights, "m-0 flex list-none flex-col gap-2.5 p-0")}>
                         {experience.highlights.map((highlight) => <li className="gap-3" key={highlight}>{highlight}</li>)}
                       </ul>
                     </div>

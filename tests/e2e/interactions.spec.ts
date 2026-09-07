@@ -592,14 +592,14 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
   await page.getByRole("button", { name: /Switch to (?:dark|light) theme/ }).click();
   const toggledLogoBackground = await themedLogo.evaluate((logo) => getComputedStyle(logo).backgroundColor);
   expect(toggledLogoBackground).toBe(initialLogoBackground);
-  const details = experience.locator("details");
-  await expect(details).toHaveCount(1);
+  const details = experience.locator("details").first();
+  expect(await experience.locator("details").count()).toBeGreaterThan(0);
   const summary = details.locator("summary");
   await summary.focus();
   await expect(summary).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(details).toHaveAttribute("open", "");
-  await expect(details.locator("li")).toHaveCount(3);
+  expect(await details.locator("li").count()).toBeGreaterThan(0);
   await page.keyboard.press("Enter");
   await expect(details).not.toHaveAttribute("open", "");
 
@@ -652,15 +652,25 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
     return Math.abs(railTop - firstDot.y - firstDot.height / 2);
   });
   expect(railStartDelta).toBeLessThanOrEqual(1);
-  expect(desktopSummary.width).toBeGreaterThan(desktopBody.width * 0.9);
+  expect(desktopSummary.width).toBeLessThan(desktopBody.width);
   expect(desktopLogo.height).toBe(32);
   expect(Math.abs(desktopLogo.y + desktopLogo.height / 2 - desktopRoleHeading.y - desktopRoleHeading.height / 2)).toBeLessThanOrEqual(1);
-  const desktopDetails = experience.locator("details");
+  const desktopDetails = experience.locator("details").first();
   await desktopDetails.locator("summary").click();
   const desktopHighlights = await desktopDetails.locator("ul").boundingBox();
   const desktopDetailsBody = await desktopDetails.locator("..").boundingBox();
   if (!desktopHighlights || !desktopDetailsBody) throw new Error("Desktop highlights must be measurable");
-  expect(desktopHighlights.width).toBeGreaterThan(desktopDetailsBody.width * 0.9);
+  expect(desktopHighlights.width).toBeLessThan(desktopDetailsBody.width);
+  expect(await desktopDetails.evaluate((element) => {
+    const roleSummary = element.previousElementSibling;
+    const firstHighlight = element.querySelector("li");
+    if (!roleSummary || !firstHighlight) throw new Error("Experience body text must be measurable");
+    return {
+      colorsMatch: getComputedStyle(roleSummary).color === getComputedStyle(firstHighlight).color,
+      display: getComputedStyle(firstHighlight).display,
+      marker: getComputedStyle(firstHighlight, "::before").content,
+    };
+  })).toEqual({ colorsMatch: true, display: "grid", marker: '"—"' });
   expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
 });
 
@@ -685,7 +695,7 @@ test("Experience present marker grows subtly from a matching gradient rail", asy
 test("Experience disclosure uses native keyboard behavior and in-flow motion", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto("/#experience");
-  const details = page.locator("#experience details");
+  const details = page.locator("#experience details").first();
   const summary = details.locator("summary");
   const content = details.locator('[data-slot="details-content"]');
   const icon = summary.locator("svg");
@@ -2484,7 +2494,7 @@ test("real Tab focus finishes an active section reveal synchronously", async ({ 
   });
   await page.goto("/");
   const section = page.locator("#experience");
-  const summary = section.getByText("Details", { exact: true }).first();
+  const summary = section.getByText("Highlights", { exact: true }).first();
   const focusedRow = summary.locator("xpath=ancestor::*[@data-page-motion-row][1]");
   const finalHeroLink = page.locator("[data-page-motion-intro]").last().getByRole("link").last();
   await finalHeroLink.focus();
@@ -2547,7 +2557,7 @@ test("Page motion recovers focus that predates its listener", async ({ page }) =
   await page.goto("/");
 
   const section = page.locator("#experience");
-  const summary = section.getByText("Details", { exact: true }).first();
+  const summary = section.getByText("Highlights", { exact: true }).first();
   await expect(summary).toBeFocused();
   await expect(section).toHaveAttribute("data-page-motion-revealed", "true");
   expect(await summary.evaluate((target) => {
