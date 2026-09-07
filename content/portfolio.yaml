@@ -149,7 +149,7 @@ home:
     descriptorInterval: 3200
     resumeHref: "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf"
   projects:
-    featuredSlugs: [devbook, obsidian-tabsdown, web-portfolio-v1]
+    featuredSlugs: [devbook, obsidian-tabsdown, web-portfolio-v2]
     indexDescription: "Projects by Nikita Reshetnik across AI and software engineering."
   codeActivity:
     username: "grafanaKibana"

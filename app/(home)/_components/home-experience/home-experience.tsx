@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { profile } from "@/content/structured";
 import { clsx } from "clsx";
+import { ExperienceItem } from "./experience-item";
 import styles from "./home-experience.module.scss";
 
 /**
@@ -20,7 +21,7 @@ export function HomeExperience() {
           const [periodStart, periodEnd] = experience.period.split(" — ", 2);
 
           return (
-            <li className={clsx(styles.experienceItem, "relative pb-10 last:pb-0 md:grid md:pb-14")} data-page-motion-row key={`${experience.organization}-${experience.role}-${experience.period}`}>
+            <ExperienceItem className={clsx(styles.experienceItem, "relative pb-10 last:pb-0 md:grid md:pb-14")} key={`${experience.organization}-${experience.role}-${experience.period}`}>
               <p className={clsx(styles.experiencePeriod, "relative mb-2.5 flex self-start items-center gap-x-2 font-mono text-muted-foreground md:m-0 md:min-h-12 md:flex-col md:items-end md:justify-center md:gap-0 md:pr-8 md:text-right")} data-slot="experience-period">
                 <span
                   aria-hidden="true"
@@ -60,7 +61,7 @@ export function HomeExperience() {
                   </details>
                 )}
               </article>
-            </li>
+            </ExperienceItem>
           );
         })}
       </ol>

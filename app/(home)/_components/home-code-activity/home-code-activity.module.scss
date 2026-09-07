@@ -56,15 +56,19 @@
   text-align: left;
 }
 
-.repository,
-.period {
+.title {
   color: var(--muted-foreground);
   transition: color 150ms;
+}
+
+.period {
+  color: var(--muted-foreground);
 }
 
 .repository {
   overflow-wrap: anywhere;
   font-size: 0.6875rem;
+  color: var(--foreground);
 }
 
 .meta {
@@ -95,7 +99,7 @@
   white-space: nowrap;
 }
 
-.contribution:is(:hover, :focus-visible) :is(.repository, .period) {
+.contribution:is(:hover, :focus-visible) .title {
   color: var(--foreground);
 }
 

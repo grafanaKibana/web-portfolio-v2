@@ -70,6 +70,7 @@ function contrast(foreground: [number, number, number], background: [number, num
 
 test("text and primary button colors meet WCAG AA contrast", () => {
   assert.ok(contrast(token(":root", "muted-foreground"), token(":root", "background")) >= 4.5)
+  assert.ok(contrast(token(".dark", "muted-foreground"), token(".dark", "background")) >= 4.5)
   assert.ok(contrast(token(".dark", "accent-em"), token(".dark", "background")) >= 4.5)
   assert.ok(contrast(token(".dark", "primary-foreground"), token(".dark", "primary")) >= 4.5)
 })

@@ -284,7 +284,7 @@ test("the home page contains approved content through Phase 9 Contact", async ({
 
   await expect(page.getByText("Open to work", { exact: false })).toBeVisible();
   await expect(page.getByText("remote or relocation", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Hi, I’m Nikita Reshetnik.Shipping Agents at scale.");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Hi, I’m Nikita Reshetnik.I make things. Some talk back.");
   await expect(page.getByRole("link", { name: "Download Résumé" })).toHaveAttribute(
     "href",
     "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf",
@@ -656,6 +656,25 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
   expect(desktopLogo.height).toBe(32);
   expect(Math.abs(desktopLogo.y + desktopLogo.height / 2 - desktopRoleHeading.y - desktopRoleHeading.height / 2)).toBeLessThanOrEqual(1);
   const desktopDetails = experience.locator("details").first();
+  await page.mouse.move(0, 0);
+  const desktopHierarchy = await desktopItem.evaluate((item) => {
+    const roleTitle = item.querySelector("h3");
+    const period = item.querySelector('[data-slot="experience-period"]');
+    const organization = item.querySelector('[data-slot="role-heading"] p');
+    const roleSummary = item.querySelector("article > p");
+    const disclosure = item.querySelector("summary");
+    const firstHighlight = item.querySelector("details li");
+    if (!roleTitle || !period || !organization || !roleSummary || !disclosure || !firstHighlight) {
+      throw new Error("Experience text hierarchy must be measurable");
+    }
+    return {
+      anchorColor: getComputedStyle(roleTitle).color,
+      contextColors: [period, organization, roleSummary, disclosure, firstHighlight]
+        .map((element) => getComputedStyle(element).color),
+    };
+  });
+  expect(new Set(desktopHierarchy.contextColors).size).toBe(1);
+  expect(desktopHierarchy.contextColors[0]).not.toBe(desktopHierarchy.anchorColor);
   await desktopDetails.locator("summary").click();
   const desktopHighlights = await desktopDetails.locator("ul").boundingBox();
   const desktopDetailsBody = await desktopDetails.locator("..").boundingBox();
@@ -692,6 +711,28 @@ test("Experience present marker grows subtly from a matching gradient rail", asy
   await expect(timeline.locator('[data-slot="timeline-dot"]').first()).toHaveCSS("animation-name", "none");
 });
 
+test("Experience rows toggle highlights while preserving text selection", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.goto("/#experience");
+  const item = page.locator("#experience ol > li").first();
+  const details = item.locator("details");
+  const roleHeading = await item.locator('[data-slot="role-heading"]').boundingBox();
+  const period = await item.locator('[data-slot="experience-period"]').boundingBox();
+  if (!roleHeading || !period) throw new Error("Experience row must be clickable");
+
+  await item.locator("article > p").selectText();
+  expect(await page.evaluate(() => document.getSelection()?.toString().trim().length ?? 0)).toBeGreaterThan(0);
+  await expect(details).not.toHaveAttribute("open", "");
+  await page.mouse.click(roleHeading.x + roleHeading.width / 2, roleHeading.y + roleHeading.height / 2);
+  await expect(details).toHaveAttribute("open", "");
+  await page.mouse.click(roleHeading.x + roleHeading.width / 2, roleHeading.y + roleHeading.height / 2);
+  await expect(details).not.toHaveAttribute("open", "");
+  await page.mouse.click(period.x + period.width / 2, period.y + period.height / 2);
+  await expect(details).toHaveAttribute("open", "");
+  await page.mouse.click(period.x + period.width / 2, period.y + period.height / 2);
+  await expect(details).not.toHaveAttribute("open", "");
+});
+
 test("Experience disclosure uses native keyboard behavior and in-flow motion", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto("/#experience");
@@ -699,15 +740,27 @@ test("Experience disclosure uses native keyboard behavior and in-flow motion", a
   const summary = details.locator("summary");
   const content = details.locator('[data-slot="details-content"]');
   const icon = summary.locator("svg");
+  const item = details.locator("xpath=ancestor::li[1]");
+  const roleTitleColor = await item.locator("h3").evaluate((element) => getComputedStyle(element).color);
+  const contextColor = await item.locator('[data-slot="experience-period"]')
+    .evaluate((element) => getComputedStyle(element).color);
 
   expect(await details.evaluate((element) => getComputedStyle(element, "::details-content").transitionDuration))
     .toContain("0.2s");
+  await expect(summary).toHaveCSS("color", contextColor);
+  await summary.hover();
+  await expect(summary).toHaveCSS("color", roleTitleColor);
+  await page.locator("#experience-heading").hover();
+  await expect(summary).toHaveCSS("color", contextColor);
   const closedNextTop = await details.evaluate((element) =>
     element.closest("li")?.nextElementSibling?.getBoundingClientRect().top,
   );
   await summary.focus();
+  await expect(summary).toHaveCSS("color", roleTitleColor);
   await page.keyboard.press("Space");
   await expect(details).toHaveAttribute("open", "");
+  await page.locator("#experience-heading").click();
+  await expect(summary).toHaveCSS("color", roleTitleColor);
   await page.waitForTimeout(100);
   const openingNextTop = await details.evaluate((element) =>
     element.closest("li")?.nextElementSibling?.getBoundingClientRect().top,
@@ -724,6 +777,7 @@ test("Experience disclosure uses native keyboard behavior and in-flow motion", a
   await expect(content).toHaveCSS("visibility", "visible");
   await expect(icon).not.toHaveCSS("transform", "none");
 
+  await summary.focus();
   await page.keyboard.press("Space");
   await page.waitForTimeout(40);
   await page.keyboard.press("Space");
@@ -1321,24 +1375,32 @@ test("compact pull-request rows preserve geometry and wrapping through productio
       expect(geometry.title.lines).toBeGreaterThan(1);
     }
 
-    const metadata = row.locator(".repository, .period");
-    const restingColors = await metadata.evaluateAll((elements) =>
+    const hierarchy = row.locator(".repository, .title, .period");
+    const restingColors = await hierarchy.evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color));
     const semanticColors = geometry.countColors;
-    expect(new Set(restingColors).size).toBe(1);
+    expect(restingColors[1]).toBe(restingColors[2]);
+    expect(restingColors[0]).not.toBe(restingColors[1]);
     await row.hover();
     await expect.poll(async () => {
-      const colors = await metadata.evaluateAll((elements) =>
+      const colors = await hierarchy.evaluateAll((elements) =>
         elements.map((element) => getComputedStyle(element).color));
-      return new Set(colors).size === 1 && colors[0] !== restingColors[0];
+      return colors[0] === restingColors[0]
+        && colors[1] === restingColors[0]
+        && colors[2] === restingColors[2];
     }).toBe(true);
     expect(await row.locator(".additions, .deletions").evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color))).toEqual(semanticColors);
+    await page.mouse.move(0, 0);
+    await expect.poll(async () => hierarchy.evaluateAll((elements) =>
+      elements.map((element) => getComputedStyle(element).color))).toEqual(restingColors);
     await row.focus();
     await expect.poll(async () => {
-      const colors = await metadata.evaluateAll((elements) =>
+      const colors = await hierarchy.evaluateAll((elements) =>
         elements.map((element) => getComputedStyle(element).color));
-      return new Set(colors).size === 1 && colors[0] !== restingColors[0];
+      return colors[0] === restingColors[0]
+        && colors[1] === restingColors[0]
+        && colors[2] === restingColors[2];
     }).toBe(true);
     expect(await row.locator(".additions, .deletions").evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color))).toEqual(semanticColors);

@@ -8,6 +8,7 @@ import ts from "typescript";
 const sourceRoots = ["app", "components", "content", "lib", "scripts", "tests"];
 const rootSources = ["mdx-components.tsx"];
 const codeActivityPath = "app/(home)/_components/home-code-activity/home-code-activity.tsx";
+const generatedSourceRoot = join("components", "ui");
 
 /**
  * Recursively collects TypeScript and JavaScript source files.
@@ -16,7 +17,7 @@ const codeActivityPath = "app/(home)/_components/home-code-activity/home-code-ac
  * @returns The discovered source-file paths.
  */
 function collectSourceFiles(directory: string): string[] {
-  if (!existsSync(directory)) return [];
+  if (directory === generatedSourceRoot || !existsSync(directory)) return [];
 
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const source = join(directory, entry.name);
@@ -24,6 +25,14 @@ function collectSourceFiles(directory: string): string[] {
     return /\.(?:mjs|ts|tsx)$/.test(entry.name) ? [source] : [];
   });
 }
+
+test("TSDoc coverage excludes only generated shadcn source", () => {
+  const files = sourceRoots.flatMap(collectSourceFiles);
+  const generatedButtonPath = join(generatedSourceRoot, "button.tsx");
+  assert.ok(existsSync(generatedButtonPath));
+  assert.ok(!files.includes(generatedButtonPath));
+  assert.ok(files.includes(codeActivityPath));
+});
 
 /**
  * Collects every descendant of one syntax node in source order.

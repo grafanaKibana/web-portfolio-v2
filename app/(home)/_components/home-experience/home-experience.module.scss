@@ -60,6 +60,7 @@
 .roleTitle {
   font-size: 1rem;
   line-height: 1.35;
+  color: var(--foreground);
   letter-spacing: -0.01em;
 }
 
@@ -71,11 +72,17 @@
   max-width: 78ch;
   font-size: 0.875rem;
   line-height: 1.7;
+  color: var(--muted-foreground);
 }
 
 .roleDetails summary {
   font-size: 0.6875rem;
   letter-spacing: 0.12em;
+  transition: color 150ms;
+}
+
+.roleDetails:is([open], :hover, :focus-within) summary {
+  color: var(--foreground);
 }
 
 .roleDetails summary::-webkit-details-marker {
@@ -126,6 +133,7 @@
 
 .highlights {
   max-width: 78ch;
+  color: var(--muted-foreground);
 }
 
 .highlights li {

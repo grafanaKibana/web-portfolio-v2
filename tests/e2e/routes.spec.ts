@@ -159,11 +159,6 @@ for (const plugin of [
     store: "https://obsidian.md/plugins?id=colsdown",
     source: "https://github.com/grafanaKibana/obsidian-colsdown",
   },
-  {
-    path: "/projects/obsidian-tabsdown",
-    store: "https://obsidian.md/plugins?id=tabsdown",
-    source: "https://github.com/grafanaKibana/obsidian-tabsdown",
-  },
 ]) {
   test(`${plugin.path} leads with its Obsidian store link`, async ({ page }) => {
     await page.goto(plugin.path);
@@ -175,6 +170,27 @@ for (const plugin of [
     await expect(links.nth(1)).toHaveAttribute("href", plugin.source);
   });
 }
+
+test("Tabsdown presents both repositories as one project", async ({ page }) => {
+  await page.goto("/projects/obsidian-tabsdown");
+
+  const hero = page.locator('[data-slot="project-hero"]');
+  await expect(hero.getByRole("heading", { level: 1, name: "Tabsdown" })).toBeVisible();
+  const links = hero.locator('[data-slot="project-actions"] a');
+  await expect(links).toHaveCount(3);
+  await expect(links.nth(0)).toHaveAttribute("href", "https://obsidian.md/plugins?id=tabsdown");
+  await expect(hero.getByRole("link", { name: "Obsidian source" })).toHaveAttribute(
+    "href",
+    "https://github.com/grafanaKibana/obsidian-tabsdown",
+  );
+  await expect(hero.getByRole("link", { name: "Quartz source" })).toHaveAttribute(
+    "href",
+    "https://github.com/grafanaKibana/quartz-tabsdown",
+  );
+
+  const oldQuartzPage = await page.goto("/projects/quartz-tabsdown");
+  expect(oldQuartzPage?.status()).toBe(404);
+});
 
 test("the project index keeps each complete row as one ordered case-study link", async ({ page }) => {
   for (const width of [375, 768, 1024, 1440]) {
@@ -199,7 +215,7 @@ test("the project index keeps each complete row as one ordered case-study link",
   await expect(page.getByText("Software, learning systems, and applied AI work.", { exact: true })).toHaveCount(0);
 
   const rows = page.locator('[data-slot="project-row"]');
-  await expect(rows).toHaveCount(8);
+  await expect(rows).toHaveCount(7);
   await expect(rows.first()).toHaveAttribute("href", "/projects/devbook");
   expect(await rows.first().locator("article > *").evaluateAll((elements) =>
     elements.map((element) => element.tagName),
@@ -382,7 +398,7 @@ test("collection lists and detail pages share one slightly wider centered pane",
 test("project case-study shell headers center the back-to-list link on narrow screens", async ({ page }) => {
   for (const width of [280, 320, 344]) {
     await page.setViewportSize({ width, height: 844 });
-    await page.goto("/projects/quartz-tabsdown");
+    await page.goto("/projects/obsidian-tabsdown");
 
     const header = page.locator('[data-slot="site-header"]');
     const homeLink = header.getByRole("link", { name: "Home" });
@@ -394,7 +410,7 @@ test("project case-study shell headers center the back-to-list link on narrow sc
     expect(backBox.x + backBox.width / 2).toBeCloseTo(headerBox.x + headerBox.width / 2, 1);
     await expect(page.locator('[data-slot="project-hero"]').getByRole("heading", {
       level: 1,
-      name: "Quartz Tabsdown",
+      name: "Tabsdown",
     })).toBeVisible();
     await homeLink.click();
     await expect(page).toHaveURL("/");
@@ -431,7 +447,7 @@ test.describe("without JavaScript", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await expect(page.getByRole("main")).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Hi, I’m Nikita Reshetnik.Shipping Agents at scale.");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Hi, I’m Nikita Reshetnik.I make things. Some talk back.");
     await expect(page.getByText("Open to work", { exact: false })).toBeVisible();
     await expect(page.locator('[data-slot="hero-descriptor"]')).toHaveText("AI Engineer");
     await expect(page.getByRole("link", { name: "Download Résumé" })).toHaveAttribute(

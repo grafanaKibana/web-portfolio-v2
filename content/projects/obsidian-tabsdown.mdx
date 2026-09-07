@@ -2,28 +2,29 @@ export const metadata = {
   kind: "project",
   title: "Tabsdown",
   description:
-    "An Obsidian plugin that turns fenced Markdown into accessible, theme-native tabs across Reading View and Live Preview.",
-  tags: ["Obsidian API", "TypeScript", "Markdown", "CSS", "Vitest"],
+    "A tab system for Obsidian and Quartz that keeps fenced Markdown readable while rendering accessible, theme-native tabs.",
+  tags: ["Obsidian API", "Quartz", "TypeScript", "Markdown", "CSS"],
   links: [
     { label: "Store page", href: "https://obsidian.md/plugins?id=tabsdown" },
-    { label: "Source", href: "https://github.com/grafanaKibana/obsidian-tabsdown" },
+    { label: "Obsidian source", href: "https://github.com/grafanaKibana/obsidian-tabsdown" },
+    { label: "Quartz source", href: "https://github.com/grafanaKibana/quartz-tabsdown" },
   ],
 }
 
-Tabsdown keeps tabbed content in readable fenced Markdown while using Obsidian's renderer for the content inside each tab.
+Tabsdown keeps one fenced Markdown syntax usable in an Obsidian vault and on a Quartz-published website. The product spans two repositories so each integration can follow its host platform without duplicating the content format.
 
 ## Outcome
 
-Tabs can contain notes, queries, embeds, callouts, math, Mermaid diagrams, and compatible plugin blocks without turning the note into plugin-owned data.
+The same source renders as interactive tabs in Obsidian and Quartz while remaining readable Markdown when neither integration is active. Tab bodies continue through each platform's normal Markdown pipeline, including links, embeds, callouts, math, diagrams, and syntax highlighting.
 
 ## Role
 
-Creator and maintainer of the syntax, parser, Reading View and Live Preview rendering, context-menu configuration, styling system, tests, releases, and documentation.
+Creator and maintainer of the shared syntax, both platform integrations, styling options, tests, releases, and documentation.
 
-## Interaction model
+## Obsidian integration
 
-The first tab starts active, keyboard behavior remains accessible, and nested tab sets keep independent state. Responsive density and overflow behavior adapt to mobile and narrow containers.
+The Obsidian plugin renders tabs in Reading View and Live Preview using Obsidian's Markdown renderer. The first tab starts active, keyboard behavior remains accessible, nested tab sets keep independent state, and responsive density adapts to mobile and narrow containers.
 
-## Compatibility
+## Quartz integration
 
-The plugin uses Obsidian's Markdown renderer, matches the active theme, works on desktop and mobile, and provides Style Settings and CSS customization without network requests or telemetry.
+The Quartz transformer parses the same tab syntax before Obsidian Flavored Markdown so downstream transformers can process each tab body normally. Optional appearance settings are validated during the build instead of silently producing inconsistent output.

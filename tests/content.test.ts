@@ -158,7 +158,6 @@ test("representative repository content is discoverable", () => {
       "lifeos",
       "obsidian-colsdown",
       "obsidian-tabsdown",
-      "quartz-tabsdown",
       "web-portfolio-v1",
       "web-portfolio-v2",
     ],
@@ -641,19 +640,19 @@ test("portfolio rejects malformed and reversed ISO calendar months", async () =>
 
 test("one YAML document owns structured profile and approved personal content", () => {
   assert.equal(profile.name, "Nikita Reshetnik")
-  assert.equal(profile.headline, "Shipping Agents at scale")
+  assert.equal(profile.headline, "I make things. Some talk back.")
   assert.deepEqual(profile.careerChapters, [
     {
       id: "ai",
       meta: "2024—Present · 2 roles",
       title: "AI Engineering",
-      summary: "Designing and delivering production AI capabilities, evaluation systems, engineering enablement, and internal AI platforms.",
+      summary: "I build AI services and the evaluation pipelines that help us see how prompt changes affect quality. I also keep an eye on how those services behave in production, coordinate work across the team, and help fellow engineers put AI tools to use.",
     },
     {
       id: "software",
       meta: "2021—2024 · 5 roles",
       title: "Software Engineering",
-      summary: "Progressed from internships to end-to-end ownership across .NET APIs, microservices, monoliths, plugins, SQL, releases, and team practices.",
+      summary: "I build features across .NET services, plugins, and desktop applications. That also means working through slow SQL queries, reviewing code, and teaming up with QA and DevOps to get releases out and sort out deployment issues.",
     },
   ])
   assert.deepEqual(
