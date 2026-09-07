@@ -104,15 +104,20 @@
 
 ## Content voice
 
-- Write as a concise technical peer: specific, calm, factual, and editorial rather than sales-led.
-- Prefer concrete responsibilities, outcomes, technologies, and dates to adjectives or self-ratings.
+- Write in first person for the introduction, profile, and career chapters, as Nikita talking to a professional colleague. Keep the wording factual and relaxed, with enough warmth to sound like a person.
+- Let the work establish competence. Describe what Nikita builds, takes responsibility for, and helps others do; avoid self-ratings such as “strong foundation,” “expert,” or “exceptional.”
+- Prefer everyday verbs and natural phrasing: “I build,” “I work on,” “teaming up,” and “outside my day job.” Replace bureaucratic wording such as “my responsibilities encompass” with a direct description of the work.
+- Summaries condense experience and responsibility. Use present tense to describe expertise; reserve detailed chronology and past accomplishments for experience entries. Keep breadth visible without listing every tool or LLM workflow.
+- Add warmth through rhythm, contractions, and ordinary language. Avoid forced jokes, invented personality traits, motivational slogans, metaphors, and clever contrasts such as “a foundation, not a boundary.”
+- Keep short headings plain and specific. Do not claim scale, impact, or other outcomes that the source material does not establish.
+- Voice example: “I build features across .NET services, plugins, and desktop applications. That also means working through slow SQL queries, reviewing code, and teaming up with QA and DevOps to get releases out and sort out deployment issues.” Preserve this balance of substance and ease when revising copy.
 - Use sentence case, short labels, active verbs, and unrounded factual values. Avoid hype, fake urgency, generic endorsements, emoji, and invented metrics.
 - Production biography, credentials, canonical origin, projects, articles, dates, and links come from validated repository sources. Code activity comes from validated live GitHub responses. Omit unavailable facts rather than displaying placeholders, cached fixtures, or illustrative canvas copy.
 
 ## Implementation constraints
 
 - Preserve the route-oriented vertical-slice modular monolith: routes own routing, metadata, Server Components composition, static parameters, not-found decisions, route rendering, and route tests.
-- Server Components remain the default. The exact client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/page-motion/page-motion.tsx`, `app/_shell/smooth-scroll/smooth-scroll.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, and `app/(home)/_components/contact-form/contact-form.tsx`.
+- Server Components remain the default. The exact client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/page-motion/page-motion.tsx`, `app/_shell/smooth-scroll/smooth-scroll.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, `app/(home)/_components/contact-form/contact-form.tsx`, and `app/(home)/_components/home-experience/experience-item.tsx`.
 - `app/layout.tsx` is the sole application layout. `app/(home)/page.tsx` owns `/`, and the `(home)` group has no layout or URL segment.
 - Keep structured portfolio data as typed TypeScript records and local repository-authored MDX as trusted executable content. Validate imported metadata, normalized slugs, and case-insensitive duplicates.
 - Project and article detail routes use static parameters with dynamic params disabled; optional activity cannot delay or remove curated content.

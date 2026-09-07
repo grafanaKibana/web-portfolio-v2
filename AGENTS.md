@@ -27,7 +27,7 @@ Use a **route-oriented vertical-slice modular monolith**. Keep the implementatio
 
 - Pages, layouts, static UI, structured content, metadata, and MDX remain Server Components by default.
 - Add `"use client"` only for state, effects, event handlers, custom hooks, or browser APIs.
-- Approved client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/page-motion/page-motion.tsx`, `app/_shell/smooth-scroll/smooth-scroll.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, `app/(home)/_components/contact-form/contact-form.tsx`, and `app/(home)/_components/home-code-activity/calendar-days.tsx`.
+- Approved client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/page-motion/page-motion.tsx`, `app/_shell/smooth-scroll/smooth-scroll.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, `app/(home)/_components/contact-form/contact-form.tsx`, `app/(home)/_components/home-code-activity/calendar-days.tsx`, and `app/(home)/_components/home-experience/experience-item.tsx`.
 - Client modules may receive serializable props and browser-safe shared UI. They must not import `server-only`, Node filesystem/path APIs, MDX discovery, secrets, or server content loaders.
 - Prefer native HTML and CSS before JavaScript: `details/summary` for disclosures, native form validation, and CSS reduced-motion handling.
 - Keep server-rendered content meaningful without hydration. Client decoration must fail open and must never block, hide, or inert core content.
@@ -35,6 +35,7 @@ Use a **route-oriented vertical-slice modular monolith**. Keep the implementatio
 
 ## Content, routing, and assets
 
+- Follow the [content voice guidelines](DESIGN.md#content-voice) when writing or editing portfolio copy. The approved tone is first-person, factual, conversational, and lightly warm.
 - Keep structured portfolio data as typed TypeScript records independent of React components.
 - Treat local repository-authored MDX as trusted executable source. Do not add remote or user-provided MDX without a new security decision.
 - Discover MDX with Node standard-library APIs, validate normalized slugs, reject case-insensitive duplicates, and runtime-validate module metadata imported as `unknown`.

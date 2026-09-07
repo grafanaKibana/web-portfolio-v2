@@ -1,17 +1,16 @@
 profile:
   name: "Nikita Reshetnik"
-  headline: "Shipping Agents at scale"
+  headline: "I make things. Some talk back."
   summary:
-    - "I’m Nikita, an AI Engineer with a Software/.NET foundation and 5 years of experience building enterprise software."
-    - "I design LLM-powered services for extraction, classification, controlled rewriting, semantic matching, and embedding-based search, supported by automated evaluation pipelines that keep quality visible as prompts evolve."
-    - "I also ship .NET services, lead cross-functional delivery, improve engineering workflows, and help teams adopt AI development tools in day-to-day work."
+    - "I’m an AI Engineer with 5 years of experience building enterprise software. I work on .NET applications and AI systems that run in production."
+    - "I see features through implementation, testing, and release, and help the team coordinate the work along the way. Outside my day job, I maintain open-source projects and write about the technical side of what I do."
   careerChapters:
     - id: ai
       title: "AI Engineering"
-      summary: "Designing and delivering production AI capabilities, evaluation systems, engineering enablement, and internal AI platforms."
+      summary: "I build AI services and the evaluation pipelines that help us see how prompt changes affect quality. I also keep an eye on how those services behave in production, coordinate work across the team, and help fellow engineers put AI tools to use."
     - id: software
       title: "Software Engineering"
-      summary: "Progressed from internships to end-to-end ownership across .NET APIs, microservices, monoliths, plugins, SQL, releases, and team practices."
+      summary: "I build features across .NET services, plugins, and desktop applications. That also means working through slow SQL queries, reviewing code, and teaming up with QA and DevOps to get releases out and sort out deployment issues."
   facts:
     - { label: "Current role", value: "Senior AI Engineer" }
     - { label: "Education", value: "Bachelor of Software Engineering" }
@@ -28,65 +27,78 @@ profile:
       position: "Team Lead @ ELEKS"
       quote: "It is a great pleasure working with Nikita. Nikita is result-oriented, a fast learner, and often completes tasks much faster than expected. Nikita is also great at team communication and collaboration. Highly recommend Nikita."
   experience:
-    - organization: "DraftKings"
-      logo: /companies/draftkings.svg
-      role: "Senior AI Engineer"
-      chapter: ai
-      start: 2026-04
-      end: null
-      summary: "Working on an internal AI platform that helps engineers ship faster through AI-assisted development workflows, automated code generation, intelligent documentation, and structured enablement programs."
-      highlights: []
     - organization: "ELEKS"
       logo: /companies/eleks.svg
       role: "AI Engineer"
       chapter: ai
       start: 2024-11
       end: 2026-03
-      summary: "Designed and delivered a reusable LLM-powered REST service for extraction, classification, controlled rewriting, suggestions, semantic matching, and embedding-based prediction search. Built evaluation and observability workflows around the AI features and led cross-functional delivery."
+      summary: "Led cross-functional delivery of LLM-powered services, with responsibility for AI evaluation, observability, and engineering workflows. Supported hiring, onboarding, and practical adoption of AI development tools."
       highlights:
-        - "Built automated prompt-quality pipelines covering Accuracy, Macro and Micro F1, and LLM-as-a-Judge Correctness, Faithfulness, and Relevance."
-        - "Led delivery across engineering, QA, MLOps, Data Science, DevOps, and Product."
-        - "Created documentation and onboarding material and led practical AI-tooling sessions."
+        - "Designed and delivered an LLM-powered REST API for information extraction, classification, controlled rewriting, semantic matching, and embedding-based search. Implemented reusable prompt patterns, custom evaluations, and observability for AI feature usage, reducing manual work for end users."
+        - "Built automated LLM evaluation pipelines using deterministic metrics such as accuracy and macro- and micro-averaged F1 scores for classification, and LLM-as-a-Judge metrics for non-deterministic outputs, to detect quality regressions as prompts evolved."
+        - "Led a new cross-functional team, ran Agile ceremonies, and coordinated day-to-day work across QA, MLOps, Data Science, DevOps, and Product stakeholders. Interviewed and assessed candidates for an AI Engineer role on the project."
+        - "Created internal documentation and wikis, including a newcomer dashboard, to make project knowledge easier to find and speed up onboarding."
+        - "Modernized CI/CD pipelines, added automation to improve dev and QA workflows, and built Grafana dashboards to monitor AI infrastructure and database upgrades."
+        - "Ran hands-on AI tooling sessions for engineering teams, sharing practical workflows and real-world uses of GitHub Copilot and Cursor to support day-to-day adoption."
     - organization: "ELEKS"
       logo: /companies/eleks.svg
       role: "Software Engineer"
       chapter: software
       start: 2023-12
       end: 2024-11
-      summary: "Delivered end-to-end features and fixes across RESTful microservices, a monolithic application, plugin packages, and a desktop client. Improved SQL performance, code quality, release reliability, and day-to-day Agile delivery."
-      highlights: []
+      summary: "Delivered .NET features across microservices, a monolith, plugins, and a desktop client, with responsibilities spanning SQL performance, code quality, Agile coordination, and release support."
+      highlights:
+        - "Delivered end-to-end features and bug fixes across RESTful microservices, a monolithic application, plugin packages, and the desktop client."
+        - "Developed and optimized complex SQL queries for data retrieval, manipulation, and reporting. Collaborated with database engineers to refine query execution plans and improve database performance."
+        - "Reviewed code, promoted sound design and best practices, and proactively suggested legacy code refactors to improve maintainability and align with modern .NET standards."
+        - "Participated in Agile planning, daily stand-ups, and retrospectives, and led these activities on a rotating basis."
+        - "Worked with QA and DevOps on releases, resolving deployment issues and supporting smooth rollouts."
     - organization: "ELEKS"
       logo: /companies/eleks.svg
       role: "Junior Software Engineer"
       chapter: software
       start: 2022-05
       end: 2023-12
-      summary: "Delivered features and fixes across REST APIs, microservices, a monolith, and plugin packages. Supported client investigations and strengthened team knowledge through documentation and a shared SQL query library."
-      highlights: []
+      summary: "Developed and integrated features across backend services and plugins, resolved client support issues, and contributed through code reviews, pair programming, and shared technical documentation."
+      highlights:
+        - "Delivered features and bug fixes across RESTful microservices, a monolithic application, and plugin packages, integrating changes across system components."
+        - "Reviewed peers’ pull requests and paired on complex tasks."
+        - "Investigated and resolved client-specific support tickets requiring technical and domain knowledge."
+        - "Created and maintained developer wikis for environment setup, installation, and API documentation, and curated a shared SQL query library to support investigations and data generation."
     - organization: "ELEKS"
       logo: /companies/eleks.svg
       role: "Trainee Software Engineer"
       chapter: software
       start: 2021-12
       end: 2022-05
-      summary: "Delivered supervised REST API work and small but important fixes while learning the system architecture, modern .NET practices, and the time-management and legal domain."
-      highlights: []
+      summary: "Contributed supervised REST API changes and fixes while learning .NET practices, project architecture, and the time-management and legal domain. Maintained onboarding documentation and developed stakeholder communication skills."
+      highlights:
+        - "Delivered basic REST API changes and bug fixes under supervision, integrating them with other team components."
+        - "Collaborated with senior developers to adopt modern .NET practices and understand project architecture."
+        - "Quickly ramped up on the time-management and legal domain while learning to communicate effectively with project stakeholders."
+        - "Created and updated developer wikis covering environment setup and project guidelines, supporting onboarding for future team members."
     - organization: "ELEKS"
       logo: /companies/eleks.svg
       role: "Software Engineer Intern"
       chapter: software
       start: 2021-09
       end: 2021-11
-      summary: "Built AutoHubAPI as a practical environment for learning REST API development, then presented the application and progress to company management."
-      highlights: []
+      summary: "Practiced ASP.NET REST API development through the AutoHubAPI project and presented the application and progress to company management, leading to employment."
+      highlights:
+        - "Built AutoHubAPI, an ASP.NET Web API pet project, to learn and practice REST API development in a monolithic, multi-layer architecture."
+        - "Presented the application and my progress to company management, which led to employment."
     - organization: "Sigma Software Group"
       logo: /companies/sigma-software.svg
       role: "Software Engineer Intern"
       chapter: software
       start: 2021-03
       end: 2021-04
-      summary: "Worked across design, front-end, back-end, and testing on a team-built car-rental application. Used UML and Figma to guide implementation and achieved more than 80% unit and integration test coverage on the back-end."
-      highlights: []
+      summary: "Collaborated with fellow interns on a full-stack car rental application, contributing to Figma-based interface implementation and backend unit and integration testing."
+      highlights:
+        - "Developed a full-stack car rental application with a team of interns."
+        - "Designed the front end using Figma mockups and implemented a responsive, user-friendly interface."
+        - "Achieved at least 80% unit and integration test coverage on the back end."
   education:
     institution: "State University of Information and Communication Technologies"
     qualification: "Bachelor of Software Engineering"
@@ -126,13 +138,13 @@ profile:
     - { label: "LeetCode", href: "https://leetcode.com/u/grafanaKibana/" }
 
 home:
-  metadataDescription: "AI engineer shipping agents at scale with a software and .NET foundation."
+  metadataDescription: "Nikita Reshetnik, AI Engineer with 5 years of experience building enterprise software, .NET applications, and production AI systems."
   mobileNavigation:
     scrollThreshold: 260
   hero:
     availability: { status: "Open to work", qualifier: "remote or relocation" }
     title: "Hi, I’m Nikita Reshetnik."
-    lead: "Shipping Agents at scale."
+    lead: "I make things. Some talk back."
     descriptors: ["AI Engineer", "Software Developer", "UI Design Enthusiast", "Open Source Contributor"]
     descriptorInterval: 3200
     resumeHref: "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf"
