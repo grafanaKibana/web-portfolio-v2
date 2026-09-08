@@ -658,7 +658,6 @@ test("one YAML document owns structured profile and approved personal content", 
   assert.deepEqual(
     profile.experience.map(({ logo, organization, role }) => ({ logo, organization, role })),
     [
-      { logo: "/companies/draftkings.svg", organization: "DraftKings", role: "Senior AI Engineer" },
       { logo: "/companies/eleks.svg", organization: "ELEKS", role: "AI Engineer" },
       { logo: "/companies/eleks.svg", organization: "ELEKS", role: "Software Engineer" },
       { logo: "/companies/eleks.svg", organization: "ELEKS", role: "Junior Software Engineer" },
@@ -701,19 +700,19 @@ test("one YAML document owns structured profile and approved personal content", 
   ])
   assert.deepEqual(profile.education, {
     institution: "State University of Information and Communication Technologies",
-    qualification: "Bachelor of Software Engineering",
+    qualification: "Bachelor’s degree, Software Engineering",
     period: "September 2019 — June 2023",
     location: "Kyiv, Ukraine",
   })
   assert.deepEqual(profile.certifications, [
     {
-      title: "Azure AI Fundamentals",
+      title: "Microsoft Certified: Azure AI Fundamentals",
       date: "August 2025",
       icon: "/certifications/microsoft-azure.svg",
       href: "https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134",
     },
     {
-      title: "GitHub Copilot",
+      title: "GitHub Copilot Certification Program",
       date: "June 2025",
       icon: "/certifications/github-copilot.svg",
       href: "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url",
@@ -758,8 +757,8 @@ test("one YAML document owns structured profile and approved personal content", 
       skills: [
         "Microsoft SQL Server",
         "PostgreSQL",
-        "MongoDB",
         "Elasticsearch",
+        "MongoDB",
         "Kafka",
       ],
     },
@@ -773,14 +772,14 @@ test("one YAML document owns structured profile and approved personal content", 
     },
     {
       title: "AI Development Tools",
-      skills: ["Claude Code", "Claude Design", "Codex", "Pi", "OpenCode", "Cursor", "CodeRabbit", "GitHub Copilot"],
+      skills: ["Claude Code", "Claude Design", "Codex", "OpenCode", "Pi", "Cursor", "CodeRabbit", "GitHub Copilot"],
     },
   ])
   assert.deepEqual(
     profile.links,
     [
       { label: "LinkedIn", href: "https://www.linkedin.com/in/nikitareshetnik/" },
-      { label: "Telegram", href: "https://t.me/grafanaKibana" },
+      { label: "Telegram", href: "https://t.me/reshetnigram" },
       { label: "GitHub", href: "https://github.com/grafanaKibana" },
       { label: "LeetCode", href: "https://leetcode.com/u/grafanaKibana/" },
     ],
