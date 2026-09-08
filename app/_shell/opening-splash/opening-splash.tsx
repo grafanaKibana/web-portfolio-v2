@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
+import { BrandMark } from "../brand-mark/brand-mark";
 import styles from "./opening-splash.module.scss";
 
 const MINIMUM_VISIBLE_MS = 1_800;
@@ -39,14 +40,12 @@ function waitForRequiredMarkers(onObserver: (observer: MutationObserver) => void
 /**
  * Completes the pre-paint opening surface after required shell content is ready.
  *
- * @param name - YAML-authored portfolio owner name.
  * @param role - YAML-authored primary role.
  * @returns The decorative splash markup until its exit completes.
  */
-export function OpeningSplash({ name, role }: { name: string; role: string }) {
+export function OpeningSplash({ role }: { role: string }) {
   const [phase, setPhase] = useState<SplashPhase>("inactive");
   const completionPublished = useRef(false);
-  const surname = name.trim().split(/\s+/).at(-1) ?? name;
 
   useEffect(() => {
     let active = true;
@@ -131,7 +130,7 @@ export function OpeningSplash({ name, role }: { name: string; role: string }) {
       data-state={phase}
     >
       <div className="text-center">
-        <p className="m-0 text-7xl font-medium uppercase tracking-tight max-md:text-5xl">{surname}</p>
+        <BrandMark className="mx-auto h-auto w-24 text-foreground md:w-32" />
         <p className="m-0 mt-4 font-mono text-xs tracking-widest text-muted-foreground">{role}</p>
       </div>
     </div>

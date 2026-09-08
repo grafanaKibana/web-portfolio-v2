@@ -2716,13 +2716,13 @@ test("splash slides down and supports an indefinite debug flag", async ({ page }
   await page.goto("/");
   const splash = page.locator('[data-slot="opening-splash"]');
   await expect(splash).toHaveAttribute("data-state", "visible");
-  const surname = splash.getByText("Reshetnik", { exact: true });
+  const mark = splash.locator('[data-slot="brand-mark"]');
   const role = splash.getByText("AI Engineer", { exact: true });
-  await expect(surname).toBeVisible();
+  await expect(mark).toBeVisible();
   await expect(role).toBeVisible();
   await expect(splash).toHaveCSS("transition-duration", "0s");
-  await expect(surname).toHaveCSS("text-transform", "uppercase");
-  expect(Number.parseFloat(await surname.evaluate((element) => getComputedStyle(element).fontSize)))
+  await expect(mark).toHaveAttribute("aria-hidden", "true");
+  expect(Number.parseFloat(await mark.evaluate((element) => getComputedStyle(element).width)))
     .toBeGreaterThan(Number.parseFloat(await role.evaluate((element) => getComputedStyle(element).fontSize)) * 3);
   await expect(splash.locator("span")).toHaveCount(0);
   const visibleAt = await page.evaluate(() =>
@@ -2852,7 +2852,7 @@ test("reduced motion disables the splash and availability translation", async ({
   });
 
   await page.goto("/");
-  const splash = page.locator("[aria-hidden=true]").filter({ hasText: "Reshetnik" });
+  const splash = page.locator('[data-slot="opening-splash"]');
   await expect(splash).toBeVisible();
   await expect(splash).toHaveCSS("transform", "none");
   await expect(splash.getByText("AI Engineer", { exact: true })).toBeVisible();

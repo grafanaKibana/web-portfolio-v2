@@ -17,6 +17,8 @@
 - Use emerald as a restrained signal, not decoration.
 - Avoid dashboard, bento, card-grid, SaaS-shell, marketing-gradient, glass, and component-showcase aesthetics.
 
+- Identity mark: use the softened N/R symbol as a standalone Home control and decorative splash mark. Keep its angular upper-right return and shared vector geometry; use a padded high-contrast version for browser and touch icons. No separate decorative wordmark is established. When the surname is written, use title case: Reshetnik.
+
 ## Product goals
 
 - Make identity, experience, selected projects, writing, code activity, and contact paths easy to scan and inspect in depth.
@@ -91,7 +93,7 @@
 
 ## Interaction states
 
-- Splash: a quiet typographic uppercase-surname/role lockup with no progress bar and a deliberate reading pause before exit. A first-load pre-paint marker makes it fully opaque before page content can paint; only its departure animates. Publish completion while the splash still covers the page so route motion is armed before removal. Refreshes and internal navigation never replay it. Keep it decorative, pointer-transparent, non-focusable, light/dark aware, terminal on success or failure, static for reduced motion, absent as a blocker under no-JavaScript, and indefinitely visible only under the explicit debug query.
+- Splash: a quiet softened N/R symbol with a secondary role label with no progress bar and a deliberate reading pause before exit. A first-load pre-paint marker makes it fully opaque before page content can paint; only its departure animates. Publish completion while the splash still covers the page so route motion is armed before removal. Refreshes and internal navigation never replay it. Keep it decorative, pointer-transparent, non-focusable, light/dark aware, terminal on success or failure, static for reduced motion, absent as a blocker under no-JavaScript, and indefinitely visible only under the explicit debug query.
 - Page entrance: begin each route's semantic intro targets from the covered splash handoff. Keep later section roots stable, then reveal their meaningful rows once the trigger crosses the 90% viewport-height line. Rows entering together cascade in document order, while nested row items keep the same quiet stagger. Fail open terminally for keyboard focus and hydration/setup errors, and keep server-rendered content visible when JavaScript is unavailable.
 - Scrolling: soften vertical wheel and trackpad input without a visible coast, preserve native touch, and stop residual inertia across route navigation. Same-page anchors may travel smoothly while retaining their CSS scroll margins. Nested menus and horizontal tracks keep native scrolling, and no content or reveal behavior depends on the enhancement.
 - Navigation: transparent/quiet at rest, separated by a border when scrolled; highlight the desktop and compact link whose section top has reached the sticky-header edge. Keep the closed compact selector unchanged while its content-height phone and tablet sheet shares one continuous background, typography, color, width, and flat styling with the open header. Omit a redundant visible menu title, and replace the header theme control with the dialog close control while open. Preserve the blurred backdrop, selected-section state, Escape, focus containment, and focus return without a floating-modal treatment.

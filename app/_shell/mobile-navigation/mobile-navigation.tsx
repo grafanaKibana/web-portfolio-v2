@@ -6,6 +6,7 @@ import { ArrowLeft, Check, ChevronDown, House, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandMark } from "../brand-mark/brand-mark";
 import { ThemeToggle } from "../theme/theme";
 import styles from "./mobile-navigation.module.scss";
 import headerStyles from "../site-header/site-header.module.scss";
@@ -159,10 +160,13 @@ export function MobileNavigation({
         <div className="flex items-center">
           <Link
             aria-label={detailRoute.homeLabel}
-            className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:size-8"
+            className="group/button inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-transparent text-foreground transition-all hover:bg-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:translate-y-px dark:hover:bg-muted/50 xl:size-8"
             href="/"
           >
-            <House aria-hidden="true" className="size-ui-icon opacity-70" />
+            <span className="relative size-4 text-foreground">
+              <BrandMark className="absolute inset-0 size-4 transition-[opacity,scale,rotate] duration-300 ease-out group-hover/button:scale-75 group-hover/button:-rotate-12 group-hover/button:opacity-0 group-focus-visible/button:scale-75 group-focus-visible/button:-rotate-12 group-focus-visible/button:opacity-0 motion-reduce:transition-none" />
+              <House aria-hidden className="absolute inset-0 size-4 scale-75 rotate-12 opacity-0 transition-[opacity,scale,rotate] duration-300 ease-out group-hover/button:scale-100 group-hover/button:rotate-0 group-hover/button:opacity-100 group-focus-visible/button:scale-100 group-focus-visible/button:rotate-0 group-focus-visible/button:opacity-100 motion-reduce:transition-none" />
+            </span>
           </Link>
         </div>
         <Link
@@ -187,10 +191,13 @@ export function MobileNavigation({
     >
       <Link
         aria-label={backToTopLabel}
-        className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:size-8"
+        className="group/button inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-transparent text-foreground transition-all hover:bg-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:translate-y-px dark:hover:bg-muted/50 xl:size-8"
         href="/#top"
       >
-        <House aria-hidden="true" className="size-ui-icon opacity-70" />
+        <span className="relative size-4 text-foreground">
+          <BrandMark className="absolute inset-0 size-4 transition-[opacity,scale,rotate] duration-300 ease-out group-hover/button:scale-75 group-hover/button:-rotate-12 group-hover/button:opacity-0 group-focus-visible/button:scale-75 group-focus-visible/button:-rotate-12 group-focus-visible/button:opacity-0 motion-reduce:transition-none" />
+          <House aria-hidden className="absolute inset-0 size-4 scale-75 rotate-12 opacity-0 transition-[opacity,scale,rotate] duration-300 ease-out group-hover/button:scale-100 group-hover/button:rotate-0 group-hover/button:opacity-100 group-focus-visible/button:scale-100 group-focus-visible/button:rotate-0 group-focus-visible/button:opacity-100 motion-reduce:transition-none" />
+        </span>
       </Link>
       <div className="desktop-link-row-gap text-ui-xs absolute left-1/2 hidden -translate-x-1/2 items-center whitespace-nowrap text-muted-foreground xl:flex">
         {items.map((item) => {

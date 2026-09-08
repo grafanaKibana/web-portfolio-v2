@@ -77,7 +77,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body id="top" className={clsx(motionStyles.scope, "flex min-h-full flex-col")}>
         <SmoothScroll />
         <ThemeProvider>
-          <OpeningSplash name={profile.name} role={home.hero.descriptors[0] ?? ""} />
+          <OpeningSplash role={home.hero.descriptors[0] ?? ""} />
           <PageMotion />
           <a
             className={clsx(styles.skipLink, "sr-only fixed left-4 top-4 rounded-md bg-background px-4 py-3 font-medium shadow-md focus:not-sr-only focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
