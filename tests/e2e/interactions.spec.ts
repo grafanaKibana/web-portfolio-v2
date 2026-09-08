@@ -396,7 +396,7 @@ test("the home page contains approved content through Phase 9 Contact", async ({
     "Azure AI FundamentalsAugust 2025",
     "GitHub CopilotJune 2025",
   ]);
-  await expect(education.locator('[data-slot="certification-icon"] img')).toHaveCount(2);
+  await expect(education.locator('[data-slot="certification-icon"] > span')).toHaveCount(2);
   await expect(education.getByRole("heading", { level: 3, name: "Learning & training" })).toHaveCount(0);
   const azureCredential = education.getByRole("link", { name: "Azure AI Fundamentals" });
   await expect(azureCredential).toHaveAttribute(
@@ -405,17 +405,23 @@ test("the home page contains approved content through Phase 9 Contact", async ({
   );
   const azureIcon = azureCredential.locator('[data-slot="certification-icon"]');
   await expect(azureIcon).toHaveCount(1);
-  const restingIconColors = await azureIcon.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return [style.backgroundColor, style.borderColor];
-  });
-  await azureCredential.hover();
-  await expect(azureCredential.locator("img")).toHaveCSS("transform", "none");
-  await expect(azureCredential.locator("img")).toHaveCSS("opacity", "1");
-  await expect.poll(() => azureIcon.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return [style.backgroundColor, style.borderColor];
-  })).not.toEqual(restingIconColors);
+  const restingIconColor = await azureIcon.evaluate((element) => getComputedStyle(element).color);
+  const certificationDate = azureCredential.getByText("August 2025", { exact: true });
+  const restingDateColor = await certificationDate.evaluate((element) => getComputedStyle(element).color);
+  await azureCredential.getByText("Azure AI Fundamentals", { exact: true }).hover();
+  await expect(certificationDate).toHaveCSS("color", restingDateColor);
+  await expect(azureIcon).toHaveCSS("color", await azureCredential.evaluate((element) => getComputedStyle(element).color));
+  expect(await azureIcon.evaluate((element) => getComputedStyle(element).color)).not.toBe(restingIconColor);
+  expect(await azureCredential.evaluate((element) => {
+    const center = element.getBoundingClientRect().x + element.getBoundingClientRect().width / 2;
+    return Array.from(element.children).every((child) => {
+      const box = child.getBoundingClientRect();
+      return Math.abs(box.x + box.width / 2 - center) <= 1;
+    });
+  })).toBe(true);
+  await expect(azureIcon).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(azureIcon).toHaveCSS("border-top-width", "0px");
+  await expect(azureIcon.locator("span")).toHaveCSS("mask-image", /microsoft-azure\.svg/);
   await expect(education.getByRole("link", { name: "GitHub Copilot" })).toHaveAttribute(
     "href",
     "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url",
@@ -426,10 +432,13 @@ test("the home page contains approved content through Phase 9 Contact", async ({
   await page.reload();
   const darkAzureCredential = page.locator("#education").getByRole("link", { name: "Azure AI Fundamentals" });
   const darkAzureIcon = darkAzureCredential.locator('[data-slot="certification-icon"]');
-  const darkRestingBorder = await darkAzureIcon.evaluate((element) => getComputedStyle(element).borderColor);
+  const darkDate = darkAzureCredential.getByText("August 2025", { exact: true });
+  const darkDateColor = await darkDate.evaluate((element) => getComputedStyle(element).color);
   await darkAzureCredential.hover();
-  await expect(darkAzureIcon.locator("img")).toHaveCSS("opacity", "0.88");
-  await expect(darkAzureIcon).toHaveCSS("border-color", darkRestingBorder);
+  await expect(darkAzureIcon).toHaveCSS("color", await darkAzureCredential.evaluate((element) => getComputedStyle(element).color));
+  await expect(darkAzureIcon).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(darkAzureIcon).toHaveCSS("border-top-width", "0px");
+  await expect(darkDate).toHaveCSS("color", darkDateColor);
   const projects = page.locator("#projects");
   await expect(projects.getByRole("heading", { level: 2, name: "Selected work" })).toBeVisible();
   await expect(projects.locator('[data-slot="home-project"]')).toHaveCount(3);
@@ -753,25 +762,34 @@ test("Experience disclosure uses native keyboard behavior and in-flow motion", a
   const contextColor = await item.locator('[data-slot="experience-period"]')
     .evaluate((element) => getComputedStyle(element).color);
   const readingColor = await item.locator("article > p").evaluate((element) => getComputedStyle(element).color);
+  const company = item.locator('[data-slot="role-heading"] p');
+  const dot = item.locator('[data-slot="timeline-dot"]');
+  const restingDotBorder = await dot.evaluate((element) => getComputedStyle(element).borderColor);
 
   expect(await details.evaluate((element) => getComputedStyle(element, "::details-content").transitionDuration))
     .toContain("0.2s");
   await expect(summary).toHaveCSS("color", contextColor);
   expect(readingColor).not.toBe(contextColor);
   await item.hover();
+  await expect(item).toHaveCSS("cursor", "pointer");
   await expect(summary).toHaveCSS("color", roleTitleColor);
-  await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", roleTitleColor);
+  await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", contextColor);
+  await expect(company).toHaveCSS("color", contextColor);
+  await expect(dot).toHaveCSS("border-color", roleTitleColor);
   await expect(item.locator("article > p")).toHaveCSS("color", roleTitleColor);
   await page.locator("#experience-heading").hover();
   await expect(summary).toHaveCSS("color", contextColor);
   await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", contextColor);
   await expect(item.locator("article > p")).toHaveCSS("color", readingColor);
+  await expect(dot).toHaveCSS("border-color", restingDotBorder);
   const closedNextTop = await details.evaluate((element) =>
     element.closest("li")?.nextElementSibling?.getBoundingClientRect().top,
   );
   await summary.focus();
   await expect(summary).toHaveCSS("color", roleTitleColor);
-  await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", roleTitleColor);
+  await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", contextColor);
+  await expect(company).toHaveCSS("color", contextColor);
+  await expect(dot).toHaveCSS("border-color", roleTitleColor);
   await expect(item.locator("article > p")).toHaveCSS("color", roleTitleColor);
   await page.keyboard.press("Space");
   await expect(details).toHaveAttribute("open", "");
@@ -1393,19 +1411,20 @@ test("compact pull-request rows preserve geometry and wrapping through productio
     }
 
     const hierarchy = row.locator(".repository, .title, .period");
+    const foreground = await row.evaluate((element) => getComputedStyle(element).color);
     const restingColors = await hierarchy.evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color));
     const semanticColors = geometry.countColors;
     expect(restingColors[0]).not.toBe(restingColors[1]);
-    expect(restingColors[0]).not.toBe(restingColors[2]);
+    expect(restingColors[0]).toBe(restingColors[2]);
     expect(restingColors[1]).not.toBe(restingColors[2]);
     await row.hover();
     await expect.poll(async () => {
       const colors = await hierarchy.evaluateAll((elements) =>
         elements.map((element) => getComputedStyle(element).color));
       return colors[0] === restingColors[0]
-        && colors[1] === restingColors[0]
-        && colors[2] === restingColors[0];
+        && colors[1] === foreground
+        && colors[2] === restingColors[2];
     }).toBe(true);
     expect(await row.locator(".additions, .deletions").evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color))).toEqual(semanticColors);
@@ -1422,8 +1441,8 @@ test("compact pull-request rows preserve geometry and wrapping through productio
       const colors = await hierarchy.evaluateAll((elements) =>
         elements.map((element) => getComputedStyle(element).color));
       return colors[0] === restingColors[0]
-        && colors[1] === restingColors[0]
-        && colors[2] === restingColors[0];
+        && colors[1] === foreground
+        && colors[2] === restingColors[2];
     }).toBe(true);
     expect(await row.locator(".additions, .deletions").evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color))).toEqual(semanticColors);
@@ -1658,8 +1677,8 @@ test("Home content families use the exact three semantic text levels", async ({ 
     const education = page.locator("#education");
     const degree = education.locator('[data-slot="education-row-content"]').first();
     await expect(degree.locator("p").first()).toHaveCSS("color", foreground);
-    await expect(degree.locator("p").nth(1)).toHaveCSS("color", muted);
-    await expect(education.locator('[data-slot="certification"] span').nth(1))
+    await expect(degree.locator("p").nth(1)).toHaveCSS("color", content);
+    await expect(education.locator('[data-slot="certification"] a > span').nth(1))
       .toHaveCSS("color", foreground);
 
     await expect(page.locator('#skills [data-slot="skill-group"] h3').first()).toHaveCSS("color", muted);
@@ -1675,7 +1694,7 @@ test("Home content families use the exact three semantic text levels", async ({ 
     await expect(writingRow.locator("p").first()).toHaveCSS("color", muted);
     await expect(writingRow.locator("p").last()).toHaveCSS("color", content);
     await writingRow.hover();
-    await expect(writingRow.locator("p").first()).toHaveCSS("color", foreground);
+    await expect(writingRow.locator("p").first()).toHaveCSS("color", muted);
     await expect(writingRow.locator("p").last()).toHaveCSS("color", foreground);
   }
 });
@@ -2786,10 +2805,11 @@ test("real Tab focus exposes representative Projects, Writing, and Contact contr
 
   const foreground = await page.locator("body").evaluate((body) => getComputedStyle(body).color);
   const writingRow = page.locator("#writing a").first();
+  const writingMetaColor = await writingRow.locator("p").first().evaluate((element) => getComputedStyle(element).color);
   await page.locator('#code a, #code [data-slot="contribution-day"][tabindex="0"]').last().focus();
   await page.keyboard.press(browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab");
   await expect(writingRow).toBeFocused();
-  await expect(writingRow.locator("p").first()).toHaveCSS("color", foreground);
+  await expect(writingRow.locator("p").first()).toHaveCSS("color", writingMetaColor);
   await expect(writingRow.locator("p").last()).toHaveCSS("color", foreground);
 });
 

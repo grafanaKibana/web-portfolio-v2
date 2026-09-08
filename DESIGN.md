@@ -69,12 +69,14 @@ Use foreground, content-foreground, and muted-foreground in both themes. Color f
 
 | Content role | Resting treatment | Hover and keyboard focus |
 | --- | --- | --- |
-| L1 anchor: page and section headings, names, job titles, repository names, and primary controls | Foreground | Stable |
+| L1 anchor: page and section headings, names, job titles, and primary controls | Foreground | Stable |
 | L2 reading: prose, descriptions, summaries, quotes, and other content intended to be read | Content foreground | Promote to foreground only when it belongs to a real interactive row or link |
 | L3 support: dates, tags, labels, helpers, secondary navigation, and standalone secondary actions | Muted foreground | Promote to foreground only when the supporting text itself is interactive |
 | Embedded prose link | Content foreground, medium weight, permanent underline | Foreground with visible keyboard focus |
 
-Static text never changes color merely because a nearby container is hovered. Interactive rows may promote their L2 and L3 descendants together so the whole target responds consistently; stable L1 identity and semantic status colors do not change. Experience summaries and highlights are L2, while organization, period, and disclosure labels are L3. Pull-request titles are L2 and periods are L3; both promote with the row while repository identity stays L1. Project pagination keeps its L1 destination stable and promotes its L3 label and arrow. Preserve semantic status, syntax, brand, and primary-control colors as separate roles; do not use opacity to weaken neutral text contrast.
+Static text never changes color merely because a nearby container is hovered. Interactive rows promote their reading content and action cues; stable metadata, L1 identity, and semantic status colors do not change. Experience summaries and highlights are L2, while organization, period, and disclosure labels are L3. Pull-request titles are L2 and promote with the row; repository names and periods remain L3. Writing descriptions promote, while their date and reading-time metadata remain L3. Project pagination keeps its L1 destination stable and promotes its L3 label and arrow. Preserve semantic status, syntax, brand, and primary-control colors as separate roles; do not use opacity to weaken neutral text contrast.
+
+Experience disclosure rows use a pointer cursor across the whole block: the summary, disclosure label, and timeline circle respond to hover and keyboard focus, while company names and dates stay muted. University names use L2. Each certification is one full-block link with its icon, title, and date centered horizontally. Its borderless icon uses L2 and promotes to foreground on hover or keyboard focus, without a background treatment; its title stays L1 and its date stays L3.
 
 ## Components
 

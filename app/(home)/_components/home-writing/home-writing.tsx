@@ -45,7 +45,7 @@ export async function HomeWriting() {
                     className="group block py-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:py-5"
                     href={`/articles/${slug}`}
                   >
-                    <p className={clsx(styles.metadata, "font-mono text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground lg:text-xs")}>
+                    <p className={clsx(styles.metadata, "font-mono text-muted-foreground lg:text-xs")}>
                       <time dateTime={article.published}>
                         {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
                       </time>

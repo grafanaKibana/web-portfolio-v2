@@ -32,7 +32,6 @@
 .experiencePeriod {
   font-size: 0.6875rem;
   line-height: 1.5;
-  transition: color 150ms;
 }
 
 .timelineDot {
@@ -44,6 +43,7 @@
   border: 1px solid var(--muted-foreground);
   border-radius: 50%;
   background: var(--background);
+  transition: border-color 150ms, background-color 150ms;
 }
 
 .timelineDotCurrent {
@@ -67,7 +67,6 @@
 
 .organization {
   font-size: 0.75rem;
-  transition: color 150ms;
 }
 
 .roleSummary {
@@ -77,9 +76,21 @@
   transition: color 150ms;
 }
 
+.experienceItem:has(.roleDetails) {
+  cursor: pointer;
+}
+
 .experienceItem:has(.roleDetails):is(:hover, :has(.roleDetails summary:focus-visible))
-  :is(.experiencePeriod, .organization, .roleSummary, .roleDetails summary) {
+  :is(.roleSummary, .roleDetails summary) {
   color: var(--foreground);
+}
+
+.experienceItem:has(.roleDetails):is(:hover, :has(.roleDetails summary:focus-visible)) .timelineDot {
+  border-color: var(--foreground);
+}
+
+.experienceItem:has(.roleDetails):is(:hover, :has(.roleDetails summary:focus-visible)) .timelineDotCurrent {
+  background: var(--foreground);
 }
 
 .roleDetails summary {
@@ -247,8 +258,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .detailsContent,
-  .experiencePeriod,
-  .organization,
+  .timelineDot,
   .roleSummary,
   .roleDetails::details-content,
   .detailsIcon {

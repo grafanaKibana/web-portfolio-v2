@@ -1,5 +1,4 @@
 import { MapPin } from "lucide-react";
-import Image from "next/image";
 import { profile } from "@/content/structured";
 import { clsx } from "clsx";
 import styles from "./home-education.module.scss";
@@ -17,21 +16,24 @@ function CertificationItem({ certification }: { certification: Certification }) 
     <li data-slot="certification">
       <a
         aria-label={certification.title}
-        className={clsx(styles.certificationLink, "block w-fit text-inherit no-underline")}
+        className={clsx(styles.certificationLink, "group flex h-full w-full flex-col items-center rounded-md text-center text-inherit no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4")}
         href={certification.href}
       >
         <span
           aria-hidden="true"
-          className={clsx(styles.certificationIcon, "grid size-14 place-items-center rounded-md border md:size-16")}
+          className="grid size-14 place-items-center text-content-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground motion-reduce:transition-none md:size-16"
           data-slot="certification-icon"
         >
-          <Image alt="" height={26} src={certification.icon} width={26} />
+          <span
+            className={clsx(styles.certificationGlyph, "block size-9 bg-current [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain] md:size-10")}
+            data-icon={certification.icon}
+          />
+        </span>
+        <span className={styles.certificationTitle}>{certification.title}</span>
+        <span className={clsx(styles.certificationDate, "font-mono text-muted-foreground")}>
+          {certification.date}
         </span>
       </a>
-      <span className={styles.certificationTitle}>{certification.title}</span>
-      <span className={clsx(styles.certificationDate, "font-mono text-muted-foreground")}>
-        {certification.date}
-      </span>
     </li>
   );
 }
@@ -67,7 +69,7 @@ export function HomeEducation() {
           </h3>
           <div data-slot="education-row-content">
             <p className={clsx(styles.qualification, "m-0 font-semibold")}>{profile.education.qualification}</p>
-            <p className={clsx(styles.institution, "text-muted-foreground")}>{profile.education.institution}</p>
+            <p className={clsx(styles.institution, "text-content-foreground")}>{profile.education.institution}</p>
             <p className={clsx(styles.location, "flex items-center font-mono text-muted-foreground")}>
               <MapPin aria-hidden="true" />
               {profile.education.location}
