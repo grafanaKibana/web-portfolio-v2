@@ -2,7 +2,7 @@ export const metadata = {
   kind: "project",
   title: "Obsidian Colsdown",
   description:
-    "An Obsidian plugin that turns fenced Markdown into responsive columns and stacks while preserving readable source and mobile reflow.",
+    "An Obsidian plugin that turns readable fenced Markdown into responsive columns and stacks in Reading View.",
   tags: ["Obsidian API", "TypeScript", "Markdown", "CSS", "Vitest"],
   links: [
     { label: "Store page", href: "https://obsidian.md/plugins?id=colsdown" },
@@ -10,20 +10,38 @@ export const metadata = {
   ],
 }
 
-Colsdown adds responsive multi-column and stacked layouts to Obsidian without replacing the underlying Markdown.
+## About
 
-## Outcome
+Colsdown adds columns and vertical stacks to Obsidian notes without replacing their Markdown source. Layouts are written as fenced blocks, so they remain understandable in Source Mode, editable in Live Preview, and responsive when rendered in Reading View.
 
-Fenced `colsdown` and `stack` blocks render as adaptive layouts in Reading View, then collapse below a configurable container width without horizontal overflow.
+The plugin deliberately leaves visual identity to the active Obsidian theme. It supplies layout, spacing, optional dividers, and responsive behavior without adding card surfaces, hover colors, or a competing theme layer.
 
-## Role
+## Highlights
 
-Creator and maintainer of the parser, renderer, editor commands, responsive behavior, release workflow, and documentation.
+- Column widths accept percentages, fractional tracks, or automatic sizing.
+- `stack` blocks use the same separator model for vertically divided content.
+- Nested layouts and nested backtick or tilde fences stay within the correct column.
+- Columns collapse below a configurable container width to avoid horizontal overflow.
+- Editor commands insert common two-column, three-column, sidebar, stack, and custom layouts as ordinary undoable changes.
 
-## Content model
+## How it works
 
-Column separators support percentages, fractional tracks, automatic widths, and nested code fences. Notes remain readable in source form, and every insertion is an ordinary undoable editor change.
+A `colsdown` fence treats content before the first separator as the first column. A width written on a later separator belongs to the column after it, while the first column receives the remaining space.
 
-## Runtime
+```markdown
+~~~colsdown
+Sidebar content
 
-The plugin runs on desktop and mobile, uses Obsidian's renderer, and makes no network requests or telemetry calls.
+::: 70%
+
+Main content
+~~~
+```
+
+This produces a 30/70 layout. Omitting widths creates equal automatic columns, while `1fr` and `2fr` express proportional tracks. The parser locks a block to its first separator and ignores marker-looking lines inside nested code fences.
+
+## Project details
+
+- **Platform:** Obsidian desktop and mobile
+- **Rendering:** Reading View through Obsidian's Markdown renderer
+- **License:** MIT

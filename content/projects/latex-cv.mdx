@@ -2,28 +2,37 @@ export const metadata = {
   kind: "project",
   title: "LatexCV",
   description:
-    "A customized Awesome CV fork that compiles a résumé, CV, and cover letter with XeLaTeX and publishes fresh PDFs through GitHub Actions.",
-  tags: ["LaTeX", "XeLaTeX", "Awesome CV", "GitHub Actions", "Docker"],
+    "A customized Awesome CV repository that builds a résumé, CV, and cover letter from shared LaTeX source and publishes generated PDFs.",
+  tags: ["LaTeX", "Awesome CV", "GitHub Actions"],
   links: [
     { label: "Latest PDFs", href: "https://github.com/grafanaKibana/LatexCV/releases/latest" },
     { label: "Source", href: "https://github.com/grafanaKibana/LatexCV" },
   ],
 }
 
-LatexCV keeps a résumé, full CV, and cover letter in one modular LaTeX repository based on the Awesome CV template.
+## About
 
-## Outcome
+LatexCV keeps a résumé, a full CV, and a cover letter in one LaTeX repository. It is based on Awesome CV and adapts that template for a single profile, with shared personal and experience content feeding separate document entry points.
 
-Every content change can produce fresh PDF artifacts, while merges to the main branch publish the current documents through a GitHub Release.
+The repository treats the PDFs as build artifacts rather than files edited by hand. The source remains reviewable as text, while the latest release provides stable download links for the generated documents.
 
-## Role
+## Highlights
 
-Maintainer of the personal content, build workflow, document structure, and customizations layered over the upstream Awesome CV fork.
+- Shared LaTeX content reduces repetition between the résumé, CV, and cover letter.
+- Awesome CV provides consistent typography and layout across the documents.
+- GitHub Actions builds documents for pushes and pull requests, then publishes release assets for qualifying content changes on `master`.
+- The portfolio can link to the latest résumé release asset instead of carrying a separately maintained copy.
 
-## Document system
+## How it works
 
-Shared personal information and experience content feed separate résumé, CV, and cover-letter entry points. XeLaTeX provides the typography and PDF output, with a Makefile and Docker path for local builds.
+Experience, education, skills, and projects are written in separate LaTeX files. The résumé and CV assemble these shared sections, while the cover letter reuses the same personal details and styling with its own letter content. Updating a shared section carries that change into each document that includes it.
 
-## Automation
+LaTeX combines that content with the Awesome CV template to produce formatted PDFs, handling typography, spacing, and page layout. The resulting résumé, CV, and cover letter are ready to download, share, or attach to an application.
 
-GitHub Actions compiles the documents for pushes and pull requests. Content changes merged to the main branch also publish versioned release assets, including the résumé consumed by this portfolio.
+GitHub Actions rebuilds the PDFs when the source changes. Content updates on `master` publish a new release, so the latest download links point to the updated documents.
+
+## Project details
+
+- **Documents:** résumé, curriculum vitae, and cover letter
+- **Source:** modular LaTeX based on Awesome CV
+- **Automation:** GitHub Actions artifacts and content-triggered releases

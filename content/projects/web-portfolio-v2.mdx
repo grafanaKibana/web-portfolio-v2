@@ -2,27 +2,34 @@ export const metadata = {
   kind: "project",
   title: "web-portfolio-v2",
   description:
-    "A Next.js editorial portfolio built from typed YAML and local MDX, statically generated long-form routes, narrow client islands, and browser-level verification.",
+    "The current editorial portfolio, combining typed structured data with local MDX for statically rendered work and writing.",
   tags: ["Next.js", "TypeScript", "MDX", "Tailwind CSS", "Playwright"],
   links: [
     { label: "Source", href: "https://github.com/grafanaKibana/web-portfolio-v2" },
   ],
 }
 
-web-portfolio-v2 is the current generation of this site, rebuilt as a restrained editorial portfolio rather than a dashboard or product shell.
+## About
 
-## Outcome
+web-portfolio-v2 is the current version of this site. It presents identity, experience, selected projects, writing, code activity, and contact information in a restrained editorial layout designed for both quick scanning and longer reading.
 
-The site keeps identity, experience, selected work, and long-form content readable as statically rendered HTML while preserving focused interactive behavior where it is necessary.
+Most of the site is statically rendered HTML. Structured portfolio records live in typed YAML, while articles and project pages use repository-authored MDX. This keeps factual data separate from presentation and lets long-form pages remain ordinary documents instead of component-heavy application screens.
 
-## Role
+## Highlights
 
-Designer, author, and maintainer of the content model, application architecture, responsive implementation, interaction contracts, and verification workflow.
+- Project and article routes are generated from validated local MDX files.
+- Experience, education, profile, and navigation data come from typed structured content.
+- Semantic HTML and native browser behavior carry the core experience before client enhancement.
+- Theme switching, mobile navigation, page motion, local time, and selected Home interactions use narrow client components.
 
-## Architecture
+## How it works
 
-Next.js Server Components own static composition. Typed YAML centralizes structured portfolio content, local MDX supplies trusted articles and project case studies, and narrow client islands own theme, navigation, splash, time, and descriptor behavior.
+Next.js Server Components compose the pages and load trusted repository content. Content discovery validates slugs, rejects duplicate names, and checks imported metadata before a route renders. Project and article routes publish a fixed set of static parameters, so the content directory remains the source of available pages.
 
-## Verification
+The interface starts with meaningful server-rendered content. JavaScript adds focused behavior such as the modal mobile navigation, theme state, and progressive page motion. Native forms, links, headings, and disclosures preserve their basic operation when enhancement is unavailable.
 
-Repository checks cover linting, types, content validation, contrast, documentation, SEO, static generation, and browser behavior in Chromium and WebKit.
+## Project details
+
+- **Framework:** Next.js and React with TypeScript
+- **Content:** typed YAML and trusted local MDX
+- **Styling:** Tailwind CSS with scoped SCSS where needed, shadcn/ui, motion for animations

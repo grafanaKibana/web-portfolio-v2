@@ -2,7 +2,7 @@ export const metadata = {
   kind: "project",
   title: "Tabsdown",
   description:
-    "A tab system for Obsidian and Quartz that keeps fenced Markdown readable while rendering accessible, theme-native tabs.",
+    "A shared fenced Markdown format that renders as accessible, theme-native tabs in Obsidian and Quartz.",
   tags: ["Obsidian API", "Quartz", "TypeScript", "Markdown", "CSS"],
   links: [
     { label: "Store page", href: "https://obsidian.md/plugins?id=tabsdown" },
@@ -11,20 +11,43 @@ export const metadata = {
   ],
 }
 
-Tabsdown keeps one fenced Markdown syntax usable in an Obsidian vault and on a Quartz-published website. The product spans two repositories so each integration can follow its host platform without duplicating the content format.
+## About
 
-## Outcome
+Tabsdown turns fenced Markdown into tabs in Obsidian and Quartz. Both integrations share the same content format, so a vault can use interactive tabs while editing and publish those blocks without rewriting them for the website.
 
-The same source renders as interactive tabs in Obsidian and Quartz while remaining readable Markdown when neither integration is active. Tab bodies continue through each platform's normal Markdown pipeline, including links, embeds, callouts, math, diagrams, and syntax highlighting.
+Tab bodies continue through each host's Markdown renderer. Links, embeds, callouts, math, diagrams, highlighted code, and compatible plugin blocks therefore behave like the same content outside a tab set.
 
-## Role
+<figure>
+  <img src="/projects/obsidian-tabsdown/showcase.png" alt="Tabsdown in Obsidian with Overview, Timeline, and Resources tabs and a nested weekly tab set" width={1440} height={1072} loading="lazy" />
+  <figcaption>Tabsdown demo with illustrative workspace content.</figcaption>
+</figure>
 
-Creator and maintainer of the shared syntax, both platform integrations, styling options, tests, releases, and documentation.
+## Highlights
 
-## Obsidian integration
+- Works in Obsidian Reading View and Live Preview on desktop and mobile.
+- Supports nested tab sets, Lucide icons, limited label formatting, four tab-list positions, wrapping, density, and appearance options.
+- Keeps the original source readable when the plugin is inactive or the note is opened elsewhere.
+- Quartz emits every labelled panel as readable HTML before JavaScript adds tab behavior.
+- Pointer, touch, arrow-key, `Home`, and `End` navigation are supported.
 
-The Obsidian plugin renders tabs in Reading View and Live Preview using Obsidian's Markdown renderer. The first tab starts active, keyboard behavior remains accessible, nested tab sets keep independent state, and responsive density adapts to mobile and narrow containers.
+## How it works
 
-## Quartz integration
+Each block needs at least two non-empty, unique `tab:` labels. Optional configuration appears before the first tab.
 
-The Quartz transformer parses the same tab syntax before Obsidian Flavored Markdown so downstream transformers can process each tab body normally. Optional appearance settings are validated during the build instead of silently producing inconsistent output.
+```markdown
+~~~tabsdown
+tab: Notes
+Plain Markdown content
+
+tab: Example
+`code` and other Markdown
+~~~
+```
+
+In Obsidian, the plugin delegates bodies to Obsidian's renderer. In Quartz, the transformer runs before Obsidian Flavored Markdown, inserts each body into the syntax tree, and lets later transformers process it normally. Malformed blocks retain their source and show a diagnostic instead of silently dropping content.
+
+## Project details
+
+- **Platforms:** Obsidian and Quartz
+- **Rendering:** Reading View through Obsidian's Markdown renderer
+- **License:** MIT for the Obsidian plugin

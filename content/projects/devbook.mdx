@@ -2,7 +2,7 @@ export const metadata = {
   kind: "project",
   title: "DevBook",
   description:
-    "A personal Senior .NET and AI engineering knowledge base authored in Obsidian, published with Quartz, and paired with a .NET retrieval backend.",
+    "An engineering knowledge base authored in Obsidian, published with Quartz, and used for practical .NET retrieval experiments.",
   tags: ["Obsidian", "Quartz", ".NET", "RAG", "Embeddings", "Vector search", "Retrieval evaluation"],
   links: [
     { label: "Live", href: "https://devbook.zip" },
@@ -10,20 +10,34 @@ export const metadata = {
   ],
 }
 
-DevBook keeps one curated source of engineering notes useful in three places: an Obsidian learning system, a public static website, and hands-on retrieval experiments.
+## About
 
-## Outcome
+DevBook is a personal software engineering knowledge base for learning and interview preparation. Notes are written in Obsidian and organized around programming, computer science, data, architecture, security, cloud, AI, and other engineering topics. Each note aims to explain an idea in plain language, then ground it with examples, tradeoffs, pitfalls, questions, and references.
 
-One curated source supports a public website covering 11 topic areas and retrieval experiments with ingestion, chunking, embeddings, vector search, reranking, and evaluation.
+The same Markdown collection also supports a public Quartz website and a local .NET retrieval proof of concept. This keeps the writing useful as ordinary notes while making it possible to explore publishing and retrieval over real, maintained material.
 
-## Role
+<figure>
+  <img src="/projects/devbook/site-home.png" alt="DevBook website homepage shown in light and dark themes" width={2880} height={1800} loading="lazy" />
+  <figcaption>Repository showcase of the DevBook website in light and dark themes.</figcaption>
+</figure>
 
-Creator and maintainer, with sole ownership of the note system, published site, and retrieval backend.
+## Highlights
 
-## One source, different uses
+- One Markdown source supports both the Obsidian vault and the published site.
+- Quartz provides static pages, navigation, search, backlinks, and theme support.
+- The .NET platform explores ingestion, chunking, embeddings, vector search, reranking, grounded answers, and retrieval evaluation.
+- Retrieval configurations can be compared against a shared golden dataset instead of judged from a few hand-picked queries.
 
-The notes remain readable source files. Quartz publishes them as a website, while the retrieval work explores ingestion, chunking, embeddings, vector search, reranking, and evaluation over the same material.
+## How it works
 
-## Architecture
+The repository has three main parts: `Vault/` contains the authored notes, `Web/` publishes them with Quartz, and `Platform/` contains the local ASP.NET Core RAG API and evaluation projects.
 
-`Ingestion → chunking → embeddings → vector search → reranking`
+For retrieval, published Markdown is ingested, divided by a selected chunking strategy, embedded, and stored in MongoDB Atlas. A search request embeds the query, retrieves candidates through vector search, and applies the configured reranker. The ask endpoint reuses that retrieval path before passing the selected sources to an answer agent.
+
+## Project details
+
+- **Content:** Markdown notes authored in Obsidian
+- **Website:** Quartz static site
+- **Retrieval platform:** ASP.NET Core, MongoDB Atlas, and Microsoft.Extensions.AI
+- **Evaluation:** retrieval-focused datasets, metrics, and Microsoft.Extensions.AI HTML reports
+- **License:** MIT

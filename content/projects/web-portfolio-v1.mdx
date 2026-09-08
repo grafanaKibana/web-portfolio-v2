@@ -2,27 +2,40 @@ export const metadata = {
   kind: "project",
   title: "web-portfolio-v1",
   description:
-    "The Angular generation of this portfolio, combining data-driven résumé sections, a Markdown blog, responsive layouts, and an animated WebGL background.",
+    "The earlier Angular version of this portfolio, with data-driven résumé sections, Markdown writing, and a custom animated WebGL background.",
   tags: ["Angular", "TypeScript", "SCSS", "WebGL", "Markdown"],
   links: [
     { label: "Source", href: "https://github.com/grafanaKibana/web-portfolio-v1" },
   ],
 }
 
-web-portfolio-v1 is the earlier Angular implementation of this personal CV, portfolio, and writing site.
+## About
 
-## Outcome
+web-portfolio-v1 is the earlier Angular implementation of this personal CV, portfolio, and writing site. Its interface combines a dark résumé layout with a custom animated background, route transitions, a Markdown blog, and downloadable CV access.
 
-One responsive application presents résumé data, project navigation, a Markdown-authored blog, downloadable CV assets, and a distinctive animated background.
+The application is useful as a record of an earlier design direction: denser, more animated, and more application-like than the current editorial site. Its portfolio surface remains marked as work in progress in the repository rather than presented as a finished project collection.
 
-## Role
+<figure>
+  <img src="/projects/web-portfolio-v1/desktop.png" alt="Earlier Angular portfolio displayed at a desktop viewport" width={1440} height={900} loading="lazy" />
+  <figcaption>Historical desktop screenshot of the earlier portfolio.</figcaption>
+</figure>
 
-Creator and maintainer of the application architecture, content model, visual effects, responsive styling, blog pipeline, and deployment.
+## Highlights
 
-## Architecture
+- A single JSON source supplies résumé, experience, education, skills, and sidebar content.
+- Blog posts are authored in Markdown with YAML front matter and syntax highlighting.
+- A custom WebGL mesh gradient provides the animated background and theme reflections.
+- The intro sequence and route transitions respect reduced-motion preferences.
+- SCSS mixins and media queries adapt the layout for smaller screens.
 
-Angular routes separate the home, blog, and portfolio surfaces. A single JSON source owns résumé content, while Markdown files with front matter feed the blog.
+## How it works
 
-## Visual system
+Angular routes separate the home, blog, and portfolio areas. Home sections read structured résumé data from JSON, while the blog discovers Markdown posts and renders their front matter and content. Shared components provide the header, footer, sidebar, intro overlay, and background surface.
 
-A custom WebGL mesh gradient provides the animated background and theme reflections. The intro sequence and route transitions respect reduced-motion preferences.
+The WebGL service renders the gradient and exposes its colors to the interface for visual reflections. Motion preferences can bypass the intro animation and reduce route effects. CV download behavior connects the site to PDF artifacts produced by the separate LatexCV repository.
+
+## Project details
+
+- **Framework:** Angular with TypeScript
+- **Content:** JSON résumé data and Markdown articles
+- **Styling:** SCSS

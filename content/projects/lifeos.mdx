@@ -2,28 +2,31 @@ export const metadata = {
   kind: "project",
   title: "LifeOS",
   description:
-    "A local-first Obsidian vault that keeps Markdown as durable source data and layers approval-first dashboards, automation, and domain workflows over it.",
+    "A local-first Obsidian system that keeps Markdown as durable source data beneath dashboards, capture flows, and everyday workflows.",
   tags: ["Obsidian", "Markdown", "Datacore", "JavaScript", "CSS"],
 }
 
-LifeOS is a personal operating vault for connected notes, dashboards, structured records, and repeatable workflows across everyday domains.
+## About
 
-## Outcome
+LifeOS is a private Obsidian vault for connected notes, structured records, dashboards, and repeatable workflows across everyday domains. Markdown files remain the durable source of truth, so the underlying information stays readable and portable without depending on a custom application.
 
-Markdown remains the durable source of truth while dashboards make active information easier to scan on desktop and mobile.
+The richer interface is an additional view over those files. It helps with scanning current information, capturing new records, and working with related notes on desktop and mobile while keeping the vault local-first.
 
-## Role
+## Highlights
 
-Owner, designer, and maintainer of the vault structure, local automation, responsive dashboard components, and approval-first capture flows.
+- Ordinary Markdown remains available beneath every enhanced view.
+- Datacore JSX dashboards summarize and organize existing vault records.
+- Local JavaScript actions support controlled updates without introducing a separate database.
+- Shared CSS keeps dashboards responsive and aligned with the active Obsidian theme.
+- Capture and enrichment flows prepare changes for review before filing them into the vault.
 
-## Architecture
+## How it works
 
-Obsidian stores the underlying notes. Datacore JSX renders local dashboards, JavaScript actions handle controlled mutations, and CSS adapts shared components to the active theme and available width.
+Obsidian stores the notes and links between them. Templates and structured fields give recurring records a consistent shape, while Bases and Datacore queries turn those records into focused lists and dashboards.
 
-## Workflow design
+When a workflow needs an update, local JavaScript actions operate on the same Markdown files. Approval-first capture keeps proposed data visible before it is written, which is useful when enrichment or categorization could be wrong. If a dashboard or script is unavailable, the source notes still carry the information in a readable form.
 
-Capture and enrichment flows prepare drafts for review instead of silently filing data. Bases, templates, note toolbars, and local scripts reuse the same Markdown records rather than introducing a separate database.
+## Project details
 
-## Constraints
-
-The system remains local-first, theme-aware, usable on mobile, and readable as ordinary Markdown when richer views are unavailable.
+- **Storage:** local Markdown files in Obsidian
+- **Automation:** local JavaScript actions and templates
