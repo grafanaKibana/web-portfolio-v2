@@ -20,10 +20,6 @@
   line-height: 1.7;
 }
 
-.summary p:not(:first-child) {
-  color: var(--muted-foreground);
-}
-
 .careerChapter + .careerChapter {
   margin-top: 1.75rem;
   padding-top: 1.75rem;

@@ -159,7 +159,7 @@ export function HomeSkills() {
             <ul className="m-0 mt-4.5 flex list-none flex-wrap justify-center gap-x-5.5 gap-y-3.5 p-0 md:gap-x-8 lg:mt-6.5 lg:gap-x-10 lg:gap-y-4.5">
               {group.skills.map((skill) => (
                 <li
-                  className="inline-flex items-center gap-2 text-sm leading-snug lg:gap-2.5 lg:text-base"
+                  className="inline-flex items-center gap-2 text-sm leading-snug text-content-foreground lg:gap-2.5 lg:text-base"
                   data-page-motion-item
                   data-slot="skill"
                   key={skill}

@@ -13,7 +13,7 @@ export default function ArticleNotFound() {
       className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 focus:outline-none lg:py-20"
     >
       <h1 className="text-4xl font-semibold tracking-tight">Article not found</h1>
-      <p className="mt-5 leading-7 text-muted-foreground">
+      <p className="mt-5 leading-7 text-content-foreground">
         The article you requested does not exist.
       </p>
       <Link

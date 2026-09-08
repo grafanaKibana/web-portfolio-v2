@@ -38,7 +38,7 @@ const components = {
    * @returns The styled paragraph.
    */
   p: (props: ComponentProps<"p">) => (
-    <p {...props} className="mt-6 leading-8 text-foreground" />
+    <p {...props} className="mt-6 leading-8 text-content-foreground" />
   ),
   /**
    * Applies spacing and markers to an MDX unordered list.
@@ -47,7 +47,7 @@ const components = {
    * @returns The styled unordered list.
    */
   ul: (props: ComponentProps<"ul">) => (
-    <ul {...props} className="mt-6 list-disc space-y-2 pl-6" />
+    <ul {...props} className="mt-6 list-disc space-y-2 pl-6 text-content-foreground" />
   ),
   /**
    * Applies spacing and markers to an MDX ordered list.
@@ -56,7 +56,7 @@ const components = {
    * @returns The styled ordered list.
    */
   ol: (props: ComponentProps<"ol">) => (
-    <ol {...props} className="mt-6 list-decimal space-y-2 pl-6" />
+    <ol {...props} className="mt-6 list-decimal space-y-2 pl-6 text-content-foreground" />
   ),
   /**
    * Applies the editorial accent rule to an MDX quotation.
@@ -67,7 +67,7 @@ const components = {
   blockquote: (props: ComponentProps<"blockquote">) => (
     <blockquote
       {...props}
-      className={clsx(styles.blockquote, "mt-6 border-l-2 border-accent-em pl-5")}
+      className={clsx(styles.blockquote, "mt-6 border-l-2 border-accent-em pl-5 text-content-foreground")}
     />
   ),
   /**
@@ -79,7 +79,7 @@ const components = {
   a: (props: ComponentProps<"a">) => (
     <a
       {...props}
-      className="rounded-sm font-medium text-foreground underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+      className="rounded-sm font-medium text-content-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
     />
   ),
   /**

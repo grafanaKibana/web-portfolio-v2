@@ -19,7 +19,7 @@ export function HomeAbout() {
         About
       </h2>
       <div className="flex flex-col gap-12 lg:grid lg:grid-cols-2 lg:gap-0" data-page-motion-row>
-        <div className={clsx(styles.summary, "flex flex-col")}>
+        <div className={clsx(styles.summary, "flex flex-col text-content-foreground")}>
           {profile.summary.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </div>
         <div className={clsx(styles.careerChapters, "flex flex-col")}>
@@ -29,7 +29,7 @@ export function HomeAbout() {
                 {chapter.meta}
               </p>
               <h3 className={styles.chapterTitle}>{chapter.title}</h3>
-              <p className={clsx(styles.chapterSummary, "text-muted-foreground")}>
+              <p className={clsx(styles.chapterSummary, "text-content-foreground")}>
                 {chapter.summary}
               </p>
             </div>
@@ -42,7 +42,7 @@ export function HomeAbout() {
             <dt className={clsx(styles.factLabel, "font-mono uppercase text-muted-foreground")}>
               {fact.label}
             </dt>
-            <dd className={styles.factValue}>{fact.value}</dd>
+            <dd className={clsx(styles.factValue, "text-content-foreground")}>{fact.value}</dd>
           </div>
         ))}
       </dl>

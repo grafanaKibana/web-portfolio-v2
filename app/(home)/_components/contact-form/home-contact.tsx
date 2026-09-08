@@ -34,7 +34,7 @@ export function HomeContact() {
       <div className={clsx(styles.content, "grid gap-12")}>
         <div data-page-motion-row>
           <h2 className={clsx(styles.title, "m-0 font-medium tracking-tight")} data-page-motion-trigger id="contact-heading">Let&apos;s talk</h2>
-          <p className={clsx(styles.description, "mt-3 max-w-md leading-relaxed text-muted-foreground lg:mt-4")}>
+          <p className={clsx(styles.description, "mt-3 max-w-md leading-relaxed text-content-foreground lg:mt-4")}>
             {contact.description}
           </p>
           <div className="mt-7 flex flex-col lg:mt-8">

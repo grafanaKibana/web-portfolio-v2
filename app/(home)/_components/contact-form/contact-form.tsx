@@ -74,7 +74,7 @@ export function ContactForm(props: ContactFormProps) {
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="contact-name">{labels.name}</label>
         <input
-          className={`${fieldClass} h-11 w-full`}
+          className={`${fieldClass} h-11 w-full placeholder:text-content-foreground`}
           id="contact-name"
           name="name"
           onChange={(event) => {
@@ -90,7 +90,7 @@ export function ContactForm(props: ContactFormProps) {
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="contact-email">{labels.email}</label>
         <input
-          className={`${fieldClass} h-11 w-full`}
+          className={`${fieldClass} h-11 w-full placeholder:text-content-foreground`}
           id="contact-email"
           name="email"
           onChange={(event) => {
@@ -107,7 +107,7 @@ export function ContactForm(props: ContactFormProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-2">
         <label className="text-sm font-medium" htmlFor="contact-message">{labels.message}</label>
         <textarea
-          className={`${fieldClass} min-h-28 w-full flex-1 resize-y`}
+          className={`${fieldClass} min-h-28 w-full flex-1 resize-y placeholder:text-content-foreground`}
           id="contact-message"
           name="message"
           onChange={(event) => {

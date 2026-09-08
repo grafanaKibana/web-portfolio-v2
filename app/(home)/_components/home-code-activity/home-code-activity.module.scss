@@ -57,12 +57,13 @@
 }
 
 .title {
-  color: var(--muted-foreground);
+  color: var(--content-foreground);
   transition: color 150ms;
 }
 
 .period {
   color: var(--muted-foreground);
+  transition: color 150ms;
 }
 
 .repository {
@@ -99,7 +100,7 @@
   white-space: nowrap;
 }
 
-.contribution:is(:hover, :focus-visible) .title {
+.contribution:is(:hover, :focus-visible) :is(.title, .period) {
   color: var(--foreground);
 }
 

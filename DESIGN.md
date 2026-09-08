@@ -55,13 +55,26 @@
 
 ## Visual language
 
-- Color: use a quiet neutral foundation with strong text contrast, subdued secondary text, and understated dividers. Dark mode should preserve the same hierarchy rather than becoming a separate visual theme. Exact colors come from code tokens.
+- Color: use a quiet neutral foundation with three text levels: foreground for anchors, content-foreground for sustained reading, and muted-foreground for supporting context. Dark mode preserves the same hierarchy rather than becoming a separate visual theme. Exact colors come from code tokens.
 - Accent use: descriptor rule, current timeline dot, merged status, article pull-quote rule, and selection. Avoid decorative accent fills; reserve gradients for semantic icon treatments and the Experience rail's present-to-history fade.
 - Typography: use a confident sans-serif for display, headings, and prose, with a monospaced secondary voice for dates, counts, code, and numbered labels. The hero should feel expressive, section headings clear, body copy comfortable, and metadata deliberately quiet. Exact families, sizes, weights, tracking, and line heights come from code tokens.
 - Measure and rhythm: favor generous outer whitespace, narrow readable prose, clear pauses between sections, and tighter spacing inside related content groups. Long-form pages should feel focused rather than stretched. Exact widths, gutters, and spacing come from code tokens.
 - Shape and depth: keep page surfaces flat, use dividers for structure, and reserve radius or shadow for controls and overlays that need affordance or separation. Shadows use neutral-black alpha in both themes and never derive elevation from foreground or other light colors. Sections are not cards.
 - Iconography: use Lucide interface icons with consistent outline weight and a subtle theme-aware semantic gradient. Technology and brand marks use a theme-aware solid brand color, a restrained two-color gradient when it suits the mark, or theSVG color variant only when the simpler treatments harm recognition. No emoji or unrelated substitute marks. Exact icon sizing comes from code tokens.
-- Motion: keep transitions brief, subtle, and purposeful. Movement should clarify readiness, disclosure, navigation, or state change without becoming a visual event. Each normal route may enter marked intro targets after the opening splash, then reveal each marked row once that row enters the viewport. Explicit nested items may stagger within a row; contribution-calendar squares, controls, and icons remain static. Project-index and pull-request rows may promote the description to foreground color. Desktop wheel and trackpad scrolling may use barely perceptible interpolation that settles promptly; touch remains native. Nothing parallaxes or replays on scroll; exact timing and easing come from code tokens.
+- Motion: keep transitions brief, subtle, and purposeful. Movement should clarify readiness, disclosure, navigation, or state change without becoming a visual event. Each normal route may enter marked intro targets after the opening splash, then reveal each marked row once that row enters the viewport. Explicit nested items may stagger within a row; contribution-calendar squares, controls, and icons remain static. Interactive rows may promote their L2 and L3 text to foreground while keeping L1 and semantic colors stable. Desktop wheel and trackpad scrolling may use barely perceptible interpolation that settles promptly; touch remains native. Nothing parallaxes or replays on scroll; exact timing and easing come from code tokens.
+
+### Text-color roles
+
+Use foreground, content-foreground, and muted-foreground in both themes. Color follows the content's purpose, not its HTML element.
+
+| Content role | Resting treatment | Hover and keyboard focus |
+| --- | --- | --- |
+| L1 anchor: page and section headings, names, job titles, repository names, and primary controls | Foreground | Stable |
+| L2 reading: prose, descriptions, summaries, quotes, and other content intended to be read | Content foreground | Promote to foreground only when it belongs to a real interactive row or link |
+| L3 support: dates, tags, labels, helpers, secondary navigation, and standalone secondary actions | Muted foreground | Promote to foreground only when the supporting text itself is interactive |
+| Embedded prose link | Content foreground, medium weight, permanent underline | Foreground with visible keyboard focus |
+
+Static text never changes color merely because a nearby container is hovered. Interactive rows may promote their L2 and L3 descendants together so the whole target responds consistently; stable L1 identity and semantic status colors do not change. Experience summaries and highlights are L2, while organization, period, and disclosure labels are L3. Pull-request titles are L2 and periods are L3; both promote with the row while repository identity stays L1. Project pagination keeps its L1 destination stable and promotes its L3 label and arrow. Preserve semantic status, syntax, brand, and primary-control colors as separate roles; do not use opacity to weaken neutral text contrast.
 
 ## Components
 

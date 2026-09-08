@@ -70,7 +70,7 @@ export function HomeHero() {
       </div>
       <h1 id="intro-heading" className={clsx(styles.heading, "m-0 font-medium")} data-page-motion-intro>
         <span className="block whitespace-nowrap">{home.hero.title}</span>
-        <span className="block whitespace-nowrap text-muted-foreground">{home.hero.lead}</span>
+        <span className="block whitespace-nowrap text-content-foreground">{home.hero.lead}</span>
       </h1>
       <div className={clsx(styles.descriptorSlot, "flex items-center justify-center")} data-page-motion-intro>
         <DescriptorRotation
@@ -84,7 +84,7 @@ export function HomeHero() {
           Download Résumé
         </PrimaryAction>
         <a
-          className={clsx(styles.secondaryAction, "group mt-1.5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md font-medium transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto")}
+          className={clsx(styles.secondaryAction, "group mt-1.5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto")}
           href="#experience"
         >
           Explore Experience
@@ -98,7 +98,7 @@ export function HomeHero() {
         {profile.links.map((link) => (
           <li key={link.href}>
             <a
-              className="text-ui-xs inline-flex min-h-11 items-center gap-2 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="text-ui-xs inline-flex min-h-11 items-center gap-2 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               href={link.href}
             >
               <Icon name={socialIconNames[link.label as keyof typeof socialIconNames]} className="size-3.5 opacity-65" />

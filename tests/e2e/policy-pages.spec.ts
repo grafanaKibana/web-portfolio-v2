@@ -42,6 +42,167 @@ const policyPages = [
   },
 ] as const;
 
+const policyViewports = [
+  { height: 844, label: "mobile", width: 390 },
+  { height: 900, label: "desktop", width: 1440 },
+] as const;
+
+const policyThemes = ["light", "dark"] as const;
+
+for (const policy of policyPages) {
+  for (const theme of policyThemes) {
+    for (const viewport of policyViewports) {
+      test(`${policy.path} separates headings, reading text, and metadata in ${theme} ${viewport.label}`, async ({ page }) => {
+        await page.setViewportSize(viewport);
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await page.addInitScript((selectedTheme) => {
+          localStorage.setItem("theme", selectedTheme);
+          sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+        }, theme);
+        await page.goto(policy.path);
+        const sections = page.locator("[data-page-motion-section]");
+        for (let index = 0; index < await sections.count(); index += 1) {
+          const section = sections.nth(index);
+          await section.getByRole("heading", { level: 2 }).evaluate((heading) => {
+            heading.scrollIntoView({ block: "center" });
+          });
+          await expect(section).toHaveAttribute("data-page-motion-revealed", "true");
+        }
+        await expect.poll(() => page.locator("[data-page-motion-section] > *").evaluateAll((targets) =>
+          targets.every((target) => getComputedStyle(target).opacity === "1"),
+        )).toBe(true);
+        await page.mouse.move(0, 0);
+
+        const colors = await page.locator("main#main > article").evaluate((article) => {
+          const heading = article.querySelector("section > h2");
+          const date = article.querySelector("header > p:nth-of-type(1)");
+          const summary = article.querySelector("header > p:nth-of-type(2)");
+          if (!heading || !date || !summary) throw new Error("Policy hierarchy must be measurable");
+
+          const paragraphs = Array.from(article.querySelectorAll("section > p")).filter((paragraph) =>
+            Array.from(paragraph.childNodes).some((node) =>
+              node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim()),
+            ),
+          );
+          const listItems = Array.from(article.querySelectorAll("section > ul > li"));
+
+          return {
+            body: [...paragraphs, ...listItems].map((element) => ({
+              color: getComputedStyle(element).color,
+              opacity: getComputedStyle(element).opacity,
+            })),
+            date: getComputedStyle(date).color,
+            foreground: getComputedStyle(heading).color,
+            listItemCount: listItems.length,
+            summary: getComputedStyle(summary).color,
+          };
+        });
+
+        expect(colors.body.length).toBeGreaterThan(0);
+        expect(colors.body.every((item) => item.color === colors.summary && item.opacity === "1")).toBe(true);
+        if (policy.path === "/accessibility") expect(colors.listItemCount).toBeGreaterThan(0);
+        expect(colors.date).not.toBe(colors.summary);
+        expect(colors.date).not.toBe(colors.foreground);
+        expect(colors.summary).not.toBe(colors.foreground);
+      });
+    }
+  }
+}
+
+for (const policy of [
+  { href: "mailto:reshetnik.nikita@gmail.com", path: "/privacy" },
+  { href: "mailto:reshetnik.nikita@gmail.com", path: "/terms" },
+  { href: "mailto:reshetnik.nikita@gmail.com", path: "/accessibility" },
+] as const) {
+  for (const theme of policyThemes) {
+    test(`${policy.path} promotes its embedded reading link on pointer and keyboard interaction in ${theme}`, async ({
+      page,
+      browserName,
+    }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.addInitScript((selectedTheme) => {
+        localStorage.setItem("theme", selectedTheme);
+        sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+      }, theme);
+      await page.goto(policy.path);
+      await page.mouse.move(0, 0);
+      const link = page.locator(`main#main a[href="${policy.href}"]`).first();
+      const foreground = await page.locator("main#main h2").first().evaluate((heading) => getComputedStyle(heading).color);
+      const readingColor = await page.locator("main#main section > p").first()
+        .evaluate((paragraph) => getComputedStyle(paragraph).color);
+
+      await expect(link).toHaveAttribute("href", policy.href);
+      await expect(link).toHaveCSS("color", readingColor);
+      await expect(link).toHaveCSS("font-weight", "500");
+      await expect(link).toHaveCSS("text-decoration-line", "underline");
+      await link.hover();
+      await expect(link).toHaveCSS("color", foreground);
+
+      await page.mouse.move(0, 0);
+      await page.locator("body").click({ position: { x: 1, y: 1 } });
+      const forward = browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab";
+      for (let index = 0; index < 80; index += 1) {
+        await page.keyboard.press(forward);
+        if (await link.evaluate((element) => element === document.activeElement)) break;
+      }
+      await expect(link).toBeFocused();
+      await expect(link).toHaveCSS("color", foreground);
+      await expect(link).not.toHaveCSS("outline-style", "none");
+    });
+  }
+}
+
+for (const policy of [
+  {
+    href: "https://vercel.com/docs/analytics/privacy-policy",
+    name: "Vercel Web Analytics privacy information",
+    path: "/privacy",
+  },
+  {
+    href: "https://www.w3.org/WAI/planning/statements/",
+    name: "W3C guidance on accessibility statements",
+    path: "/accessibility",
+  },
+  { href: "/llms.txt", name: "Open llms.txt", path: "/for-robots" },
+] as const) {
+  for (const theme of policyThemes) {
+    test(`${policy.path} keeps its standalone reference muted until hover or keyboard focus in ${theme}`, async ({
+      page,
+      browserName,
+    }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.addInitScript((selectedTheme) => {
+        localStorage.setItem("theme", selectedTheme);
+        sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+      }, theme);
+      await page.goto(policy.path);
+      await page.mouse.move(0, 0);
+      const link = page.getByRole("link", { name: policy.name });
+      const foreground = await page.locator("main#main h2").first().evaluate((heading) => getComputedStyle(heading).color);
+      const restingColor = await link.evaluate((element) => getComputedStyle(element).color);
+
+      await expect(link).toHaveAttribute("href", policy.href);
+      await expect(link).toHaveCSS("text-decoration-line", "underline");
+      expect(Math.round(await link.evaluate((element) => element.getBoundingClientRect().height)))
+        .toBeGreaterThanOrEqual(44);
+      expect(restingColor).not.toBe(foreground);
+      await link.hover();
+      await expect(link).toHaveCSS("color", foreground);
+
+      await page.mouse.move(0, 0);
+      await page.locator("body").click({ position: { x: 1, y: 1 } });
+      const forward = browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab";
+      for (let index = 0; index < 80; index += 1) {
+        await page.keyboard.press(forward);
+        if (await link.evaluate((element) => element === document.activeElement)) break;
+      }
+      await expect(link).toBeFocused();
+      await expect(link).toHaveCSS("color", foreground);
+      await expect(link).not.toHaveCSS("outline-style", "none");
+    });
+  }
+}
+
 test("the global footer exposes the exact site-information destinations", async ({ page }) => {
   for (const path of footerRoutes) {
     await page.goto(path);
@@ -149,6 +310,7 @@ test("footer links meet the touch-target and keyboard-focus contracts", async ({
   await page.goto("/privacy");
   const navigation = page.getByRole("navigation", { name: "Site information" });
   const links = navigation.getByRole("link");
+  const foreground = await page.locator("body").evaluate((body) => getComputedStyle(body).color);
   expect(await links.evaluateAll((items) => items.every((item) => item.getBoundingClientRect().height >= 44))).toBe(true);
 
   const forward = browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab";
@@ -157,6 +319,7 @@ test("footer links meet the touch-target and keyboard-focus contracts", async ({
     if (await links.first().evaluate((link) => link === document.activeElement)) break;
   }
   await expect(links.first()).toBeFocused();
+  await expect(links.first()).toHaveCSS("color", foreground);
   await expect(links.first()).not.toHaveCSS("outline-style", "none");
 });
 
@@ -196,11 +359,24 @@ test("policy pages preserve representative light-mobile and dark-desktop themes"
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("the accessibility statement and footer remain usable", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/accessibility");
-    await expect(page.locator("main#main")).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1, name: "Accessibility" })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Site information" })).toBeVisible();
-  });
+  for (const colorScheme of ["light", "dark"] as const) {
+    test(`the accessibility statement remains readable without JavaScript in system ${colorScheme}`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({ colorScheme });
+      await page.goto("/accessibility");
+      const main = page.locator("main#main");
+      const foreground = await main.getByRole("heading", { level: 2 }).first()
+        .evaluate((heading) => getComputedStyle(heading).color);
+      const summary = main.locator("header > p").nth(1);
+      const readingColor = await summary.evaluate((element) => getComputedStyle(element).color);
+
+      await expect(main).toBeVisible();
+      await expect(main.getByRole("heading", { level: 1, name: "Accessibility" })).toBeVisible();
+      expect(readingColor).not.toBe(foreground);
+      await expect(main.locator("section > p").first()).toHaveCSS("color", readingColor);
+      await expect(main.locator("section li").first()).toHaveCSS("color", readingColor);
+      await expect(summary).not.toHaveCSS("color", foreground);
+      await expect(page.getByRole("navigation", { name: "Site information" })).toBeVisible();
+    });
+  }
 });

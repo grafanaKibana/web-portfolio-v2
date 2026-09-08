@@ -32,6 +32,7 @@
 .experiencePeriod {
   font-size: 0.6875rem;
   line-height: 1.5;
+  transition: color 150ms;
 }
 
 .timelineDot {
@@ -66,13 +67,19 @@
 
 .organization {
   font-size: 0.75rem;
+  transition: color 150ms;
 }
 
 .roleSummary {
   max-width: 78ch;
   font-size: 0.875rem;
   line-height: 1.7;
-  color: var(--muted-foreground);
+  transition: color 150ms;
+}
+
+.experienceItem:has(.roleDetails):is(:hover, :has(.roleDetails summary:focus-visible))
+  :is(.experiencePeriod, .organization, .roleSummary, .roleDetails summary) {
+  color: var(--foreground);
 }
 
 .roleDetails summary {
@@ -133,7 +140,7 @@
 
 .highlights {
   max-width: 78ch;
-  color: var(--muted-foreground);
+  color: var(--content-foreground);
 }
 
 .highlights li {
@@ -240,6 +247,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .detailsContent,
+  .experiencePeriod,
+  .organization,
+  .roleSummary,
   .roleDetails::details-content,
   .detailsIcon {
     transition: none;

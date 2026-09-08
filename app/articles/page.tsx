@@ -38,7 +38,7 @@ export default async function ArticlesPage() {
                 href={`/articles/${slug}`}
               >
                 <article>
-                  <p className="font-mono text-xs text-muted-foreground">
+                  <p className="font-mono text-xs text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
                     <time dateTime={article.published}>
                       {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
                     </time>
@@ -47,7 +47,7 @@ export default async function ArticlesPage() {
                   <h2 data-page-motion-trigger id={`${slug}-article-title`} className="mt-3 break-words text-2xl font-semibold tracking-tight">
                     {article.title}
                   </h2>
-                  <p className="mt-3 max-w-3xl leading-7 text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+                  <p className="mt-3 max-w-3xl leading-7 text-content-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
                     {article.description}
                   </p>
                 </article>
@@ -56,7 +56,7 @@ export default async function ArticlesPage() {
           ))}
         </ul>
       ) : (
-        <p className="mt-10 leading-7 text-muted-foreground">No articles published yet.</p>
+        <p className="mt-10 leading-7 text-content-foreground">No articles published yet.</p>
       )}
     </main>
   );

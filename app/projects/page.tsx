@@ -34,11 +34,11 @@ export default async function ProjectsPage() {
                 <h2 data-page-motion-trigger id={`${slug}-project-title`} className="text-2xl font-semibold tracking-tight">
                   {project.title}
                 </h2>
-                <p className="mt-3 max-w-3xl leading-7 text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+                <p className="mt-3 max-w-3xl leading-7 text-content-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
                   {project.description}
                 </p>
                 {project.tags?.length ? (
-                  <p className="mt-3 font-mono text-xs text-muted-foreground" data-slot="project-technologies">
+                  <p className="mt-3 font-mono text-xs text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground" data-slot="project-technologies">
                     {project.tags.join(" · ")}
                   </p>
                 ) : null}

@@ -71,7 +71,7 @@ export default async function ArticlePage({
           <h1 className="mt-3 break-normal text-3xl font-semibold tracking-tight sm:text-5xl" data-page-motion-intro>
             {article.metadata.title}
           </h1>
-          <p className="mt-6 text-lg leading-8 text-muted-foreground" data-page-motion-intro>
+          <p className="mt-6 text-lg leading-8 text-content-foreground" data-page-motion-intro>
             {article.metadata.description}
           </p>
           {article.metadata.tags?.length ? (

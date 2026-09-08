@@ -90,7 +90,7 @@ export default async function ProjectPage({
               </div>
             ) : null}
           </div>
-          <p className="mt-5 text-lg leading-8 text-muted-foreground" data-page-motion-intro>
+          <p className="mt-5 text-lg leading-8 text-content-foreground" data-page-motion-intro>
             {project.metadata.description}
           </p>
           {project.metadata.tags?.length ? (
@@ -118,7 +118,7 @@ export default async function ProjectPage({
             data-slot="next-project"
             href={`/projects/${nextProject.slug}`}
           >
-            <span className="block font-mono text-xs uppercase tracking-route-kicker text-muted-foreground">
+            <span className="block font-mono text-xs uppercase tracking-route-kicker text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
               Next
             </span>
             <span className="mt-3 inline-flex items-center gap-3 text-2xl font-medium tracking-tight">

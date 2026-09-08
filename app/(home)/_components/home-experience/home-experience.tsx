@@ -44,7 +44,7 @@ export function HomeExperience() {
                     </p>
                   </div>
                 </div>
-                <p className={clsx(styles.roleSummary, "mt-3")}>
+                <p className={clsx(styles.roleSummary, "mt-3 text-content-foreground")}>
                   {experience.summary}
                 </p>
                 {experience.highlights.length > 0 && (
@@ -96,7 +96,7 @@ export function HomeExperience() {
                   <span aria-hidden="true" className="block text-[2rem] font-bold leading-none text-border">
                     “
                   </span>
-                  <p className="m-0 mt-4 text-base leading-7 text-muted-foreground">
+                  <p className="m-0 mt-4 text-base leading-7 text-content-foreground">
                     {recommendation.quote}
                   </p>
                 </blockquote>

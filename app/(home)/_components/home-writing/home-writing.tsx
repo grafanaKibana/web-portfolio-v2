@@ -45,7 +45,7 @@ export async function HomeWriting() {
                     className="group block py-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:py-5"
                     href={`/articles/${slug}`}
                   >
-                    <p className={clsx(styles.metadata, "font-mono text-muted-foreground lg:text-xs")}>
+                    <p className={clsx(styles.metadata, "font-mono text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground lg:text-xs")}>
                       <time dateTime={article.published}>
                         {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
                       </time>
@@ -54,7 +54,7 @@ export async function HomeWriting() {
                     <h3 className="mt-2.5 max-w-3xl break-words text-xl font-medium leading-tight tracking-tight">
                       {article.title}
                     </h3>
-                    <p className={clsx(styles.description, "mt-2.5 text-sm leading-relaxed text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground")}>
+                    <p className={clsx(styles.description, "mt-2.5 text-sm leading-relaxed text-content-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground")}>
                       {article.description}
                     </p>
                   </Link>
@@ -73,7 +73,7 @@ export async function HomeWriting() {
           </Link>
         </>
       ) : (
-        <p className="m-0 text-sm text-muted-foreground" data-page-motion-row>No articles published yet.</p>
+        <p className="m-0 text-sm text-content-foreground" data-page-motion-row>No articles published yet.</p>
       )}
     </section>
   );

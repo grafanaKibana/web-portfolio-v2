@@ -41,7 +41,7 @@ export async function HomeProjects() {
           <li className={clsx(styles.project, "border-t lg:first:border-t-0")} data-page-motion-row data-slot="home-project" key={slug}>
             <article className={styles.projectBody}>
               <h3 className={clsx(styles.projectTitle, "m-0 font-medium tracking-tight")}>{project.title}</h3>
-              <p className={clsx(styles.projectDescription, "m-0 mt-2.5 text-muted-foreground")}>
+              <p className={clsx(styles.projectDescription, "m-0 mt-2.5 text-content-foreground")}>
                 {project.description}
               </p>
               {project.tags?.length ? (

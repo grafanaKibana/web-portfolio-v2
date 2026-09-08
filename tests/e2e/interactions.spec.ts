@@ -669,27 +669,35 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
     }
     return {
       anchorColor: getComputedStyle(roleTitle).color,
-      contextColors: [period, organization, roleSummary, disclosure, firstHighlight]
-        .map((element) => getComputedStyle(element).color),
+      readingColors: [roleSummary, firstHighlight].map((element) => getComputedStyle(element).color),
+      supportColors: [period, organization, disclosure].map((element) => getComputedStyle(element).color),
     };
   });
-  expect(new Set(desktopHierarchy.contextColors).size).toBe(1);
-  expect(desktopHierarchy.contextColors[0]).not.toBe(desktopHierarchy.anchorColor);
+  expect(new Set(desktopHierarchy.readingColors).size).toBe(1);
+  expect(new Set(desktopHierarchy.supportColors).size).toBe(1);
+  expect(desktopHierarchy.readingColors[0]).not.toBe(desktopHierarchy.anchorColor);
+  expect(desktopHierarchy.supportColors[0]).not.toBe(desktopHierarchy.anchorColor);
+  expect(desktopHierarchy.readingColors[0]).not.toBe(desktopHierarchy.supportColors[0]);
   await desktopDetails.locator("summary").click();
   const desktopHighlights = await desktopDetails.locator("ul").boundingBox();
   const desktopDetailsBody = await desktopDetails.locator("..").boundingBox();
   if (!desktopHighlights || !desktopDetailsBody) throw new Error("Desktop highlights must be measurable");
   expect(desktopHighlights.width).toBeLessThan(desktopDetailsBody.width);
-  expect(await desktopDetails.evaluate((element) => {
-    const roleSummary = element.previousElementSibling;
+  await page.mouse.move(0, 0);
+  const expandedHighlight = await desktopDetails.evaluate((element) => {
     const firstHighlight = element.querySelector("li");
-    if (!roleSummary || !firstHighlight) throw new Error("Experience body text must be measurable");
+    if (!firstHighlight) throw new Error("Experience body text must be measurable");
     return {
-      colorsMatch: getComputedStyle(roleSummary).color === getComputedStyle(firstHighlight).color,
+      color: getComputedStyle(firstHighlight).color,
       display: getComputedStyle(firstHighlight).display,
       marker: getComputedStyle(firstHighlight, "::before").content,
     };
-  })).toEqual({ colorsMatch: true, display: "grid", marker: '"—"' });
+  });
+  expect(expandedHighlight).toEqual({
+    color: desktopHierarchy.readingColors[0],
+    display: "grid",
+    marker: '"—"',
+  });
   expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
 });
 
@@ -744,19 +752,27 @@ test("Experience disclosure uses native keyboard behavior and in-flow motion", a
   const roleTitleColor = await item.locator("h3").evaluate((element) => getComputedStyle(element).color);
   const contextColor = await item.locator('[data-slot="experience-period"]')
     .evaluate((element) => getComputedStyle(element).color);
+  const readingColor = await item.locator("article > p").evaluate((element) => getComputedStyle(element).color);
 
   expect(await details.evaluate((element) => getComputedStyle(element, "::details-content").transitionDuration))
     .toContain("0.2s");
   await expect(summary).toHaveCSS("color", contextColor);
-  await summary.hover();
+  expect(readingColor).not.toBe(contextColor);
+  await item.hover();
   await expect(summary).toHaveCSS("color", roleTitleColor);
+  await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", roleTitleColor);
+  await expect(item.locator("article > p")).toHaveCSS("color", roleTitleColor);
   await page.locator("#experience-heading").hover();
   await expect(summary).toHaveCSS("color", contextColor);
+  await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", contextColor);
+  await expect(item.locator("article > p")).toHaveCSS("color", readingColor);
   const closedNextTop = await details.evaluate((element) =>
     element.closest("li")?.nextElementSibling?.getBoundingClientRect().top,
   );
   await summary.focus();
   await expect(summary).toHaveCSS("color", roleTitleColor);
+  await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", roleTitleColor);
+  await expect(item.locator("article > p")).toHaveCSS("color", roleTitleColor);
   await page.keyboard.press("Space");
   await expect(details).toHaveAttribute("open", "");
   await page.locator("#experience-heading").click();
@@ -1243,8 +1259,9 @@ test("compact pull-request rows preserve geometry and wrapping through productio
           --accent-em: oklch(0.52 0.1 163);
           --background: oklch(0.98 0 0);
           --destructive: oklch(0.577 0.245 27.325);
-          --foreground: oklch(0.2 0 0);
-          --muted-foreground: oklch(0.5 0 0);
+          --foreground: #111111;
+          --content-foreground: #454545;
+          --muted-foreground: #727272;
         }
         * { box-sizing: border-box; }
         body { margin: 0; }
@@ -1379,28 +1396,34 @@ test("compact pull-request rows preserve geometry and wrapping through productio
     const restingColors = await hierarchy.evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color));
     const semanticColors = geometry.countColors;
-    expect(restingColors[1]).toBe(restingColors[2]);
     expect(restingColors[0]).not.toBe(restingColors[1]);
+    expect(restingColors[0]).not.toBe(restingColors[2]);
+    expect(restingColors[1]).not.toBe(restingColors[2]);
     await row.hover();
     await expect.poll(async () => {
       const colors = await hierarchy.evaluateAll((elements) =>
         elements.map((element) => getComputedStyle(element).color));
       return colors[0] === restingColors[0]
         && colors[1] === restingColors[0]
-        && colors[2] === restingColors[2];
+        && colors[2] === restingColors[0];
     }).toBe(true);
     expect(await row.locator(".additions, .deletions").evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color))).toEqual(semanticColors);
     await page.mouse.move(0, 0);
     await expect.poll(async () => hierarchy.evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color))).toEqual(restingColors);
-    await row.focus();
+    for (const key of ["Tab", "Alt+Tab"]) {
+      await page.keyboard.press(key);
+      if (await row.evaluate((element) => element === document.activeElement)) break;
+    }
+    await expect(row).toBeFocused();
+    expect(await row.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
     await expect.poll(async () => {
       const colors = await hierarchy.evaluateAll((elements) =>
         elements.map((element) => getComputedStyle(element).color));
       return colors[0] === restingColors[0]
         && colors[1] === restingColors[0]
-        && colors[2] === restingColors[2];
+        && colors[2] === restingColors[0];
     }).toBe(true);
     expect(await row.locator(".additions, .deletions").evaluateAll((elements) =>
       elements.map((element) => getComputedStyle(element).color))).toEqual(semanticColors);
@@ -1586,6 +1609,110 @@ test("Writing renders validated article metadata across responsive themes", asyn
   await expect(page.locator("#writing")).toBeVisible();
 });
 
+test("Home content families use the exact three semantic text levels", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const theme of ["light", "dark"] as const) {
+    await page.goto("/");
+    await page.evaluate((selectedTheme) => {
+      localStorage.setItem("theme", selectedTheme);
+      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    }, theme);
+    await page.reload();
+    const colors = await page.evaluate(() => {
+      const probes = ["text-foreground", "text-content-foreground", "text-muted-foreground"]
+        .map((className) => {
+          const probe = document.createElement("span");
+          probe.className = className;
+          document.body.append(probe);
+          return probe;
+        });
+      const resolved = probes.map((probe) => getComputedStyle(probe).color);
+      probes.forEach((probe) => {
+        probe.remove();
+      });
+      return resolved;
+    });
+    const [foreground, content, muted] = colors;
+    if (!foreground || !content || !muted) throw new Error("All neutral token probes must resolve");
+
+    await expect(page.locator("#intro-heading > span").first()).toHaveCSS("color", foreground);
+    await expect(page.locator("#intro-heading > span").nth(1)).toHaveCSS("color", content);
+    await expect(page.locator('section[aria-labelledby="intro-heading"] > div').first().locator("span").last())
+      .toHaveCSS("color", muted);
+
+    await expect(page.locator("#about h3").first()).toHaveCSS("color", foreground);
+    await expect(page.locator("#about > div p").first()).toHaveCSS("color", content);
+    await expect(page.locator("#about dt").first()).toHaveCSS("color", muted);
+    await expect(page.locator("#about dd").first()).toHaveCSS("color", content);
+
+    const recommendation = page.locator('[data-slot="experience-recommendations"]');
+    await expect(recommendation.locator("blockquote p").first()).toHaveCSS("color", content);
+    await expect(recommendation.locator('[data-slot="recommendation-author"]').first())
+      .toHaveCSS("color", foreground);
+    await expect(recommendation.locator('[data-slot="recommendation-position"]').first())
+      .toHaveCSS("color", muted);
+    await recommendation.locator('[data-slot="recommendation-track"]').hover();
+    await expect(recommendation.locator("blockquote p").first()).toHaveCSS("color", content);
+
+    const education = page.locator("#education");
+    const degree = education.locator('[data-slot="education-row-content"]').first();
+    await expect(degree.locator("p").first()).toHaveCSS("color", foreground);
+    await expect(degree.locator("p").nth(1)).toHaveCSS("color", muted);
+    await expect(education.locator('[data-slot="certification"] span').nth(1))
+      .toHaveCSS("color", foreground);
+
+    await expect(page.locator('#skills [data-slot="skill-group"] h3').first()).toHaveCSS("color", muted);
+    await expect(page.locator('#skills [data-slot="skill-label"]').first()).toHaveCSS("color", content);
+
+    const project = page.locator('#projects [data-slot="home-project"]').first();
+    await expect(project.locator("h3")).toHaveCSS("color", foreground);
+    await expect(project.locator("article > p")).toHaveCSS("color", content);
+    await expect(project.locator("article > ul")).toHaveCSS("color", muted);
+
+    const writingRow = page.locator('#writing a[href^="/articles/"]').first();
+    await expect(writingRow.locator("h3")).toHaveCSS("color", foreground);
+    await expect(writingRow.locator("p").first()).toHaveCSS("color", muted);
+    await expect(writingRow.locator("p").last()).toHaveCSS("color", content);
+    await writingRow.hover();
+    await expect(writingRow.locator("p").first()).toHaveCSS("color", foreground);
+    await expect(writingRow.locator("p").last()).toHaveCSS("color", foreground);
+  }
+});
+
+test("shell and footer links promote independently from supporting metadata", async ({ page, browserName }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  const foreground = await page.locator("body").evaluate((body) => getComputedStyle(body).color);
+  const navigationLink = page.locator('[data-slot="site-header"] a[href="/#about"]').first();
+  const footer = page.getByRole("contentinfo");
+  const footerLink = footer.getByRole("link").first();
+  const footerMetadata = footer.locator("p");
+  const supporting = await footerMetadata.evaluate((element) => getComputedStyle(element).color);
+
+  await expect(navigationLink).toHaveCSS("color", supporting);
+  await navigationLink.hover();
+  await expect(navigationLink).toHaveCSS("color", foreground);
+  await expect(footerMetadata).toHaveCSS("color", supporting);
+  await footerLink.hover();
+  await expect(footerLink).toHaveCSS("color", foreground);
+  await expect(footerMetadata).toHaveCSS("color", supporting);
+
+  await page.mouse.move(0, 0);
+  await page.goto("/");
+  const forward = browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab";
+  for (let index = 0; index < 30; index += 1) {
+    await page.keyboard.press(forward);
+    if (await navigationLink.evaluate((element) => element === document.activeElement)) break;
+  }
+  await expect(navigationLink).toBeFocused();
+  await expect(navigationLink).toHaveCSS("color", foreground);
+});
+
 test("Contact exposes its inactive and partially complete requirements", async ({ page }) => {
   await page.goto("/#contact");
   const contact = page.locator("#contact");
@@ -1617,6 +1744,59 @@ test("Contact keeps a visible keyboard focus indicator", async ({ page }) => {
     return style.borderColor === style.color;
   })).toBe(true);
   expect(await name.evaluate((input) => getComputedStyle(input).borderColor)).not.toBe(restingBorder);
+});
+
+test("Contact placeholders use the reading level in both themes", async ({ page }) => {
+  for (const theme of ["light", "dark"] as const) {
+    await page.addInitScript((selectedTheme) => {
+      localStorage.setItem("theme", selectedTheme);
+      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    }, theme);
+    await page.goto("/#contact");
+    const contact = page.locator("#contact");
+    const foreground = await contact.getByRole("heading", { level: 2 })
+      .evaluate((heading) => getComputedStyle(heading).color);
+    const readingColor = await contact.locator("h2 + p")
+      .evaluate((paragraph) => getComputedStyle(paragraph).color);
+    const supportColor = await contact.locator(":scope > p").first()
+      .evaluate((paragraph) => getComputedStyle(paragraph).color);
+    const placeholderColor = await contact.getByRole("textbox", { name: "Name" })
+      .evaluate((input) => getComputedStyle(input, "::placeholder").color);
+    const placeholderContrast = await contact.getByRole("textbox", { name: "Name" }).evaluate((input) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Canvas color resolution must be available");
+      context.fillStyle = getComputedStyle(document.body).backgroundColor;
+      context.fillRect(0, 0, 1, 1);
+      context.fillStyle = getComputedStyle(input).backgroundColor;
+      context.fillRect(0, 0, 1, 1);
+      const background = [...context.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+      const foreground = getComputedStyle(input, "::placeholder").color.match(/[\d.]+/g)
+        ?.slice(0, 3).map(Number);
+      if (!foreground || foreground.length !== 3) throw new Error("Placeholder color must resolve to RGB");
+      /**
+       * Converts resolved sRGB channels to relative luminance.
+       *
+       * @param channels - Red, green, and blue channels from zero to 255.
+       * @returns The relative luminance.
+       */
+      const luminance = (channels: number[]) => channels
+        .map((channel) => channel / 255)
+        .map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+        .reduce((total, channel, index) => total + channel * ([0.2126, 0.7152, 0.0722][index] ?? 0), 0);
+      const lighter = Math.max(luminance(foreground), luminance(background));
+      const darker = Math.min(luminance(foreground), luminance(background));
+      return (lighter + 0.05) / (darker + 0.05);
+    });
+
+    expect(readingColor).not.toBe(foreground);
+    expect(supportColor).not.toBe(foreground);
+    expect(readingColor).not.toBe(supportColor);
+    expect(placeholderColor).toBe(readingColor);
+    expect(placeholderContrast).toBeGreaterThanOrEqual(4.5);
+  }
 });
 
 test("Contact links use the shared muted hover treatment", async ({ page }) => {
@@ -2603,6 +2783,14 @@ test("real Tab focus exposes representative Projects, Writing, and Contact contr
       return row !== null && getComputedStyle(row).opacity === "1" && getComputedStyle(row).transform === "none";
     })).toBe(true);
   }
+
+  const foreground = await page.locator("body").evaluate((body) => getComputedStyle(body).color);
+  const writingRow = page.locator("#writing a").first();
+  await page.locator('#code a, #code [data-slot="contribution-day"][tabindex="0"]').last().focus();
+  await page.keyboard.press(browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab");
+  await expect(writingRow).toBeFocused();
+  await expect(writingRow.locator("p").first()).toHaveCSS("color", foreground);
+  await expect(writingRow.locator("p").last()).toHaveCSS("color", foreground);
 });
 
 test("Page motion recovers focus that predates its listener", async ({ page }) => {

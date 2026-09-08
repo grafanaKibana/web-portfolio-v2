@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import test from "node:test"
 
 const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8")
+const mdxComponents = readFileSync(new URL("../mdx-components.tsx", import.meta.url), "utf8")
 const codeActivityCss = readFileSync(
   new URL("../app/(home)/_components/home-code-activity/home-code-activity.module.scss", import.meta.url),
   "utf8",
@@ -24,6 +25,50 @@ function token(selector: string, name: string): [number, number, number] {
   assert.equal(channels.length, 3, `Expected three OKLCH channels for --${name} in ${selector}`)
   assert.ok(channels.every(Number.isFinite), `Expected numeric OKLCH channels for --${name} in ${selector}`)
   return channels as [number, number, number]
+}
+
+/**
+ * Reads one six-digit hexadecimal token from a theme selector.
+ *
+ * @param selector - Theme selector containing the token.
+ * @param name - CSS custom-property name without its prefix.
+ * @returns The normalized hexadecimal color.
+ */
+function hexToken(selector: string, name: string) {
+  const section = css.match(new RegExp(`${selector.replace(".", "\\.")} \\{([\\s\\S]*?)\\n\\}`))?.[1]
+  const value = section?.match(new RegExp(`--${name}: (#[0-9a-fA-F]{6});`))?.[1]
+  assert.ok(value, `Missing hexadecimal --${name} in ${selector}`)
+  return value.toLowerCase()
+}
+
+/**
+ * Converts a six-digit sRGB hexadecimal color to relative luminance.
+ *
+ * @param value - Hexadecimal color.
+ * @returns The relative luminance.
+ */
+function hexLuminance(value: string) {
+  assert.match(value, /^#[0-9a-f]{6}$/i, "Expected a six-digit hexadecimal color")
+  const channels = value.match(/[0-9a-f]{2}/gi)?.map((channel) => Number.parseInt(channel, 16) / 255)
+  assert.equal(channels?.length, 3)
+  const [red = 0, green = 0, blue = 0] = channels.map((channel) =>
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+}
+
+/**
+ * Calculates contrast between a hexadecimal text token and an OKLCH background token.
+ *
+ * @param foreground - Hexadecimal foreground color.
+ * @param background - Background OKLCH channels.
+ * @returns The contrast ratio.
+ */
+function hexContrast(foreground: string, background: [number, number, number]) {
+  const foregroundLuminance = hexLuminance(foreground)
+  const backgroundLuminance = luminance(background)
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance)
+  const darker = Math.min(foregroundLuminance, backgroundLuminance)
+  return (lighter + 0.05) / (darker + 0.05)
 }
 
 /**
@@ -69,10 +114,28 @@ function contrast(foreground: [number, number, number], background: [number, num
 }
 
 test("text and primary button colors meet WCAG AA contrast", () => {
-  assert.ok(contrast(token(":root", "muted-foreground"), token(":root", "background")) >= 4.5)
-  assert.ok(contrast(token(".dark", "muted-foreground"), token(".dark", "background")) >= 4.5)
+  for (const selector of [":root", ".dark"] as const) {
+    const background = token(selector, "background")
+    assert.ok(hexContrast(hexToken(selector, "foreground"), background) >= 7)
+    assert.ok(hexContrast(hexToken(selector, "content-foreground"), background) >= 7)
+    assert.ok(hexContrast(hexToken(selector, "muted-foreground"), background) >= 4.5)
+  }
   assert.ok(contrast(token(".dark", "accent-em"), token(".dark", "background")) >= 4.5)
   assert.ok(contrast(token(".dark", "primary-foreground"), token(".dark", "primary")) >= 4.5)
+})
+
+test("hex color checks retain a known contrast baseline and reject invalid input", () => {
+  assert.equal(hexContrast("#000000", [1, 0, 0]), 21)
+  assert.throws(() => hexLuminance("not-a-color"), /six-digit hexadecimal/)
+  assert.throws(() => hexToken(":root", "missing-token"), /Missing hexadecimal/)
+})
+
+test("shared MDX prose links own the content-to-foreground interaction contract", () => {
+  assert.match(
+    mdxComponents,
+    /className="[^"]*text-content-foreground[^"]*hover:text-foreground[^"]*focus-visible:text-foreground[^"]*"/,
+  )
+  assert.match(mdxComponents, /underline underline-offset-4/)
 })
 
 test("semantic emerald and selection styles share the approved accent role", () => {
@@ -115,8 +178,8 @@ test("pull-request status icons retain distinct accessible theme colors", () => 
   assert.ok(lightUnderReview && darkUnderReview)
   assert.ok(contrast(token(":root", "accent-em"), token(":root", "background")) >= 3)
   assert.ok(contrast(token(".dark", "accent-em"), token(".dark", "background")) >= 3)
-  assert.ok(contrast(token(":root", "muted-foreground"), token(":root", "background")) >= 3)
-  assert.ok(contrast(token(".dark", "muted-foreground"), token(".dark", "background")) >= 3)
+  assert.ok(hexContrast(hexToken(":root", "muted-foreground"), token(":root", "background")) >= 3)
+  assert.ok(hexContrast(hexToken(".dark", "muted-foreground"), token(".dark", "background")) >= 3)
   assert.ok(contrast(lightUnderReview, token(":root", "background")) >= 3)
   assert.ok(contrast(darkUnderReview, token(".dark", "background")) >= 3)
 })
@@ -143,13 +206,16 @@ test("no-JavaScript system dark tokens stay aligned with the explicit dark theme
 
 test("light and dark neutral tokens match the supplied design system", () => {
   assert.deepEqual(token(":root", "background"), [1, 0, 0])
-  assert.deepEqual(token(":root", "foreground"), [0, 0, 0])
+  assert.equal(hexToken(":root", "foreground"), "#111111")
+  assert.equal(hexToken(":root", "content-foreground"), "#454545")
   assert.deepEqual(token(":root", "primary"), [0, 0, 0])
   assert.deepEqual(token(":root", "primary-foreground"), [0.985, 0, 0])
-  assert.deepEqual(token(":root", "muted-foreground"), [0.556, 0, 0])
+  assert.equal(hexToken(":root", "muted-foreground"), "#727272")
   assert.deepEqual(token(".dark", "background"), [0.145, 0, 0])
-  assert.deepEqual(token(".dark", "foreground"), [0.985, 0, 0])
+  assert.equal(hexToken(".dark", "foreground"), "#fafafa")
+  assert.equal(hexToken(".dark", "content-foreground"), "#b8b8b8")
   assert.deepEqual(token(".dark", "primary"), [0.922, 0, 0])
   assert.deepEqual(token(".dark", "primary-foreground"), [0.205, 0, 0])
-  assert.deepEqual(token(".dark", "muted-foreground"), [0.708, 0, 0])
+  assert.equal(hexToken(".dark", "muted-foreground"), "#939393")
+  assert.match(css, /--color-content-foreground:\s*var\(--content-foreground\)/)
 })

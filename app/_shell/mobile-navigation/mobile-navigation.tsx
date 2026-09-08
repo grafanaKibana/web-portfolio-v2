@@ -170,7 +170,7 @@ export function MobileNavigation({
           </Link>
         </div>
         <Link
-          className="text-ui-xs inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-1.5 font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="text-ui-xs inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-1.5 font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           data-slot="detail-back-link"
           href={detailRoute.backHref}
         >
@@ -205,7 +205,7 @@ export function MobileNavigation({
           return (
             <a
               aria-current={current ? "location" : undefined}
-              className={clsx("rounded-sm py-3 transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", current && "font-semibold text-foreground")}
+              className={clsx("rounded-sm py-3 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", current && "font-semibold text-foreground")}
               href={`/${item.href}`}
               key={item.href}
             >
@@ -217,7 +217,7 @@ export function MobileNavigation({
       <Dialog.Root modal open={open} onOpenChange={setOpen}>
         <Dialog.Trigger
           aria-label={triggerLabel}
-          className={clsx(styles.trigger, "text-ui-xs invisible absolute left-1/2 inline-flex h-11 -translate-x-1/2 items-center rounded-sm bg-transparent pl-1.5 pr-1 font-medium opacity-0 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:hidden")}
+          className={clsx(styles.trigger, "text-ui-xs invisible absolute left-1/2 inline-flex h-11 -translate-x-1/2 items-center rounded-sm bg-transparent pl-1.5 pr-1 font-medium text-muted-foreground opacity-0 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:hidden")}
           data-visible={visible}
         >
           {activeLabel ?? defaultSectionLabel}
@@ -236,7 +236,7 @@ export function MobileNavigation({
             <Dialog.Title className="sr-only">{triggerLabel}</Dialog.Title>
             <Dialog.Close
               aria-label={closeLabel}
-              className={clsx(styles.close, "inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
+              className={clsx(styles.close, "inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
             >
               <X aria-hidden="true" className="size-ui-icon" />
             </Dialog.Close>
@@ -250,7 +250,7 @@ export function MobileNavigation({
                 return (
                   <a
                     aria-current={current ? "location" : undefined}
-                    className={clsx(styles.link, "text-ui-xs flex min-h-11 items-center justify-between rounded-sm px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", current && "font-medium text-foreground")}
+                    className={clsx(styles.link, "text-ui-xs flex min-h-11 items-center justify-between rounded-sm px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", current && "font-medium text-foreground")}
                     href={`/${item.href}`}
                     key={item.href}
                     onClick={() => {
@@ -269,7 +269,7 @@ export function MobileNavigation({
       <noscript>
         <details className="text-ui-xs absolute left-1/2 top-2 z-50 w-54 -translate-x-1/2 xl:hidden">
           <summary
-            className={clsx(headerStyles.summary, "flex min-h-11 cursor-pointer list-none items-center justify-center font-medium")}
+            className={clsx(headerStyles.summary, "flex min-h-11 cursor-pointer list-none items-center justify-center font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground")}
           >
             {triggerLabel}
           </summary>
@@ -280,7 +280,7 @@ export function MobileNavigation({
             {items.map((item) => (
               <a
                 key={item.href}
-                className="flex min-h-11 items-center rounded-sm px-2.5 text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="flex min-h-11 items-center rounded-sm px-2.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 href={`/${item.href}`}
               >
                 {item.label}

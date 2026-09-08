@@ -2,6 +2,101 @@ import { expect, test } from "@playwright/test";
 
 const missingRouteFamilies = ["articles", "projects"];
 
+for (const collection of [
+  {
+    description: "article > p:nth-of-type(2)",
+    metadata: "article > p:nth-of-type(1)",
+    path: "/articles",
+    row: "article-row",
+  },
+  {
+    description: "article > p:nth-of-type(1)",
+    metadata: '[data-slot="project-technologies"]',
+    path: "/projects",
+    row: "project-row",
+  },
+] as const) {
+  test(`${collection.path} separates row identity, reading text, and metadata while secondary levels promote`, async ({ page, browserName }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(collection.path);
+    const row = page.locator(`[data-slot="${collection.row}"]`).first();
+    const title = row.getByRole("heading", { level: 2 });
+    const description = row.locator(collection.description);
+    const metadata = row.locator(collection.metadata);
+    const [foreground, content, muted] = await page.evaluate(() => {
+      const probes = ["text-foreground", "text-content-foreground", "text-muted-foreground"]
+        .map((className) => {
+          const probe = document.createElement("span");
+          probe.className = className;
+          document.body.append(probe);
+          return probe;
+        });
+      const resolved = probes.map((probe) => getComputedStyle(probe).color);
+      probes.forEach((probe) => {
+        probe.remove();
+      });
+      return resolved;
+    });
+    if (!foreground || !content || !muted) throw new Error("All neutral token probes must resolve");
+    const titleColor = await title.evaluate((element) => getComputedStyle(element).color);
+    const descriptionColor = await description.evaluate((element) => getComputedStyle(element).color);
+    const metadataColor = await metadata.evaluate((element) => getComputedStyle(element).color);
+
+    expect(titleColor).toBe(foreground);
+    expect(descriptionColor).toBe(content);
+    expect(metadataColor).toBe(muted);
+
+    await row.hover();
+    await expect(description).toHaveCSS("color", foreground);
+    await expect(title).toHaveCSS("color", titleColor);
+    await expect(metadata).toHaveCSS("color", foreground);
+
+    await page.mouse.move(0, 0);
+    const forward = browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab";
+    for (let index = 0; index < 80; index += 1) {
+      await page.keyboard.press(forward);
+      if (await row.evaluate((element) => element === document.activeElement)) break;
+    }
+    await expect(row).toBeFocused();
+    await expect(description).toHaveCSS("color", foreground);
+    await expect(title).toHaveCSS("color", titleColor);
+    await expect(metadata).toHaveCSS("color", foreground);
+  });
+}
+
+for (const detail of [
+  {
+    body: "main#main article > div p",
+    path: "/articles/building-an-llm-evaluation-harness",
+    summary: "main#main article > header > p:nth-of-type(2)",
+  },
+  {
+    body: "main#main article > div p",
+    path: "/projects/devbook",
+    summary: "main#main article > header > p:nth-of-type(1)",
+  },
+] as const) {
+  test(`${detail.path} keeps long-form prose and its hero summary at the reading level`, async ({ page }) => {
+    await page.goto(detail.path);
+    const foreground = await page.locator("body").evaluate((body) => getComputedStyle(body).color);
+    const body = page.locator(detail.body).first();
+    const summary = page.locator(detail.summary);
+
+    const readingColor = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      probe.className = "text-content-foreground";
+      document.body.append(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    });
+    expect(readingColor).not.toBe(foreground);
+    await expect(body).toHaveCSS("color", readingColor);
+    await expect(body).toHaveCSS("opacity", "1");
+    await expect(summary).toHaveCSS("color", readingColor);
+  });
+}
+
 test("every article index link resolves to a static semantic article", async ({ page }) => {
   await page.goto("/articles");
   const hrefs = await page.locator('[data-slot="article-row"]').evaluateAll((links) =>
@@ -132,6 +227,23 @@ test("project case studies link to the next discovered case study", async ({ pag
   const nextLink = pagination.locator('[data-slot="next-project"]');
   await expect(nextLink).toHaveAttribute("href", secondHref);
   await expect(nextLink).toContainText(secondTitle.trim());
+
+  const foreground = await page.locator("body").evaluate((body) => getComputedStyle(body).color);
+  const label = nextLink.locator(":scope > span").first();
+  const destination = nextLink.locator(":scope > span").nth(1);
+  const arrow = destination.locator("svg");
+  const mutedColor = await label.evaluate((element) => getComputedStyle(element).color);
+  await expect(destination).toHaveCSS("color", foreground);
+  await expect(arrow).toHaveCSS("color", mutedColor);
+  expect(mutedColor).not.toBe(foreground);
+  await nextLink.hover();
+  await expect(arrow).toHaveCSS("color", foreground);
+  await expect(label).toHaveCSS("color", foreground);
+  await expect(destination).toHaveCSS("color", foreground);
+  await page.mouse.move(0, 0);
+  await nextLink.focus();
+  await expect(arrow).toHaveCSS("color", foreground);
+  await expect(label).toHaveCSS("color", foreground);
 
   await nextLink.click();
   await expect(page).toHaveURL(new RegExp(`${secondHref}$`));
