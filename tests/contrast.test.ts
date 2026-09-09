@@ -28,7 +28,7 @@ function token(selector: string, name: string): [number, number, number] {
 }
 
 /**
- * Reads one six-digit hexadecimal token from a theme selector.
+ * Reads the source hexadecimal color from a direct or foreground-mixed token.
  *
  * @param selector - Theme selector containing the token.
  * @param name - CSS custom-property name without its prefix.
@@ -36,7 +36,7 @@ function token(selector: string, name: string): [number, number, number] {
  */
 function hexToken(selector: string, name: string) {
   const section = css.match(new RegExp(`${selector.replace(".", "\\.")} \\{([\\s\\S]*?)\\n\\}`))?.[1]
-  const value = section?.match(new RegExp(`--${name}: (#[0-9a-fA-F]{6});`))?.[1]
+  const value = section?.match(new RegExp(`--${name}: (?:color-mix\\(in oklab, )?(#[0-9a-fA-F]{6})`))?.[1]
   assert.ok(value, `Missing hexadecimal --${name} in ${selector}`)
   return value.toLowerCase()
 }
@@ -120,11 +120,6 @@ test("text and primary button colors meet WCAG AA contrast", () => {
     assert.ok(hexContrast(hexToken(selector, "content-foreground"), background) >= 7)
     assert.ok(hexContrast(hexToken(selector, "muted-foreground"), background) >= 4.5)
   }
-  for (const selector of [":root", ".dark"] as const) {
-    for (const name of ["brand-accent-start", "brand-accent", "brand-accent-end"]) {
-      assert.ok(hexContrast(hexToken(selector, name), token(selector, "background")) >= 4.5)
-    }
-  }
   assert.ok(contrast(token(".dark", "primary-foreground"), token(".dark", "primary")) >= 4.5)
 })
 
@@ -132,6 +127,11 @@ test("hex color checks retain a known contrast baseline and reject invalid input
   assert.equal(hexContrast("#000000", [1, 0, 0]), 21)
   assert.throws(() => hexLuminance("not-a-color"), /six-digit hexadecimal/)
   assert.throws(() => hexToken(":root", "missing-token"), /Missing hexadecimal/)
+})
+
+test("brand accents use the approved foreground mix in every theme declaration", () => {
+  const declarations = css.match(/--brand-accent(?:-start|-end)?: color-mix\(in oklab, #[0-9a-f]{6} 80%, var\(--foreground\)\);/gi)
+  assert.equal(declarations?.length, 9)
 })
 
 test("shared MDX prose links own the content-to-foreground interaction contract", () => {

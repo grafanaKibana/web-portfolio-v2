@@ -24,7 +24,7 @@ export function HomeExperience() {
             <ExperienceItem className={clsx(styles.experienceItem, "relative pb-10 last:pb-0 md:grid md:pb-14")} key={`${experience.organization}-${experience.role}-${experience.period}`}>
               {index === 0 && (
                 <span aria-hidden="true" className={clsx(styles.timelineDot, styles.timelineDotCurrent, "pointer-events-none z-10")} data-slot="timeline-dot">
-                  <Navigation2 className="absolute top-1/2 left-1/2 size-5 -translate-1/2 fill-background" />
+                  <Navigation2 className="absolute top-1/2 left-1/2 size-5 -translate-1/2 fill-background" data-slot="timeline-icon" />
                 </span>
               )}
               <p className={clsx(styles.experiencePeriod, "relative mb-2.5 flex self-start items-center gap-x-2 font-mono text-muted-foreground md:m-0 md:min-h-12 md:flex-col md:items-end md:justify-center md:gap-0 md:pr-8 md:text-right")} data-slot="experience-period" data-page-motion-item={index === 0 ? "" : undefined}>

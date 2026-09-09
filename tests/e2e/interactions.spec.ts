@@ -724,7 +724,7 @@ test(`Experience present marker flies once up its revealing rail at ${String(wid
 
   expect(railBackground).toContain("linear-gradient");
   expect(railBackground).toContain(markerColor);
-  await expect(currentDot.locator(".lucide-navigation-2")).toBeVisible();
+  await expect(currentDot.locator('[data-slot="timeline-icon"]')).toBeVisible();
   await expect(currentDot).toHaveCSS("animation-name", /timeline-flight/);
   for (const time of [0, 600, 1200]) {
     const alignment = await timeline.evaluate((element, currentTime) => {
@@ -2043,7 +2043,6 @@ for (const theme of ["light", "dark"] as const) {
     await page.goto("/");
     const descriptor = page.locator('[data-slot="hero-descriptor"]');
     const rotation = descriptor.locator("..");
-    const glow = page.locator('[data-slot="hero-descriptor-glow"]');
     const heading = page.locator("#intro-heading");
     const availabilityDot = page.locator('[data-slot="availability-dot"]');
     const availability = availabilityDot.locator("..");
@@ -2066,15 +2065,7 @@ for (const theme of ["light", "dark"] as const) {
     await expect(descriptor).toHaveCSS("filter", "none");
     await expect(descriptor).toHaveCSS("text-shadow", "none");
     await expect(rotation).toHaveCSS("filter", "none");
-    await expect(glow).toHaveAttribute("aria-hidden", "true");
-    if (theme === "light") {
-      await expect(glow).toBeHidden();
-    } else {
-      await expect(glow).toBeVisible();
-      await expect(glow).toHaveCSS("filter", "none");
-      await expect(glow).not.toHaveCSS("text-shadow", "none");
-      await expect(glow).toHaveCSS("opacity", "0.65");
-    }
+    await expect(page.locator('[data-slot="hero-descriptor-glow"]')).toHaveCount(0);
     await expect(heading).toHaveCSS("background-image", "none");
     await expect(availability).toHaveCSS("background-image", /linear-gradient/);
     await expect(availabilityStatus).toHaveCSS("background-image", "none");
@@ -2086,7 +2077,8 @@ for (const theme of ["light", "dark"] as const) {
       await expect(dot).toHaveCSS("background-image", "none");
       await expect(dot).toHaveCSS("border-color", await dot.locator("..").evaluate((element) => getComputedStyle(element).color));
     }
-    await expect(currentDot.locator(".lucide-navigation-2")).toBeVisible();
+    await timeline.evaluate((element) => { element.scrollIntoView({ block: "start", behavior: "instant" }); });
+    await expect(currentDot.locator('[data-slot="timeline-icon"]')).toBeVisible();
     await expect(currentDot).toHaveCSS("background-image", "none");
     await expect(mergedStatus).toHaveCSS("stroke", successColor);
     await expect(additions).toHaveCSS("background-image", "none");
@@ -2170,7 +2162,7 @@ for (const theme of ["light", "dark"] as const) {
       .not.toBe(availabilityBefore);
     expect(await timeline.evaluate((element) => getComputedStyle(element, "::before").backgroundImage))
       .toMatch(directGradient);
-    await expect(currentDot).toHaveCSS("background-image", directGradient);
+    await expect(currentDot).toHaveCSS("color", accent);
     await expect(mergedStatus).toHaveCSS("stroke", successColor);
     await expect(additions).toHaveCSS("color", successColor);
     await expect(additions).toHaveCSS("background-image", "none");
@@ -2214,7 +2206,7 @@ for (const theme of ["light", "dark"] as const) {
       await page.emulateMedia({ forcedColors: "active" });
       await expect(descriptor).toHaveCSS("background-image", "none");
       await expect(descriptor).not.toHaveCSS("color", "rgba(0, 0, 0, 0)");
-      await expect(glow).toBeHidden();
+      await expect(page.locator('[data-slot="hero-descriptor-glow"]')).toHaveCount(0);
       await expect(name).toBeFocused();
       await expect(name).toHaveCSS("border-style", "solid");
       await expect(name).not.toHaveCSS("border-color", "rgba(0, 0, 0, 0)");
@@ -2233,39 +2225,6 @@ for (const theme of ["light", "dark"] as const) {
     await expect(quote).toHaveCSS("border-image-source", directGradient);
   });
 }
-
-test("Jade descriptor glow follows system changes and explicit light overrides", async ({ page, browser }) => {
-  await page.emulateMedia({ colorScheme: "dark" });
-  await page.addInitScript(() => {
-    localStorage.setItem("theme", "system");
-    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-  });
-  await page.goto("/");
-  const glow = page.locator('[data-slot="hero-descriptor-glow"]');
-  const toggle = page.locator('[data-slot="theme-toggle"]');
-  await expect(glow).toBeVisible();
-  await toggle.click(); // Explicit light overrides the dark system preference.
-  await expect(glow).toBeHidden();
-  await toggle.click(); // Explicit dark restores the approved glow.
-  await expect(glow).toBeVisible();
-  await toggle.click(); // System follows subsequent preference changes.
-  await page.emulateMedia({ colorScheme: "light" });
-  await expect(glow).toBeHidden();
-  await page.emulateMedia({ colorScheme: "dark" });
-  await expect(glow).toBeVisible();
-
-  for (const colorScheme of ["light", "dark"] as const) {
-    const fallback = await browser.newPage({ javaScriptEnabled: false, colorScheme });
-    try {
-      await fallback.goto(new URL("/", page.url()).href);
-      await expect(fallback.locator('[data-slot="hero-descriptor"]')).toHaveText("AI Engineer");
-      await expect(fallback.locator('[data-slot="hero-descriptor-glow"]'))
-        .toBeVisible({ visible: colorScheme === "dark" });
-    } finally {
-      await fallback.close();
-    }
-  }
-});
 
 test("descriptor follows the reference timing and reduced-motion animation", async ({ page }) => {
   await page.goto("/");

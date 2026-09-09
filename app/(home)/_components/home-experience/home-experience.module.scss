@@ -20,6 +20,8 @@
   position: absolute;
   inset: 8.5px auto 0.5rem 0.25rem;
   width: 1px;
+  content: "";
+  pointer-events: none;
   background: linear-gradient(
     to bottom in oklab,
     var(--brand-accent-start),
@@ -27,7 +29,6 @@
     var(--brand-accent-end) 6rem,
     var(--border) 12rem
   );
-  content: "";
 }
 
 .experiencePeriod {

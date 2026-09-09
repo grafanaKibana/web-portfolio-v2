@@ -31,7 +31,7 @@ export function DescriptorRotation({ descriptors, interval }: {
   return (
     <span
       key={`${String(index)}-${phase}`}
-      className={clsx(styles.rotation, phaseClass, "brand-glow relative inline-grid font-mono text-xs font-medium uppercase")}
+      className={clsx(styles.rotation, phaseClass, "inline-block font-mono text-xs font-medium uppercase")}
       onAnimationEnd={() => {
         if (phase !== "exiting") return;
         setIndex((current) => (current + 1) % descriptors.length);
@@ -39,14 +39,7 @@ export function DescriptorRotation({ descriptors, interval }: {
       }}
     >
       <span
-        aria-hidden="true"
-        className="brand-glow-layer pointer-events-none absolute inset-0 select-none"
-        data-slot="hero-descriptor-glow"
-      >
-        {descriptors[index] ?? ""}
-      </span>
-      <span
-        className="text-brand-gradient relative z-10 col-start-1 row-start-1 inline-block"
+        className="text-brand-gradient inline-block"
         data-slot="hero-descriptor"
         data-state={phase}
       >
