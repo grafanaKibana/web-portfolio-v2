@@ -2,7 +2,8 @@
 
 import { Moon, Sun, SunMoon } from "lucide-react";
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useRef, useSyncExternalStore, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -41,7 +42,7 @@ function ThemeReadyMarker() {
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
-    <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <NextThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <ThemeReadyMarker />
       {children}
     </NextThemeProvider>
@@ -62,6 +63,7 @@ export function ThemeToggle({ labels }: { labels: {
 } }) {
   const mounted = useHydrated();
   const { theme, setTheme } = useTheme();
+  const transitionInFlight = useRef(false);
 
   const selectedTheme = mounted ? (theme ?? "system") : "system";
   const nextTheme = selectedTheme === "system" ? "light" : selectedTheme === "light" ? "dark" : "system";
@@ -81,7 +83,27 @@ export function ThemeToggle({ labels }: { labels: {
       size="icon-sm"
       variant="ghost"
       onClick={() => {
-        setTheme(nextTheme);
+        if (transitionInFlight.current) return;
+
+        if (typeof document.startViewTransition !== "function" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          setTheme(nextTheme);
+          return;
+        }
+
+        transitionInFlight.current = true;
+        const transition = document.startViewTransition(() => {
+          flushSync(() => {
+            setTheme(nextTheme);
+          });
+        });
+        void transition.finished.then(
+          () => {
+            transitionInFlight.current = false;
+          },
+          () => {
+            transitionInFlight.current = false;
+          },
+        );
       }}
     >
       <Icon aria-hidden />

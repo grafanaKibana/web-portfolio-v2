@@ -262,6 +262,15 @@
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 175ms;
+    animation-timing-function: ease-out;
+  }
+}
+
 @layer base {
   ::selection {
     color: var(--foreground);
