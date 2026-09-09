@@ -1643,9 +1643,8 @@ test("Writing renders validated article metadata across responsive themes", asyn
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/#writing");
     const writing = page.locator("#writing");
-    const article = writing.getByRole("link", {
-      name: /Building an LLM Evaluation Harness with Microsoft\.Extensions\.AI/,
-    });
+    const article = writing.locator('[data-slot="home-article"]').first();
+    const articleLink = article.getByRole("link", { name: "Read article" });
 
     expect(await writing.locator('a[href^="/articles/"]').evaluateAll((links) =>
       links.map((link) => link.getAttribute("href")),
@@ -1654,9 +1653,9 @@ test("Writing renders validated article metadata across responsive themes", asyn
       "/articles/fixing-bugs-with-mcps",
       "/articles/microsoft-agent-framework-setup",
     ]);
-    await expect(article).toHaveAttribute("href", "/articles/building-an-llm-evaluation-harness");
+    await expect(articleLink).toHaveAttribute("href", "/articles/building-an-llm-evaluation-harness");
     await expect(article.getByText("March 16, 2026", { exact: true })).toBeVisible();
-    await expect(article).toContainText("March 16, 2026 · 8 min read");
+    await expect(article).not.toContainText("min read");
     await expect(article).toContainText("A dataset-driven NUnit evaluation harness");
     await expect(writing.locator('[data-slot="more-articles-link"]')).toHaveAttribute("href", "/articles");
     expect(await writing.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
@@ -1728,15 +1727,17 @@ test("Home content families use the exact three semantic text levels", async ({ 
     const project = page.locator('#projects [data-slot="home-project"]').first();
     await expect(project.locator("h3")).toHaveCSS("color", foreground);
     await expect(project.locator("article > p")).toHaveCSS("color", content);
-    await expect(project.locator("article > ul")).toHaveCSS("color", muted);
+    await expect(project.locator('[data-slot="row-metadata"]')).toHaveCSS("color", muted);
 
-    const writingRow = page.locator('#writing a[href^="/articles/"]').first();
+    const writingRow = page.locator('#writing [data-slot="home-article"]').first();
+    const writingAction = writingRow.getByRole("link", { name: "Read article" });
     await expect(writingRow.locator("h3")).toHaveCSS("color", foreground);
-    await expect(writingRow.locator("p").first()).toHaveCSS("color", muted);
-    await expect(writingRow.locator("p").last()).toHaveCSS("color", content);
-    await writingRow.hover();
-    await expect(writingRow.locator("p").first()).toHaveCSS("color", muted);
-    await expect(writingRow.locator("p").last()).toHaveCSS("color", foreground);
+    await expect(writingRow.locator('[data-slot="row-metadata"]')).toHaveCSS("color", muted);
+    await expect(writingRow.locator("article > p")).toHaveCSS("color", content);
+    await writingAction.hover();
+    await expect(writingAction).toHaveCSS("color", foreground);
+    await expect(writingRow.locator('[data-slot="row-metadata"]')).toHaveCSS("color", muted);
+    await expect(writingRow.locator("article > p")).toHaveCSS("color", content);
   }
 });
 
@@ -2345,9 +2346,9 @@ test("Page motion markers map five Home intro groups and staged rows across eigh
 
 for (const route of [
   { introCount: 1, label: "project list", path: "/projects" },
-  { introCount: 3, label: "project detail", path: "/projects/devbook" },
+  { introCount: 4, label: "project detail", path: "/projects/devbook" },
   { introCount: 1, label: "article list", path: "/articles" },
-  { introCount: 4, label: "article detail", path: "/articles/building-an-llm-evaluation-harness" },
+  { introCount: 5, label: "article detail", path: "/articles/building-an-llm-evaluation-harness" },
 ]) {
   test(`Page motion animates the ${route.label} route`, async ({ page }) => {
     await page.addInitScript(() => {
@@ -2405,7 +2406,7 @@ for (const route of [
       const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
       window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
     });
-    await expect.poll(() => heading.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+    await expect.poll(() => heading.evaluate((target) => target.getAnimations().length), { intervals: [50] }).toBeGreaterThan(0);
     await expect(nextHeading).toHaveCSS("opacity", "0");
     expect(await nextHeading.evaluate((target) => target.getAnimations().length)).toBe(0);
 
@@ -2420,13 +2421,15 @@ for (const route of [
       });
     }, route.headingIndex);
     expect(delays.length).toBeGreaterThanOrEqual(2);
-    expect(delays.every((delay) => delay === delays[0])).toBe(true);
+    for (const [index, delay] of delays.entries()) {
+      expect(delay).toBeCloseTo(Number(delays[0]) + index * 75, 0);
+    }
 
     await nextHeading.evaluate((element) => {
       const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
       window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
     });
-    await expect.poll(() => nextHeading.evaluate((target) => target.getAnimations().length)).toBeGreaterThan(0);
+    await expect.poll(() => nextHeading.evaluate((target) => target.getAnimations().length), { intervals: [50] }).toBeGreaterThan(0);
   });
 }
 
@@ -3076,13 +3079,16 @@ test("real Tab focus exposes representative Projects, Writing, and Contact contr
   }
 
   const foreground = await page.locator("body").evaluate((body) => getComputedStyle(body).color);
-  const writingRow = page.locator("#writing a").first();
-  const writingMetaColor = await writingRow.locator("p").first().evaluate((element) => getComputedStyle(element).color);
+  const writingRow = page.locator('#writing [data-slot="home-article"]').first();
+  const writingAction = writingRow.getByRole("link", { name: "Read article" });
+  const writingMetaColor = await writingRow.locator('[data-slot="row-metadata"]').evaluate((element) => getComputedStyle(element).color);
+  const writingDescriptionColor = await writingRow.locator("article > p").evaluate((element) => getComputedStyle(element).color);
   await page.locator('#code a, #code [data-slot="contribution-day"][tabindex="0"]').last().focus();
   await page.keyboard.press(browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab");
-  await expect(writingRow).toBeFocused();
-  await expect(writingRow.locator("p").first()).toHaveCSS("color", writingMetaColor);
-  await expect(writingRow.locator("p").last()).toHaveCSS("color", foreground);
+  await expect(writingAction).toBeFocused();
+  await expect(writingAction).toHaveCSS("color", foreground);
+  await expect(writingRow.locator('[data-slot="row-metadata"]')).toHaveCSS("color", writingMetaColor);
+  await expect(writingRow.locator("article > p")).toHaveCSS("color", writingDescriptionColor);
 });
 
 test("Page motion recovers focus that predates its listener", async ({ page }) => {
@@ -3397,9 +3403,8 @@ test.describe("without JavaScript", () => {
       await expect(page.locator("#skills")).toHaveCount(1);
       await expect(page.locator("#projects")).toHaveCount(1);
       await expect(page.locator("#code").getByRole("link", { name: "github.com/grafanaKibana" })).toBeVisible();
-      await expect(page.locator("#writing").getByRole("link", {
-        name: /Building an LLM Evaluation Harness with Microsoft\.Extensions\.AI/,
-      })).toHaveAttribute("href", "/articles/building-an-llm-evaluation-harness");
+      await expect(page.locator("#writing").getByRole("link", { name: "Read article" }).first())
+        .toHaveAttribute("href", "/articles/building-an-llm-evaluation-harness");
       await expect(page.locator("#contact").getByRole("link", {
         name: "reshetnik.nikita@gmail.com",
       })).toHaveAttribute("href", "mailto:reshetnik.nikita@gmail.com");

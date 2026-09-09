@@ -61,7 +61,7 @@ export default async function ArticlePage({
   return (
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
       <article>
-        <header className="border-b pb-12">
+        <header className="pb-12">
           <p className="font-mono text-xs text-muted-foreground" data-page-motion-intro>
             <time dateTime={article.metadata.published}>
               {publishedDate.format(new Date(`${article.metadata.published}T00:00:00Z`))}
@@ -80,6 +80,7 @@ export default async function ArticlePage({
             </p>
           ) : null}
         </header>
+        <hr aria-hidden="true" className="m-0 border-0 border-b" data-page-motion-intro />
 
         <div className="pt-6" data-page-motion-rows="children" data-page-motion-section data-page-motion-trigger>
           <article.Content />

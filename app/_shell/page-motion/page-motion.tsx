@@ -17,6 +17,8 @@ const ROW_SELECTOR = "[data-page-motion-row]";
 const SECTION_SELECTOR = "[data-page-motion-section]";
 const TRIGGER_SELECTOR = "[data-page-motion-trigger]";
 const EASE = [0.22, 1, 0.36, 1] as const;
+const REVEAL_DURATION = 0.52;
+const STAGGER_INTERVAL = 0.075;
 const VIEWPORT_MARGIN = "0px 0px -10% 0px" as const;
 
 let latestGeneration = 0;
@@ -99,13 +101,13 @@ function resolveSectionGroups(root: HTMLElement) {
   for (const target of targets) {
     if (/^H[2-6]$/.test(target.tagName) && current.length > 0) {
       const groupTrigger = current.at(0);
-      if (groupTrigger) groups.push(createRowGroup(current, groupTrigger, groupTrigger, false));
+      if (groupTrigger) groups.push(createRowGroup(current, groupTrigger, groupTrigger, true));
       current = [];
     }
     current.push(target);
   }
   const groupTrigger = current.at(0);
-  if (groupTrigger) groups.push(createRowGroup(current, groupTrigger, groupTrigger, false));
+  if (groupTrigger) groups.push(createRowGroup(current, groupTrigger, groupTrigger, true));
   return groups;
 }
 
@@ -179,18 +181,31 @@ function clearGroupStyles(group: RowGroup) {
  *
  * @param queue - Mutable queue collected before the animation frame.
  * @param reveal - Group reveal callback receiving its cumulative delay.
+ * @param sequence - Next available stagger slot for slug sections across observer frames.
  */
-function flushRevealQueue(queue: QueuedReveal[], reveal: (record: SectionRecord, group: RowGroup, startDelay: number) => void) {
+function flushRevealQueue(
+  queue: QueuedReveal[],
+  reveal: (record: SectionRecord, group: RowGroup, startDelay: number) => void,
+  sequence?: { nextStart: number },
+) {
   const groups = queue.splice(0).sort((left, right) => {
     if (left.group.trigger === right.group.trigger) return 0;
     return left.group.trigger.compareDocumentPosition(right.group.trigger) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
   });
+  const now = performance.now() / 1000;
   let startDelay = 0;
   for (const { group, record } of groups) {
     group.queued = false;
     if (group.revealed) continue;
-    reveal(record, group, startDelay);
-    startDelay += 0.075;
+    const span = STAGGER_INTERVAL * (group.staggerTargets ? group.targets.length : 1);
+    if (sequence && record.root.matches(TRIGGER_SELECTOR)) {
+      const delay = Math.max(0, sequence.nextStart - now);
+      reveal(record, group, delay);
+      sequence.nextStart = now + delay + span;
+    } else {
+      reveal(record, group, startDelay);
+      startDelay += span;
+    }
   }
 }
 
@@ -246,6 +261,7 @@ export function PageMotion() {
   useLayoutEffect(() => {
     const generation = ++latestGeneration;
     let active = true, started = false, ownsIntroStyles = false;
+    const sectionSequence = { nextStart: 0 };
     const root = document.documentElement, routeChanged = recordRouteChange(previousPathname, pathname);
     const main = document.querySelector<HTMLElement>("main#main");
     const introTargets = main ? Array.from(main.querySelectorAll<HTMLElement>(INTRO_SELECTOR)) : [];
@@ -275,7 +291,7 @@ export function PageMotion() {
       revealFrame ??= requestAnimationFrame(() => {
         revealFrame = requestAnimationFrame(() => {
           revealFrame = undefined;
-          flushRevealQueue(queuedReveals, revealGroup);
+          flushRevealQueue(queuedReveals, revealGroup, reducedMotion ? undefined : sectionSequence);
         });
       });
     }
@@ -365,7 +381,7 @@ export function PageMotion() {
     }
 
     /**
-     * Reveals one row group once its trigger enters the visible viewport area.
+     * Reveals viewport rows with continuous staggering across prose section boundaries.
      *
      * @param record - Stable section owning the row group.
      * @param group - Row group claimed by its viewport observer.
@@ -385,7 +401,7 @@ export function PageMotion() {
           : animate(
               group.targets,
               { opacity: [0, 1], transform: ["translateY(18px)", "none"] },
-              { delay: group.staggerTargets ? stagger(0.075, { startDelay }) : startDelay, duration: 0.52, ease: EASE },
+              { delay: group.staggerTargets ? stagger(STAGGER_INTERVAL, { startDelay }) : startDelay, duration: REVEAL_DURATION, ease: EASE },
             );
         group.control = control;
 
@@ -429,12 +445,13 @@ export function PageMotion() {
         }
 
         if (introTargets.length > 0) {
+          sectionSequence.nextStart = performance.now() / 1000 + 0.04 + introTargets.length * STAGGER_INTERVAL;
           introControl = reducedMotion
             ? animate(introTargets, { opacity: [0, 1] }, { duration: 0.12 })
             : animate(
                 introTargets,
                 { opacity: [0, 1], transform: ["translateY(18px)", "none"] },
-                { delay: stagger(0.075, { startDelay: 0.04 }), duration: 0.52, ease: EASE },
+                { delay: stagger(STAGGER_INTERVAL, { startDelay: 0.04 }), duration: REVEAL_DURATION, ease: EASE },
               );
           const ownedIntroControl = introControl;
           void ownedIntroControl.finished.then(() => {

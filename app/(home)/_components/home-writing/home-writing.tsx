@@ -3,7 +3,8 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 import { loadArticles } from "@/content/articles/server";
-import styles from "./home-writing.module.scss";
+import { HomeEditorialRow } from "../home-editorial-row/home-editorial-row";
+import rowStyles from "../home-editorial-row/home-editorial-row.module.scss";
 
 const publishedDate = new Intl.DateTimeFormat("en", {
   dateStyle: "long",
@@ -31,35 +32,33 @@ export async function HomeWriting() {
         data-page-motion-row
         data-page-motion-trigger
         id="writing-heading"
-        className={clsx(styles.sectionLabel, "mb-6 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-14 lg:pt-3.5")}
+        className={clsx(rowStyles.sectionLabel, "mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5")}
       >
         Writing
       </h2>
       {latestArticles.length ? (
         <>
           <ul className="m-0 list-none p-0">
-            {latestArticles.map(({ slug, metadata: article, readingMinutes }) => (
-              <li className="border-t lg:first:border-t-0" data-page-motion-row key={slug}>
-                <article>
-                  <Link
-                    className="group block py-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:py-5"
-                    href={`/articles/${slug}`}
-                  >
-                    <p className={clsx(styles.metadata, "font-mono text-muted-foreground lg:text-xs")}>
-                      <time dateTime={article.published}>
-                        {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
-                      </time>
-                      {` · ${String(readingMinutes)} min read`}
-                    </p>
-                    <h3 className="mt-2.5 max-w-3xl break-words text-xl font-medium leading-tight tracking-tight">
-                      {article.title}
-                    </h3>
-                    <p className={clsx(styles.description, "mt-2.5 text-sm leading-relaxed text-content-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground")}>
-                      {article.description}
-                    </p>
+            {latestArticles.map(({ slug, metadata: article }) => (
+              <HomeEditorialRow
+                dataSlot="home-article"
+                key={slug}
+                actions={(
+                  <Link className="project-action-link" data-row-link href={`/articles/${slug}`}>
+                    <ArrowUpRight aria-hidden="true" className="size-3.5 opacity-60" />
+                    Read article
                   </Link>
-                </article>
-              </li>
+                )}
+                description={article.description}
+                metadata={(
+                  <p>
+                    <time dateTime={article.published}>
+                      {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
+                    </time>
+                  </p>
+                )}
+                title={article.title}
+              />
             ))}
           </ul>
           <Link

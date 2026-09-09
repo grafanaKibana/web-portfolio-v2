@@ -5,6 +5,8 @@ import Link from "next/link";
 
 import { loadProjects } from "@/content/projects/server";
 import { home } from "@/content/structured";
+import { HomeEditorialRow } from "../home-editorial-row/home-editorial-row";
+import rowStyles from "../home-editorial-row/home-editorial-row.module.scss";
 import styles from "./home-projects.module.scss";
 
 /**
@@ -32,30 +34,17 @@ export async function HomeProjects() {
         data-page-motion-row
         data-page-motion-trigger
         id="projects-heading"
-        className={clsx(styles.sectionLabel, "mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5")}
+        className={clsx(rowStyles.sectionLabel, "mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5")}
       >
         Selected work
       </h2>
       <ul className="m-0 list-none p-0">
         {featuredProjects.map(({ slug, metadata: project }) => (
-          <li className={clsx(styles.project, "border-t lg:first:border-t-0")} data-page-motion-row data-slot="home-project" key={slug}>
-            <article className={styles.projectBody}>
-              <h3 className={clsx(styles.projectTitle, "m-0 font-medium tracking-tight")}>{project.title}</h3>
-              <p className={clsx(styles.projectDescription, "m-0 mt-2.5 text-content-foreground")}>
-                {project.description}
-              </p>
-              {project.tags?.length ? (
-                <ul
-                  aria-label={`${project.title} technologies`}
-                  className={clsx(styles.projectTags, "m-0 flex list-none flex-wrap gap-x-2 gap-y-1 p-0 font-mono text-muted-foreground lg:flex-col lg:items-end lg:gap-1.5 lg:pt-1.5")}
-                >
-                  {project.tags.map((tag) => <li key={tag}>{tag}</li>)}
-                </ul>
-              ) : null}
-              <div
-                className={clsx(styles.projectActions, "mt-2 flex flex-wrap items-center gap-x-6")}
-                data-slot="project-actions"
-              >
+          <HomeEditorialRow
+            dataSlot="home-project"
+            key={slug}
+            actions={(
+              <>
                 {project.links?.map((link) => (
                   <a
                     className="project-action-link"
@@ -72,16 +61,22 @@ export async function HomeProjects() {
                     {link.label}
                   </a>
                 ))}
-                <Link
-                  className="project-action-link"
-                  href={`/projects/${slug}`}
-                >
+                <Link className="project-action-link" data-row-link href={`/projects/${slug}`}>
                   <ArrowUpRight aria-hidden="true" className="size-3.5 opacity-60" />
                   Read case study
                 </Link>
-              </div>
-            </article>
-          </li>
+              </>
+            )}
+            description={project.description}
+            metadata={project.tags?.length ? (
+              <ul
+                aria-label={`${project.title} technologies`}
+              >
+                {project.tags.map((tag) => <li key={tag}>{tag}</li>)}
+              </ul>
+            ) : null}
+            title={project.title}
+          />
         ))}
       </ul>
       <Link

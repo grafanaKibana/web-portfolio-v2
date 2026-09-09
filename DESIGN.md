@@ -139,10 +139,11 @@ Experience disclosure rows use a pointer cursor across the whole block: the summ
 ## Implementation constraints
 
 - Preserve the route-oriented vertical-slice modular monolith: routes own routing, metadata, Server Components composition, static parameters, not-found decisions, route rendering, and route tests.
-- Server Components remain the default. The exact client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/page-motion/page-motion.tsx`, `app/_shell/smooth-scroll/smooth-scroll.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, `app/(home)/_components/contact-form/contact-form.tsx`, and `app/(home)/_components/home-experience/experience-item.tsx`.
+- Server Components remain the default. The exact client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/page-motion/page-motion.tsx`, `app/_shell/smooth-scroll/smooth-scroll.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, `app/(home)/_components/contact-form/contact-form.tsx`, `app/(home)/_components/home-editorial-row/home-editorial-row.tsx`, and `app/(home)/_components/home-experience/experience-item.tsx`.
 - `app/layout.tsx` is the sole application layout. `app/(home)/page.tsx` owns `/`, and the `(home)` group has no layout or URL segment.
 - Keep structured portfolio data as typed TypeScript records and local repository-authored MDX as trusted executable content. Validate imported metadata, normalized slugs, and case-insensitive duplicates.
 - Project and article detail routes use static parameters with dynamic params disabled; optional activity cannot delay or remove curated content.
+- Home project and writing rows share one layout and follow their Read link from ordinary row clicks. Text stays selectable; other links remain independent. Hovering another link suppresses the Read hover highlight. Home writing metadata shows the publication date without reading time.
 - Prefer native HTML and CSS to JavaScript. Server-rendered content remains meaningful before hydration; client decoration must fail open.
 - Contact remains a native-validating `mailto:` flow unless a backend is explicitly approved.
 - Use local production assets. Remote prototype fonts, icons, images, and CDN URLs are illustrative delivery evidence only.

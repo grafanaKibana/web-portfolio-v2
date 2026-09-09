@@ -27,7 +27,7 @@ export default async function ArticlesPage() {
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
       <h1 className="text-4xl font-semibold tracking-tight" data-page-motion-intro>Articles</h1>
       {articles.length ? (
-        <ul className="mt-10 divide-y">
+        <ul className="mt-10 [&>li:not(:last-child)>a]:border-b">
           {articles.map(({ slug, metadata: article, readingMinutes }) => (
             <li data-page-motion-section key={slug}>
               <Link

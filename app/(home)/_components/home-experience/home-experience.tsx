@@ -72,11 +72,11 @@ export function HomeExperience() {
       </ol>
       <section
         aria-labelledby="experience-recommendations-heading"
-        className="mt-16 border-t pt-3 lg:mt-32 lg:pt-3.5"
+        className="mt-16 lg:mt-32"
         data-slot="experience-recommendations"
       >
         <h3
-          className="m-0 font-mono text-[0.6875rem] font-normal uppercase tracking-[0.14em] text-muted-foreground"
+          className="m-0 border-t pt-3 font-mono text-[0.6875rem] font-normal uppercase tracking-[0.14em] text-muted-foreground lg:pt-3.5"
           data-page-motion-row
           id="experience-recommendations-heading"
         >

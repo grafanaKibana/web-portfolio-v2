@@ -61,7 +61,7 @@ export default async function ProjectPage({
   return (
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
       <article>
-        <header className="border-b pb-10" data-slot="project-hero">
+        <header className="pb-10" data-slot="project-hero">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" data-page-motion-intro data-slot="project-title-row">
             <h1 className="min-w-0 text-4xl font-semibold tracking-tight">{project.metadata.title}</h1>
             {project.metadata.links?.length ? (
@@ -99,6 +99,7 @@ export default async function ProjectPage({
             </p>
           ) : null}
         </header>
+        <hr aria-hidden="true" className="m-0 border-0 border-b" data-page-motion-intro />
 
         <div className="pt-6" data-page-motion-rows="children" data-page-motion-section data-page-motion-trigger>
           <project.Content />
@@ -107,14 +108,14 @@ export default async function ProjectPage({
       {nextProject ? (
         <nav
           aria-label="Project pagination"
-          className="mt-20 border-t pt-8"
+          className="mt-20"
           data-page-motion-rows="children"
           data-page-motion-section
           data-page-motion-trigger
           data-slot="project-pagination"
         >
           <Link
-            className="group ml-auto block w-fit text-right focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="group block w-full border-t pt-8 text-right focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             data-slot="next-project"
             href={`/projects/${nextProject.slug}`}
           >

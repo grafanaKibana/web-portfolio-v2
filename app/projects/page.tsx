@@ -20,7 +20,7 @@ export default async function ProjectsPage() {
   return (
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
       <h1 className="text-4xl font-semibold tracking-tight" data-page-motion-intro>Projects</h1>
-      <ul className="mt-10 divide-y">
+      <ul className="mt-10 [&>li:not(:last-child)>a]:border-b">
         {projects.map(({ slug, metadata: project }) => (
           <li data-page-motion-section key={slug}>
             <Link
