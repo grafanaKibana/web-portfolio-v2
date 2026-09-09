@@ -29,17 +29,26 @@ export function DescriptorRotation({ descriptors, interval }: {
   }, [interval]);
 
   return (
-    <span className="inline-grid">
+    <span
+      key={`${String(index)}-${phase}`}
+      className={clsx(styles.rotation, phaseClass, "relative inline-grid font-mono text-xs font-medium uppercase")}
+      onAnimationEnd={() => {
+        if (phase !== "exiting") return;
+        setIndex((current) => (current + 1) % descriptors.length);
+        setPhase("entering");
+      }}
+    >
       <span
-        key={`${String(index)}-${phase}`}
-        className={clsx(styles.label, phaseClass, "col-start-1 row-start-1 inline-block font-mono text-xs font-medium uppercase text-accent-em")}
+        aria-hidden="true"
+        className={clsx(styles.glow, "pointer-events-none absolute inset-0 select-none")}
+        data-slot="hero-descriptor-glow"
+      >
+        {descriptors[index] ?? ""}
+      </span>
+      <span
+        className="text-brand-gradient relative z-10 col-start-1 row-start-1 inline-block"
         data-slot="hero-descriptor"
         data-state={phase}
-        onAnimationEnd={() => {
-          if (phase !== "exiting") return;
-          setIndex((current) => (current + 1) % descriptors.length);
-          setPhase("entering");
-        }}
       >
         {descriptors[index] ?? ""}
       </span>

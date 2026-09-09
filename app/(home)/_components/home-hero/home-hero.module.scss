@@ -7,11 +7,18 @@
   gap: 0.5625rem;
   margin-bottom: 1.625rem;
   padding-inline: 0.6875rem 0.8125rem;
-  background: color-mix(in oklab, var(--accent-em) 9%, transparent);
+  background: color-mix(in oklab, var(--brand-accent) 9%, transparent);
+  background-image: linear-gradient(
+    90deg in oklab,
+    color-mix(in oklab, var(--brand-accent-start) 9%, var(--background)),
+    color-mix(in oklab, var(--brand-accent) 9%, var(--background)) 58%,
+    color-mix(in oklab, var(--brand-accent-end) 9%, var(--background))
+  );
 }
 
 .availabilityDot {
-  background: var(--accent-em);
+  background: var(--brand-accent);
+  background-image: var(--brand-accent-gradient);
 }
 
 .heading {
@@ -30,11 +37,6 @@
 
 .secondaryAction {
   font-size: 0.9375rem;
-}
-
-.primaryActionIcon {
-  width: 0.9375rem;
-  height: 0.9375rem;
 }
 
 .socialLinks {

@@ -1,3 +1,8 @@
+@use "sass:math";
+
+$chart-column-count: 53;
+$chart-gap: 0.1875rem;
+
 .code {
   scroll-margin-top: 0.25rem;
   padding-block: 3.5rem;
@@ -34,7 +39,7 @@
 .statusIcon {
   width: 1rem;
   height: 1rem;
-  color: var(--accent-em);
+  color: var(--success);
 }
 
 .statusIcon[data-status="under-review"] {
@@ -88,7 +93,7 @@
 }
 
 .additions {
-  color: var(--accent-em);
+  color: var(--success);
 }
 
 .deletions {
@@ -136,8 +141,8 @@
 .chartMonths,
 .chartDays {
   display: grid;
-  grid-template-columns: repeat(53, minmax(0, 1fr));
-  gap: 0.1875rem;
+  grid-template-columns: repeat($chart-column-count, minmax(0, 1fr));
+  gap: $chart-gap;
 }
 
 .chartMonths {
@@ -148,8 +153,16 @@
 }
 
 .chartDays {
+  --chart-gradient-width: calc(#{$chart-column-count * 100%} + #{($chart-column-count - 1) * $chart-gap});
+
   grid-template-rows: repeat(7, auto);
   grid-auto-flow: column;
+}
+
+@for $column from 0 through ($chart-column-count - 1) {
+  .chartDay:nth-of-type(n + #{$column * 7 + 1}):nth-of-type(-n + #{($column + 1) * 7}) {
+    --chart-gradient-position: #{math.div($column, $chart-column-count - 1) * 100%};
+  }
 }
 
 .chartDay {
@@ -160,19 +173,38 @@
 }
 
 .chartDay[data-level="1"] {
-  background: color-mix(in oklab, var(--accent-em) 28%, var(--background));
+  --chart-cover: 72%;
+
+  background: var(--chart-1);
 }
 
 .chartDay[data-level="2"] {
-  background: color-mix(in oklab, var(--accent-em) 48%, var(--background));
+  --chart-cover: 52%;
+
+  background: var(--chart-2);
 }
 
 .chartDay[data-level="3"] {
-  background: color-mix(in oklab, var(--accent-em) 70%, var(--background));
+  --chart-cover: 30%;
+
+  background: var(--chart-3);
 }
 
 .chartDay[data-level="4"] {
-  background: var(--accent-em);
+  --chart-cover: 0%;
+
+  background: var(--chart-4);
+}
+
+@media (forced-colors: none) {
+  .chartDay:not([data-level="0"]) {
+    background-image:
+      linear-gradient(color-mix(in oklab, var(--background) var(--chart-cover), transparent) 0 0),
+      var(--brand-accent-gradient);
+    background-position: 0 0, var(--chart-gradient-position) 0;
+    background-repeat: no-repeat;
+    background-size: 100% 100%, var(--chart-gradient-width) 100%;
+  }
 }
 
 .profileLink {
@@ -214,15 +246,5 @@
 @media (min-width: 80rem) {
   .code {
     scroll-margin-top: -1.75rem;
-  }
-}
-
-.tooltipArrow {
-  &[data-side="top"] {
-    bottom: -0.25rem;
-  }
-
-  &[data-side="bottom"] {
-    top: -0.25rem;
   }
 }

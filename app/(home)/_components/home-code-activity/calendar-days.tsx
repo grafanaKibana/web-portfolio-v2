@@ -1,32 +1,11 @@
 "use client";
 
-import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 import { clsx } from "clsx";
 import { useState } from "react";
 
-import styles from "./home-code-activity.module.scss";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-/**
- * Renders shadcn's Base UI tooltip content in a portal outside the scrolling calendar.
- *
- * @param children - Accessible contribution date and count.
- * @returns The positioned tooltip content.
- */
-function TooltipContent({ children }: { children: React.ReactNode }) {
-  return (
-    <TooltipPrimitive.Portal>
-      <TooltipPrimitive.Positioner sideOffset={4} className="isolate z-50">
-        <TooltipPrimitive.Popup
-          data-slot="tooltip-content"
-          className="z-50 inline-flex w-fit max-w-xs items-center gap-1.5 rounded-xl bg-foreground px-3 py-1.5 text-xs text-background data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 data-closed:hidden motion-reduce:animate-none"
-        >
-          {children}
-          <TooltipPrimitive.Arrow className={clsx(styles.tooltipArrow, "size-2 rotate-45 rounded-sm bg-foreground")} />
-        </TooltipPrimitive.Popup>
-      </TooltipPrimitive.Positioner>
-    </TooltipPrimitive.Portal>
-  );
-}
+import styles from "./home-code-activity.module.scss";
 
 /**
  * Adds hover, focus, and tap tooltips with one tab stop and chronological arrow navigation.
@@ -41,11 +20,11 @@ export function CalendarDays({ days }: {
   const [openDay, setOpenDay] = useState<number | null>(null);
 
   return (
-    <TooltipPrimitive.Provider delay={250}>
+    <TooltipProvider delay={250}>
       <div className={styles.chartDays} role="group" aria-label="Daily contributions; use arrow keys to explore">
         {days.map((day, index) => (
-          <TooltipPrimitive.Root key={day.date} open={openDay === index} onOpenChange={(open) => { setOpenDay((current) => open ? index : current === index ? null : current); }}>
-            <TooltipPrimitive.Trigger
+          <Tooltip key={day.date} open={openDay === index} onOpenChange={(open) => { setOpenDay((current) => open ? index : current === index ? null : current); }}>
+            <TooltipTrigger
               type="button"
               className={clsx(styles.chartDay, "border-0 p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1")}
               data-level={day.level}
@@ -66,10 +45,10 @@ export function CalendarDays({ days }: {
                 cells?.[next]?.focus();
               }}
             />
-            <TooltipContent>{day.label}</TooltipContent>
-          </TooltipPrimitive.Root>
+            <TooltipContent className="data-closed:hidden motion-reduce:animate-none">{day.label}</TooltipContent>
+          </Tooltip>
         ))}
       </div>
-    </TooltipPrimitive.Provider>
+    </TooltipProvider>
   );
 }

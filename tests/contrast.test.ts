@@ -120,7 +120,11 @@ test("text and primary button colors meet WCAG AA contrast", () => {
     assert.ok(hexContrast(hexToken(selector, "content-foreground"), background) >= 7)
     assert.ok(hexContrast(hexToken(selector, "muted-foreground"), background) >= 4.5)
   }
-  assert.ok(contrast(token(".dark", "accent-em"), token(".dark", "background")) >= 4.5)
+  for (const selector of [":root", ".dark"] as const) {
+    for (const name of ["brand-accent-start", "brand-accent", "brand-accent-end"]) {
+      assert.ok(hexContrast(hexToken(selector, name), token(selector, "background")) >= 4.5)
+    }
+  }
   assert.ok(contrast(token(".dark", "primary-foreground"), token(".dark", "primary")) >= 4.5)
 })
 
@@ -138,29 +142,32 @@ test("shared MDX prose links own the content-to-foreground interaction contract"
   assert.match(mdxComponents, /underline underline-offset-4/)
 })
 
-test("semantic emerald and selection styles share the approved accent role", () => {
-  assert.deepEqual(token(":root", "accent-em"), [0.52, 0.1, 163])
-  assert.deepEqual(token(".dark", "accent-em"), [0.74, 0.11, 165])
+test("app accents and field focus share the brand accent while field surfaces stay neutral", () => {
+  assert.equal([...css.matchAll(/--ring: var\(--brand-accent\);/g)].length, 3)
+  assert.deepEqual(token(":root", "input"), [0.93, 0.007, 106.5])
+  assert.equal([...css.matchAll(/--input: oklch\(1 0 0 \/ 15%\);/g)].length, 2)
+  assert.doesNotMatch(css, /--input:[^;]*var\(--brand-accent\)/)
+  assert.doesNotMatch(css, /accent-em/)
   assert.doesNotMatch(css, /primary-text/)
-  assert.match(css, /::selection\s*\{[\s\S]*background:\s*color-mix\([^;]*var\(--accent-em\)/)
+  assert.match(css, /::selection\s*\{[\s\S]*background:\s*color-mix\([^;]*var\(--brand-accent\)/)
 })
 
 test("pull-request line counts use the approved semantic tokens at text contrast", () => {
   assert.deepEqual(token(":root", "destructive"), [0.577, 0.245, 27.325])
   assert.deepEqual(token(".dark", "destructive"), [0.704, 0.191, 22.216])
-  assert.match(codeActivityCss, /\.additions\s*\{\s*color:\s*var\(--accent-em\);\s*\}/)
+  assert.match(codeActivityCss, /\.additions\s*\{\s*color:\s*var\(--success\);\s*\}/)
   assert.match(codeActivityCss, /\.deletions\s*\{\s*color:\s*var\(--destructive\);\s*\}/)
-  assert.doesNotMatch(codeActivityCss, /--(?:accent-em|destructive)\s*:/)
+  assert.doesNotMatch(codeActivityCss, /--(?:brand-accent|destructive)\s*:/)
 
   for (const selector of [":root", ".dark"] as const) {
     const background = token(selector, "background")
-    assert.ok(contrast(token(selector, "accent-em"), background) >= 4.5)
+    assert.ok(hexContrast(hexToken(selector, "success"), background) >= 4.5)
     assert.ok(contrast(token(selector, "destructive"), background) >= 4.5)
   }
 })
 
 test("pull-request status icons retain distinct accessible theme colors", () => {
-  assert.match(codeActivityCss, /\.statusIcon\s*\{[\s\S]*?color:\s*var\(--accent-em\)/)
+  assert.match(codeActivityCss, /\.statusIcon\s*\{[\s\S]*?color:\s*var\(--success\)/)
   assert.match(codeActivityCss, /\.statusIcon\[data-status="draft"\]\s*\{[\s\S]*?color:\s*var\(--muted-foreground\)/)
   assert.match(codeActivityCss, /:global\(\.dark\) \.statusIcon\[data-status="under-review"\]/)
   assert.match(codeActivityCss, /:global\(:root:not\(\.light, \.dark\)\) \.statusIcon\[data-status="under-review"\]/)
@@ -176,8 +183,8 @@ test("pull-request status icons retain distinct accessible theme colors", () => 
   assert.deepEqual(underReviewColors, [[0.55, 0.14, 65], [0.78, 0.14, 75], [0.78, 0.14, 75]])
   const [lightUnderReview, darkUnderReview] = underReviewColors
   assert.ok(lightUnderReview && darkUnderReview)
-  assert.ok(contrast(token(":root", "accent-em"), token(":root", "background")) >= 3)
-  assert.ok(contrast(token(".dark", "accent-em"), token(".dark", "background")) >= 3)
+  assert.ok(hexContrast(hexToken(":root", "success"), token(":root", "background")) >= 3)
+  assert.ok(hexContrast(hexToken(".dark", "success"), token(".dark", "background")) >= 3)
   assert.ok(hexContrast(hexToken(":root", "muted-foreground"), token(":root", "background")) >= 3)
   assert.ok(hexContrast(hexToken(".dark", "muted-foreground"), token(".dark", "background")) >= 3)
   assert.ok(contrast(lightUnderReview, token(":root", "background")) >= 3)

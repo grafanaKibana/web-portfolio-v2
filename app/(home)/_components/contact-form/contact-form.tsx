@@ -1,16 +1,17 @@
 "use client";
 
-import { clsx } from "clsx";
 import { type SyntheticEvent, useState } from "react";
-import { PrimaryAction } from "../primary-action/primary-action";
-import styles from "./home-contact.module.scss";
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { buildMailtoHref } from "./build-mailto-href";
 
 interface ContactFormProps {
   emailAddress: string;
 }
 
 const labels = {
-  bodyFrom: "From:",
   email: "Email",
   emailPlaceholder: "m@example.com",
   invalidEmail: "Enter a valid email address",
@@ -20,7 +21,6 @@ const labels = {
   name: "Name",
   namePlaceholder: "Your name",
   send: "Send message",
-  subjectPrefix: "Portfolio message from",
 } as const;
 
 /**
@@ -38,10 +38,10 @@ export function ContactForm(props: ContactFormProps) {
   const trimmedName = name.trim();
   const trimmedEmail = email.trim();
   const trimmedMessage = message.trim();
+  const isEmailInvalid = Boolean(trimmedEmail) && !isEmailValid;
   const isReady = Boolean(trimmedName && trimmedEmail && isEmailValid && trimmedMessage);
-  const subject = `${labels.subjectPrefix} ${trimmedName}`;
   const mailtoHref = isReady
-    ? `mailto:${emailAddress}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${labels.bodyFrom} ${trimmedName} <${trimmedEmail}>\n\n${trimmedMessage}`)}`
+    ? buildMailtoHref(emailAddress, trimmedName, trimmedEmail, trimmedMessage)
     : `mailto:${emailAddress}`;
   let helperText = "";
   if (trimmedName || trimmedEmail || trimmedMessage) {
@@ -66,19 +66,16 @@ export function ContactForm(props: ContactFormProps) {
     window.location.href = mailtoHref;
   }
 
-  const fieldClass =
-    "rounded-md border bg-background px-3 py-2 transition-colors focus:border-foreground focus:outline-none user-invalid:border-destructive motion-reduce:transition-none";
-
   return (
-    <form className={clsx(styles.form, "flex h-full min-w-0 flex-col gap-4")} data-page-motion-row onSubmit={sendEmail}>
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="contact-name">{labels.name}</label>
-        <input
-          className={`${fieldClass} h-11 w-full placeholder:text-content-foreground`}
+    <form className="flex h-full min-w-0 flex-col gap-4" data-page-motion-row onSubmit={sendEmail}>
+      <Field>
+        <FieldLabel htmlFor="contact-name">{labels.name}</FieldLabel>
+        <Input
+          className="placeholder:text-content-foreground"
           id="contact-name"
           name="name"
-          onChange={(event) => {
-            setName(event.target.value);
+          onInput={(event) => {
+            setName(event.currentTarget.value);
           }}
           placeholder={labels.namePlaceholder}
           required
@@ -86,15 +83,16 @@ export function ContactForm(props: ContactFormProps) {
           value={name}
           autoComplete="name"
         />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="contact-email">{labels.email}</label>
-        <input
-          className={`${fieldClass} h-11 w-full placeholder:text-content-foreground`}
+      </Field>
+      <Field data-invalid={isEmailInvalid}>
+        <FieldLabel htmlFor="contact-email">{labels.email}</FieldLabel>
+        <Input
+          className="placeholder:text-content-foreground"
+          aria-invalid={isEmailInvalid}
           id="contact-email"
           name="email"
-          onChange={(event) => {
-            setEmail(event.target.value);
+          onInput={(event) => {
+            setEmail(event.currentTarget.value);
             setIsEmailValid(!event.currentTarget.validity.typeMismatch);
           }}
           placeholder={labels.emailPlaceholder}
@@ -103,11 +101,11 @@ export function ContactForm(props: ContactFormProps) {
           value={email}
           autoComplete="email"
         />
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
-        <label className="text-sm font-medium" htmlFor="contact-message">{labels.message}</label>
-        <textarea
-          className={`${fieldClass} min-h-28 w-full flex-1 resize-y placeholder:text-content-foreground`}
+      </Field>
+      <Field className="min-h-0 flex-1">
+        <FieldLabel htmlFor="contact-message">{labels.message}</FieldLabel>
+        <Textarea
+          className="min-h-28 flex-1 resize-y placeholder:text-content-foreground"
           id="contact-message"
           name="message"
           onChange={(event) => {
@@ -118,11 +116,11 @@ export function ContactForm(props: ContactFormProps) {
           rows={4}
           value={message}
         />
-      </div>
+      </Field>
       <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:items-center sm:gap-5">
-        <PrimaryAction disabled={!isReady} type="submit">
+        <Button className="w-full sm:w-auto" disabled={!isReady} type="submit">
           {labels.send}
-        </PrimaryAction>
+        </Button>
         {helperText ? <span aria-live="polite" className="text-sm text-muted-foreground">{helperText}</span> : null}
       </div>
     </form>

@@ -48,6 +48,12 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["components/ui/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-unnecessary-condition": "off",
+    },
+  },
+  {
     files: [
       "app/**/*.{ts,tsx}",
       "components/**/*.{ts,tsx}",

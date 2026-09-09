@@ -1,13 +1,13 @@
-import { ArrowDown, Download, type LucideIcon } from "lucide-react";
+import { FileDown, ArrowDown, type LucideIcon } from "lucide-react";
 import { home, profile } from "@/content/structured";
+import { buttonVariants } from "@/components/ui/button";
 import { clsx } from "clsx";
 import { DescriptorRotation } from "../descriptor-rotation/descriptor-rotation";
-import { PrimaryAction } from "../primary-action/primary-action";
 import styles from "./home-hero.module.scss";
 
 const icons: Record<string, LucideIcon> = {
   "arrow-down": ArrowDown,
-  download: Download,
+  download: FileDown,
 };
 
 const socialIconNames = {
@@ -63,7 +63,7 @@ export function HomeHero() {
           className={clsx(styles.availabilityDot, "size-1.5 animate-pulse rounded-full motion-reduce:animate-none")}
           data-slot="availability-dot"
         />
-        {home.hero.availability.status}
+        <span className="text-brand-gradient">{home.hero.availability.status}</span>
         <span className="font-normal text-muted-foreground">
           {home.hero.availability.qualifier}
         </span>
@@ -79,18 +79,18 @@ export function HomeHero() {
         />
       </div>
       <div className={clsx(styles.actions, "flex w-full flex-col lg:w-auto lg:flex-row lg:items-center")} data-page-motion-intro>
-        <PrimaryAction download href={home.hero.resumeHref}>
-          <Icon name="download" className={clsx(styles.primaryActionIcon)} />
+        <a className={buttonVariants({ className: "w-full lg:w-auto" })} download href={home.hero.resumeHref}>
+          <Icon name="download" />
           Download Résumé
-        </PrimaryAction>
+        </a>
         <a
-          className={clsx(styles.secondaryAction, "group mt-1.5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md font-medium text-content-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto")}
+          className={clsx(styles.secondaryAction, "mt-1.5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md font-medium text-content-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto")}
           href="#experience"
         >
           Explore Experience
           <Icon
             name="arrow-down"
-            className="-order-1 size-3.5 opacity-60 transition-transform duration-150 group-hover:translate-y-0.5 motion-reduce:group-hover:translate-none motion-reduce:transition-none lg:order-none"
+            className="-order-1 size-3.5 opacity-60 lg:order-none"
           />
         </a>
       </div>

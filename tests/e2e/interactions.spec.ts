@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { compile } from "sass";
 
+import { buildMailtoHref } from "@/app/(home)/_components/contact-form/build-mailto-href";
+
 const homeCodeActivityCss = compile(
   "app/(home)/_components/home-code-activity/home-code-activity.module.scss",
 ).css;
@@ -169,7 +171,19 @@ test("Home reflows at 200 percent zoom equivalents", async ({ page }) => {
   }
 });
 
-test("compact selector opens as a content-height blurred header extension", async ({ page }) => {
+test("Résumé remains the exact native download link", async ({ page }) => {
+  await page.goto("/");
+  const resume = page.getByRole("link", { name: "Download Résumé" });
+
+  await expect(resume).toHaveAttribute(
+    "href",
+    "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf",
+  );
+  await expect(resume).toHaveAttribute("download", "");
+  expect(await resume.evaluate((element) => element.tagName)).toBe("A");
+});
+
+test("compact selector opens as a content-height header extension", async ({ page }) => {
   const baseUiErrors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error" && message.text().includes("Base UI")) baseUiErrors.push(message.text());
@@ -201,6 +215,12 @@ test("compact selector opens as a content-height blurred header extension", asyn
     const dialog = page.getByRole("dialog", { name: "Jump to section" });
     const close = page.getByRole("button", { name: "Close navigation" });
     await expect(dialog).toBeVisible();
+    await waitForAnimationsToSettle(page, '[role="dialog"]');
+    await expect(close).toHaveCount(1);
+    await expect(close).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(dialog.getByRole("link", { name: "Contact" })).toBeFocused();
+    await page.keyboard.press("Tab");
     await expect(close).toBeFocused();
     const accessibleTitle = dialog.getByText("Jump to section", { exact: true });
     await expect(accessibleTitle).toHaveCSS("position", "absolute");
@@ -220,19 +240,7 @@ test("compact selector opens as a content-height blurred header extension", asyn
     expect(openBox.width).toBeCloseTo(viewport.width, 1);
     expect(openBox.height).toBeLessThan(viewport.height / 2);
     expect(closeBox).toEqual(themeBox);
-    await expect(dialog).toHaveCSS("box-shadow", "none");
-    const surfaceBackground = await dialog.evaluate((element) => getComputedStyle(element).backgroundColor);
-    expect(surfaceBackground).toBe(
-      await page.locator("header").evaluate((element) => getComputedStyle(element).backgroundColor),
-    );
-    expect(surfaceBackground).toBe(
-      await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor),
-    );
     await expect(page.locator("header")).toHaveCSS("background-image", "none");
-    await expect(page.locator('[data-slot="mobile-navigation-backdrop"]')).toHaveCSS(
-      "backdrop-filter",
-      "blur(8px)",
-    );
     await expect(currentLink).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     expect(await currentLink.evaluate((element) => getComputedStyle(element).fontSize)).toBe(closedFontSize);
 
@@ -285,30 +293,18 @@ test("the home page contains approved content through Phase 9 Contact", async ({
   await expect(page.getByText("Open to work", { exact: false })).toBeVisible();
   await expect(page.getByText("remote or relocation", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hi, I’m Nikita Reshetnik.I make things. Some talk back.");
-  await expect(page.getByRole("link", { name: "Download Résumé" })).toHaveAttribute(
-    "href",
-    "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf",
-  );
   await expect(page.getByRole("link", { name: "Explore Experience" })).toHaveAttribute("href", "#experience");
   await waitForAnimationsToSettle(page, "[data-page-motion-intro]");
-  const primaryAction = page.getByRole("link", { name: "Download Résumé" });
+  const resume = page.getByRole("link", { name: "Download Résumé" });
   const secondaryAction = page.getByRole("link", { name: "Explore Experience" });
-  const primaryBox = await primaryAction.boundingBox();
+  const primaryBox = await resume.boundingBox();
   const secondaryBox = await secondaryAction.boundingBox();
   if (!primaryBox || !secondaryBox) throw new Error("Hero actions must be measurable");
-  expect(primaryBox).toMatchObject({ x: 22, width: 346, height: 48 });
-  expect(secondaryBox.height).toBe(48);
+  await expect(resume.locator("svg")).toHaveClass(/lucide-file-down/);
+  expect(primaryBox).toMatchObject({ x: 22, width: 346 });
   expect(secondaryBox.y - primaryBox.y - primaryBox.height).toBe(6);
-  expect(["lab(0 0 0)", "oklch(0 0 0)"]).toContain(
-    await primaryAction.evaluate((element) => getComputedStyle(element).backgroundColor),
-  );
-  await primaryAction.hover();
-  await expect(primaryAction).toHaveCSS("transition-duration", "0.15s");
-  await expect(primaryAction).toHaveCSS("transition-property", "opacity");
-  await expect(primaryAction.locator("svg")).toHaveCSS("transform", "none");
-  await expect(primaryAction.locator("svg")).toHaveCSS("transition-duration", "0s");
   await secondaryAction.hover();
-  await expect(secondaryAction.locator("svg")).not.toHaveCSS("translate", "none");
+  await expect(secondaryAction.locator("svg")).toHaveCSS("translate", "none");
   const hero = page.locator('section[aria-labelledby="intro-heading"]');
   const socialBoxes = [];
   for (const label of ["LinkedIn", "Telegram", "GitHub", "LeetCode"]) {
@@ -764,7 +760,7 @@ test("Experience disclosure uses native keyboard behavior and in-flow motion", a
   const readingColor = await item.locator("article > p").evaluate((element) => getComputedStyle(element).color);
   const company = item.locator('[data-slot="role-heading"] p');
   const dot = item.locator('[data-slot="timeline-dot"]');
-  const restingDotBorder = await dot.evaluate((element) => getComputedStyle(element).borderColor);
+  const restingDotGradient = await dot.evaluate((element) => getComputedStyle(element).backgroundImage);
 
   expect(await details.evaluate((element) => getComputedStyle(element, "::details-content").transitionDuration))
     .toContain("0.2s");
@@ -775,13 +771,13 @@ test("Experience disclosure uses native keyboard behavior and in-flow motion", a
   await expect(summary).toHaveCSS("color", roleTitleColor);
   await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", contextColor);
   await expect(company).toHaveCSS("color", contextColor);
-  await expect(dot).toHaveCSS("border-color", roleTitleColor);
+  await expect(dot).toHaveCSS("background-image", restingDotGradient);
   await expect(item.locator("article > p")).toHaveCSS("color", roleTitleColor);
   await page.locator("#experience-heading").hover();
   await expect(summary).toHaveCSS("color", contextColor);
   await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", contextColor);
   await expect(item.locator("article > p")).toHaveCSS("color", readingColor);
-  await expect(dot).toHaveCSS("border-color", restingDotBorder);
+  await expect(dot).toHaveCSS("background-image", restingDotGradient);
   const closedNextTop = await details.evaluate((element) =>
     element.closest("li")?.nextElementSibling?.getBoundingClientRect().top,
   );
@@ -789,7 +785,7 @@ test("Experience disclosure uses native keyboard behavior and in-flow motion", a
   await expect(summary).toHaveCSS("color", roleTitleColor);
   await expect(item.locator('[data-slot="experience-period"]')).toHaveCSS("color", contextColor);
   await expect(company).toHaveCSS("color", contextColor);
-  await expect(dot).toHaveCSS("border-color", roleTitleColor);
+  await expect(dot).toHaveCSS("background-image", restingDotGradient);
   await expect(item.locator("article > p")).toHaveCSS("color", roleTitleColor);
   await page.keyboard.press("Space");
   await expect(details).toHaveAttribute("open", "");
@@ -1274,7 +1270,7 @@ test("compact pull-request rows preserve geometry and wrapping through productio
     await page.setContent(`
       <style>
         :root {
-          --accent-em: oklch(0.52 0.1 163);
+          --brand-accent: #007865;
           --background: oklch(0.98 0 0);
           --destructive: oklch(0.577 0.245 27.325);
           --foreground: #111111;
@@ -1571,18 +1567,33 @@ test("Code activity renders live GitHub data and fails open without empty UI", a
     await contributionDay.scrollIntoViewIfNeeded();
     await waitForAnimationsToSettle(page, "#code [data-page-motion-row]");
     await contributionDay.hover();
-    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveText(label);
+    const visibleTooltip = page.locator('[data-slot="tooltip-content"]:visible');
+    await expect(visibleTooltip).toHaveText(label);
+    await expect(visibleTooltip).toHaveCount(1);
     await expect(contributionDay).toHaveCSS("scale", "none");
     await expect(contributionDay).toHaveCSS("box-shadow", "none");
     await page.keyboard.press("Escape");
-    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveCount(0);
+    await expect(visibleTooltip).toHaveCount(0);
+    await page.mouse.move(0, 0);
+    await contributionDay.click();
+    await expect(visibleTooltip).toHaveText(label);
+    await expect(visibleTooltip).toHaveCount(1);
+    const nextDay = page.locator('[data-slot="contribution-day"]').nth(1);
+    const nextDayLabel = await nextDay.getAttribute("aria-label") ?? "";
+    await nextDay.click();
+    await expect(visibleTooltip).toHaveText(nextDayLabel);
+    await expect(visibleTooltip).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(visibleTooltip).toHaveCount(0);
     await page.mouse.move(0, 0);
     await contributionDay.focus();
-    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveText(label);
+    await expect(visibleTooltip).toHaveText(label);
+    await expect(visibleTooltip).toHaveCount(1);
     await page.keyboard.press("ArrowRight");
     const nextWeek = page.locator('[data-slot="contribution-day"]').nth(7);
     await expect(nextWeek).toBeFocused();
-    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveText(await nextWeek.getAttribute("aria-label") ?? "");
+    await expect(visibleTooltip).toHaveText(await nextWeek.getAttribute("aria-label") ?? "");
+    await expect(visibleTooltip).toHaveCount(1);
     await expect(page.locator('[data-slot="contribution-day"][tabindex="0"]')).toHaveCount(1);
     await page.keyboard.press("Home");
     await expect(contributionDay).toBeFocused();
@@ -1593,7 +1604,7 @@ test("Code activity renders live GitHub data and fails open without empty UI", a
     await page.keyboard.press("ArrowDown");
     await expect(page.locator('[data-slot="contribution-day"]').last()).toBeFocused();
     await page.keyboard.press("Escape");
-    await expect(page.locator('[data-slot="tooltip-content"]:visible')).toHaveCount(0);
+    await expect(visibleTooltip).toHaveCount(0);
   }
 });
 
@@ -1749,20 +1760,13 @@ test("Contact exposes its inactive and partially complete requirements", async (
 test("Contact keeps a visible keyboard focus indicator", async ({ page }) => {
   await page.goto("/#contact");
   const name = page.locator("#contact").getByRole("textbox", { name: "Name" });
-  const restingBorder = await name.evaluate((input) => getComputedStyle(input).borderColor);
 
   await name.focus();
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Tab");
   await expect(name).toBeFocused();
-  await expect(name).toHaveCSS("box-shadow", "none");
-  await expect(name).toHaveCSS("outline-style", "none");
-  await expect(name).toHaveCSS("transition-duration", "0.15s");
-  await expect.poll(() => name.evaluate((input) => {
-    const style = getComputedStyle(input);
-    return style.borderColor === style.color;
-  })).toBe(true);
-  expect(await name.evaluate((input) => getComputedStyle(input).borderColor)).not.toBe(restingBorder);
+  await expect(name).not.toHaveCSS("box-shadow", "none");
+  await expect(name).toHaveCSS("background-image", "none");
 });
 
 test("Contact placeholders use the reading level in both themes", async ({ page }) => {
@@ -1839,7 +1843,7 @@ test("Contact links use the shared muted hover treatment", async ({ page }) => {
   await expect(contact.getByText("Book a call", { exact: true })).toHaveCSS("opacity", "0.35");
 });
 
-test("Contact reuses the primary action and balances its desktop columns", async ({ page }) => {
+test("Contact balances its desktop columns with a usable message field", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/#contact");
   const contact = page.locator("#contact");
@@ -1847,32 +1851,6 @@ test("Contact reuses the primary action and balances its desktop columns", async
   await contact.getByRole("textbox", { name: "Name" }).fill("Anna Sokolova");
   await contact.getByRole("textbox", { name: "Email" }).fill("anna@example.com");
   await contact.getByRole("textbox", { name: "Message" }).fill("Hello there");
-
-  const download = page.getByRole("link", { name: "Download Résumé" });
-  const explore = page.getByRole("link", { name: "Explore Experience" });
-  const send = contact.getByRole("button", { name: "Send message" });
-  /**
-   * Reads the computed styles that define the shared primary action treatment.
-   *
-   * @param selector - Action locator to inspect.
-   * @returns The comparable primary action styles.
-   */
-  const actionStyles = async (selector: typeof download) => selector.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return {
-      backgroundColor: style.backgroundColor,
-      borderRadius: style.borderRadius,
-      color: style.color,
-      fontSize: style.fontSize,
-      fontWeight: style.fontWeight,
-      height: style.height,
-      paddingLeft: style.paddingLeft,
-      paddingRight: style.paddingRight,
-    };
-  });
-  expect(await actionStyles(send)).toEqual(await actionStyles(download));
-  await expect(download).toHaveCSS("height", "48px");
-  await expect(explore).toHaveCSS("height", "48px");
 
   const leftColumn = contact.locator(":scope > div > div").first();
   const form = contact.locator("form");
@@ -1918,6 +1896,25 @@ test("Contact keeps the ready mail-app handoff out of the form action", async ({
   await expect(contact.getByText("Subject: Portfolio message from Anna Sokolova", { exact: true }))
     .toHaveCount(0);
   expect(await contact.locator("form").getAttribute("action")).toBeNull();
+});
+
+test("Contact encodes the exact recipient, subject, and multiline body", () => {
+  const href = buildMailtoHref(
+    "reshetnik.nikita@gmail.com",
+    "Anna Sokolova",
+    "anna+portfolio@example.com",
+    "Hello & thanks\nSecond line",
+  );
+
+  expect(href).toBe(
+    "mailto:reshetnik.nikita@gmail.com?subject=Portfolio%20message%20from%20Anna%20Sokolova&body=From%3A%20Anna%20Sokolova%20%3Canna%2Bportfolio%40example.com%3E%0A%0AHello%20%26%20thanks%0ASecond%20line",
+  );
+  const parsed = new URL(href);
+  expect(parsed.pathname).toBe("reshetnik.nikita@gmail.com");
+  expect(parsed.searchParams.get("subject")).toBe("Portfolio message from Anna Sokolova");
+  expect(parsed.searchParams.get("body")).toBe(
+    "From: Anna Sokolova <anna+portfolio@example.com>\n\nHello & thanks\nSecond line",
+  );
 });
 
 test("Contact reflows without overflow in both themes", async ({ page }) => {
@@ -2005,18 +2002,249 @@ test("detail routes replace shell controls after client navigation without addin
   }
 });
 
+for (const theme of ["light", "dark"] as const) {
+  test(`Jade accent is shared across the site with a readable descriptor in ${theme} mode`, async ({ page, browserName }, testInfo) => {
+    await page.emulateMedia({ colorScheme: theme === "light" ? "dark" : "light" });
+    await page.addInitScript((preferredTheme) => {
+      localStorage.setItem("theme", preferredTheme);
+      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    }, theme);
+    await page.goto("/");
+    const descriptor = page.locator('[data-slot="hero-descriptor"]');
+    const rotation = descriptor.locator("..");
+    const glow = page.locator('[data-slot="hero-descriptor-glow"]');
+    const heading = page.locator("#intro-heading");
+    const availabilityDot = page.locator('[data-slot="availability-dot"]');
+    const availability = availabilityDot.locator("..");
+    const availabilityStatus = availability.getByText("Open to work", { exact: true });
+    const timeline = page.locator("#experience ol");
+    const currentDot = page.locator('[data-slot="timeline-dot"]').first();
+    const mergedStatus = page.locator('[data-slot="pull-request-status"][data-status="merged"]').first();
+    const additions = page.locator('[data-slot="pull-request-diff"] > span:first-child').first();
+    const calendar = page.locator('[data-slot="contribution-day"]:not([data-level="0"])');
+    const levelFourDay = page.locator('[data-slot="contribution-day"][data-level="4"]').first();
+    const name = page.locator('#contact-name');
+    const email = page.locator('#contact-email');
+    const message = page.locator('#contact-message');
+    const headingColor = await heading.evaluate((element) => getComputedStyle(element).color);
+    const successColor = await additions.evaluate((element) => getComputedStyle(element).color);
+
+    await expect(descriptor).toHaveCSS("font-size", "12px");
+    await expect(descriptor).toHaveCSS("background-image", /linear-gradient.*58%/);
+    await expect(descriptor).toHaveCSS("background-clip", "text");
+    await expect(descriptor).toHaveCSS("filter", "none");
+    await expect(descriptor).toHaveCSS("text-shadow", "none");
+    await expect(rotation).toHaveCSS("filter", "none");
+    await expect(glow).toHaveAttribute("aria-hidden", "true");
+    if (theme === "light") {
+      await expect(glow).toBeHidden();
+    } else {
+      await expect(glow).toBeVisible();
+      await expect(glow).toHaveCSS("filter", "none");
+      await expect(glow).not.toHaveCSS("text-shadow", "none");
+      await expect(glow).toHaveCSS("opacity", "0.65");
+    }
+    await expect(heading).toHaveCSS("background-image", "none");
+    await expect(availability).toHaveCSS("background-image", /linear-gradient/);
+    await expect(availabilityStatus).toHaveCSS("background-image", /linear-gradient.*58%/);
+    await expect(availabilityDot).toHaveCSS("background-image", /linear-gradient.*58%/);
+    expect(await timeline.evaluate((element) => getComputedStyle(element, "::before").backgroundImage))
+      .toContain("192px");
+    for (const dot of (await timeline.locator('[data-slot="timeline-dot"]').all()).slice(1)) {
+      await expect(dot).toHaveCSS("background-image", "none");
+      await expect(dot).toHaveCSS("border-color", await dot.locator("..").evaluate((element) => getComputedStyle(element).color));
+    }
+    await expect(currentDot).toHaveCSS("background-image", /linear-gradient.*58%/);
+    await expect(mergedStatus).toHaveCSS("stroke", successColor);
+    await expect(additions).toHaveCSS("background-image", "none");
+    await expect(levelFourDay).toHaveCSS("background-image", /linear-gradient.*58%/);
+
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.evaluate(() => { window.scrollTo({ top: 0, behavior: "instant" }); });
+      await waitForAnimationsToSettle(page, "[data-page-motion-intro]");
+      await expect(rotation).toHaveCSS("opacity", "1");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      await page.locator('section[aria-labelledby="intro-heading"]').screenshot({
+        path: testInfo.outputPath(`jade-${theme}-${String(width)}.png`),
+      });
+      await availability.screenshot({ path: testInfo.outputPath(`jade-${theme}-${String(width)}-badge.png`) });
+
+      for (const row of await page.locator("#experience [data-page-motion-row]").all()) {
+        await row.evaluate((element) => { element.scrollIntoView({ block: "center", behavior: "instant" }); });
+        await expect(row).toHaveCSS("opacity", "1");
+      }
+      await timeline.screenshot({ path: testInfo.outputPath(`jade-${theme}-${String(width)}-experience.png`) });
+
+      for (const row of await page.locator("#contact [data-page-motion-row]").all()) {
+        await row.evaluate((element) => { element.scrollIntoView({ block: "center", behavior: "instant" }); });
+        await expect(row).toHaveCSS("opacity", "1");
+      }
+      await name.focus();
+      await page.locator("#contact form").screenshot({
+        path: testInfo.outputPath(`jade-${theme}-${String(width)}-form-focus.png`),
+      });
+
+      const plot = page.getByRole("group", { name: "Daily contributions; use arrow keys to explore" });
+      for (const scrollToEnd of [false, true]) {
+        await plot.evaluate((element, toEnd) => {
+          const scroller = element.parentElement?.parentElement;
+          if (scroller) scroller.scrollLeft = toEnd ? scroller.scrollWidth : 0;
+        }, scrollToEnd);
+        const plotBox = await plot.boundingBox();
+        expect(plotBox).not.toBeNull();
+        const gradientGeometry = await calendar.evaluateAll((cells) => cells.map((cell) => {
+          const style = getComputedStyle(cell);
+          const bounds = cell.getBoundingClientRect();
+          const size = /calc\(([\d.]+)% \+ ([\d.]+)px\)/.exec(style.backgroundSize);
+          if (!size) throw new Error(`Expected a plot-sized gradient, received ${style.backgroundSize}`);
+          const gradientWidth = bounds.width * Number(size[1]) / 100 + Number(size[2]);
+          const position = Number.parseFloat(style.backgroundPositionX.split(",")[1] ?? "NaN") / 100;
+          return { width: gradientWidth, origin: bounds.x + (bounds.width - gradientWidth) * position };
+        }));
+        expect(gradientGeometry.length).toBeGreaterThan(1);
+        for (const geometry of gradientGeometry) {
+          expect(Math.abs(geometry.width - (plotBox?.width ?? 0))).toBeLessThan(1);
+          expect(Math.abs(geometry.origin - (plotBox?.x ?? 0))).toBeLessThan(1);
+        }
+      }
+    }
+
+    const calendarBefore = await calendar.evaluateAll((cells) => cells.map((cell) => getComputedStyle(cell).backgroundImage));
+    const selectionBefore = await descriptor.evaluate((element) => getComputedStyle(element, "::selection").backgroundColor);
+    for (const section of ["code", "contact"]) {
+      for (const row of await page.locator(`#${section} [data-page-motion-row]`).all()) {
+        await row.evaluate((element) => { element.scrollIntoView({ block: "center", behavior: "instant" }); });
+        await expect(row).toHaveCSS("opacity", "1");
+      }
+      await page.locator(`#${section}`).screenshot({ path: testInfo.outputPath(`jade-${theme}-${section}.png`) });
+    }
+
+    const accent = "rgb(120, 70, 190)";
+    const endpoint = "rgb(235, 85, 45)";
+    const directGradient = /rgb\(120,\s*70,\s*190\).*rgb\(235,\s*85,\s*45\)/;
+    const availabilityBefore = await availability.evaluate((element) => getComputedStyle(element).backgroundImage);
+    await page.evaluate(({ accentColor, endpointColor }) => {
+      document.documentElement.style.setProperty("--brand-accent", accentColor);
+      document.documentElement.style.setProperty("--brand-accent-end", endpointColor);
+    }, { accentColor: accent, endpointColor: endpoint });
+    await expect(descriptor).toHaveCSS("background-image", directGradient);
+    await expect(availabilityStatus).toHaveCSS("background-image", directGradient);
+    await expect(availabilityDot).toHaveCSS("background-image", directGradient);
+    expect(await availability.evaluate((element) => getComputedStyle(element).backgroundImage))
+      .not.toBe(availabilityBefore);
+    expect(await timeline.evaluate((element) => getComputedStyle(element, "::before").backgroundImage))
+      .toMatch(directGradient);
+    await expect(currentDot).toHaveCSS("background-image", directGradient);
+    await expect(mergedStatus).toHaveCSS("stroke", successColor);
+    await expect(additions).toHaveCSS("color", successColor);
+    await expect(additions).toHaveCSS("background-image", "none");
+    await page.evaluate(() => {
+      document.documentElement.style.setProperty("--success", "rgb(20, 120, 60)");
+    });
+    await expect(mergedStatus).toHaveCSS("stroke", "rgb(20, 120, 60)");
+    await expect(additions).toHaveCSS("color", "rgb(20, 120, 60)");
+    const calendarAfter = await calendar.evaluateAll((cells) => cells.map((cell) => getComputedStyle(cell).backgroundImage));
+    expect(calendarAfter.every((color, index) => color !== calendarBefore[index])).toBe(true);
+    await expect(levelFourDay).toHaveCSS("background-image", directGradient);
+    expect(await descriptor.evaluate((element) => getComputedStyle(element, "::selection").backgroundColor))
+      .not.toBe(selectionBefore);
+    await name.focus();
+    await expect(name).toHaveCSS("border-color", accent);
+    await expect(name).not.toHaveCSS("box-shadow", "none");
+    await expect(name).toHaveCSS("background-image", "none");
+    await expect(name).toHaveCSS("filter", "none");
+    await expect(name).toHaveCSS("mask-image", "none");
+
+    await message.focus();
+    await expect(message).toHaveCSS("border-color", accent);
+    await expect(message).not.toHaveCSS("box-shadow", "none");
+    await expect(message).toHaveCSS("background-image", "none");
+    await expect(message).toHaveCSS("filter", "none");
+    await expect(message).toHaveCSS("mask-image", "none");
+
+    await email.fill("not-an-email");
+    await expect(email).toHaveAttribute("aria-invalid", "true");
+    await email.focus();
+    await expect(email).not.toHaveCSS("border-color", accent);
+    await expect(email).not.toHaveCSS("border-color", "rgba(0, 0, 0, 0)");
+
+    await name.evaluate((element) => { element.toggleAttribute("disabled", true); });
+    await expect(name).toBeDisabled();
+    await name.evaluate((element) => { element.toggleAttribute("disabled", false); });
+    await expect(heading).toHaveCSS("color", headingColor);
+
+    if (browserName === "chromium") {
+      await name.focus();
+      await page.emulateMedia({ forcedColors: "active" });
+      await expect(descriptor).toHaveCSS("background-image", "none");
+      await expect(descriptor).not.toHaveCSS("color", "rgba(0, 0, 0, 0)");
+      await expect(glow).toBeHidden();
+      await expect(name).toBeFocused();
+      await expect(name).toHaveCSS("border-style", "solid");
+      await expect(name).not.toHaveCSS("border-color", "rgba(0, 0, 0, 0)");
+      await page.emulateMedia({ forcedColors: "none" });
+    }
+
+    await page.goto("/articles/fixing-bugs-with-mcps");
+    const quote = page.locator("article blockquote").first();
+    await quote.evaluate((element) => { element.scrollIntoView({ block: "center", behavior: "instant" }); });
+    await expect(quote).toHaveCSS("opacity", "1");
+    await quote.screenshot({ path: testInfo.outputPath(`jade-${theme}-quote.png`) });
+    await page.evaluate(({ accentColor, endpointColor }) => {
+      document.documentElement.style.setProperty("--brand-accent", accentColor);
+      document.documentElement.style.setProperty("--brand-accent-end", endpointColor);
+    }, { accentColor: accent, endpointColor: endpoint });
+    await expect(quote).toHaveCSS("border-image-source", directGradient);
+  });
+}
+
+test("Jade descriptor glow follows system changes and explicit light overrides", async ({ page, browser }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.addInitScript(() => {
+    localStorage.setItem("theme", "system");
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+  });
+  await page.goto("/");
+  const glow = page.locator('[data-slot="hero-descriptor-glow"]');
+  const toggle = page.locator('[data-slot="theme-toggle"]');
+  await expect(glow).toBeVisible();
+  await toggle.click(); // Explicit light overrides the dark system preference.
+  await expect(glow).toBeHidden();
+  await toggle.click(); // Explicit dark restores the approved glow.
+  await expect(glow).toBeVisible();
+  await toggle.click(); // System follows subsequent preference changes.
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(glow).toBeHidden();
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(glow).toBeVisible();
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    const fallback = await browser.newPage({ javaScriptEnabled: false, colorScheme });
+    try {
+      await fallback.goto(new URL("/", page.url()).href);
+      await expect(fallback.locator('[data-slot="hero-descriptor"]')).toHaveText("AI Engineer");
+      await expect(fallback.locator('[data-slot="hero-descriptor-glow"]'))
+        .toBeVisible({ visible: colorScheme === "dark" });
+    } finally {
+      await fallback.close();
+    }
+  }
+});
+
 test("descriptor follows the reference timing and reduced-motion animation", async ({ page }) => {
   await page.goto("/");
   const descriptor = page.locator('[data-slot="hero-descriptor"]');
+  const rotation = descriptor.locator("..");
   await expect(descriptor).toHaveText("AI Engineer");
   await expect(descriptor).toHaveAttribute("data-state", "entering");
-  await expect(descriptor).toHaveCSS("animation-duration", "0.58s");
-  await expect(descriptor).toHaveCSS("animation-timing-function", "cubic-bezier(0.22, 0.61, 0.36, 1)");
+  await expect(rotation).toHaveCSS("animation-duration", "0.58s");
+  await expect(rotation).toHaveCSS("animation-timing-function", "cubic-bezier(0.22, 0.61, 0.36, 1)");
   await page.waitForFunction(() =>
     document.querySelector<HTMLElement>('[data-slot="hero-descriptor"]')?.dataset.state === "exiting",
   );
   const outgoingDescriptor = await descriptor.textContent();
-  await expect(descriptor).toHaveCSS("animation-name", /descriptor-out/);
+  await expect(rotation).toHaveCSS("animation-name", /descriptor-out/);
   await expect(descriptor).toHaveCount(1);
   await page.waitForFunction((outgoing) => {
     const current = document.querySelector<HTMLElement>('[data-slot="hero-descriptor"]');
@@ -2025,14 +2253,14 @@ test("descriptor follows the reference timing and reduced-motion animation", asy
   await expect(descriptor).toHaveAttribute("data-state", "entering");
   await page.waitForFunction(() => {
     const outgoing = document.querySelector<HTMLElement>('[data-slot="hero-descriptor"][data-state="exiting"]');
-    return outgoing?.getAnimations().some((animation) => animation.playState === "running");
+    return outgoing?.parentElement?.getAnimations().some((animation) => animation.playState === "running");
   });
   await expect(descriptor).toHaveCount(1);
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
-  await expect(descriptor).toHaveCSS("animation-duration", "0.5s");
-  await expect(descriptor).toHaveCSS("animation-name", /descriptor-fade/);
+  await expect(rotation).toHaveCSS("animation-duration", "0.5s");
+  await expect(rotation).toHaveCSS("animation-name", /descriptor-fade/);
 });
 
 test("Page motion markers map five Home intro groups and staged rows across eight stable sections", async ({ page }) => {
@@ -3072,6 +3300,12 @@ test("reduced motion disables the splash and availability translation", async ({
 
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
+
+  test("hydration-dependent controls stay disabled without JavaScript", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator('[data-slot="theme-toggle"]')).toBeDisabled();
+    await expect(page.locator("#contact").getByRole("button", { name: "Send message" })).toBeDisabled();
+  });
 
   test("Page motion targets remain visible without JavaScript", async ({ page }) => {
     await page.goto("/");

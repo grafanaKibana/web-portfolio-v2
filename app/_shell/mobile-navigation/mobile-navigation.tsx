@@ -1,11 +1,17 @@
 "use client";
 
-import { Dialog } from "@base-ui/react/dialog";
 import { clsx } from "clsx";
 import { ArrowLeft, Check, ChevronDown, House, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { BrandMark } from "../brand-mark/brand-mark";
 import { ThemeToggle } from "../theme/theme";
 import styles from "./mobile-navigation.module.scss";
@@ -214,58 +220,53 @@ export function MobileNavigation({
           );
         })}
       </div>
-      <Dialog.Root modal open={open} onOpenChange={setOpen}>
-        <Dialog.Trigger
+      <Sheet modal open={open} onOpenChange={setOpen}>
+        <SheetTrigger
           aria-label={triggerLabel}
           className={clsx(styles.trigger, "text-ui-xs invisible absolute left-1/2 inline-flex h-11 -translate-x-1/2 items-center rounded-sm bg-transparent pl-1.5 pr-1 font-medium text-muted-foreground opacity-0 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:hidden")}
           data-visible={visible}
         >
           {activeLabel ?? defaultSectionLabel}
           <ChevronDown aria-hidden="true" className={clsx(styles.chevron, "opacity-50")} />
-        </Dialog.Trigger>
-        <Dialog.Portal>
-          <Dialog.Backdrop
-            className={clsx(styles.backdrop, "fixed z-40 xl:hidden")}
-            data-slot="mobile-navigation-backdrop"
-          />
-          <Dialog.Popup
-            data-slot="mobile-navigation-popup"
-            finalFocus
-            className={clsx(styles.popup, "fixed z-50 flex flex-col xl:hidden")}
+        </SheetTrigger>
+        <SheetContent
+          className={clsx(styles.popup, "xl:hidden")}
+          finalFocus
+          showCloseButton={false}
+          side="top"
+        >
+          <SheetTitle className="sr-only">{triggerLabel}</SheetTitle>
+          <SheetClose
+            aria-label={closeLabel}
+            className={clsx(styles.close, "inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
           >
-            <Dialog.Title className="sr-only">{triggerLabel}</Dialog.Title>
-            <Dialog.Close
-              aria-label={closeLabel}
-              className={clsx(styles.close, "inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
-            >
-              <X aria-hidden="true" className="size-ui-icon" />
-            </Dialog.Close>
-            <nav
-              aria-label={navigationLabel}
-              className={clsx(styles.menu, "overflow-y-auto p-3")}
-              data-lenis-prevent
-            >
-              {items.map((item) => {
-                const current = item.label === activeLabel;
-                return (
-                  <a
-                    aria-current={current ? "location" : undefined}
-                    className={clsx(styles.link, "text-ui-xs flex min-h-11 items-center justify-between rounded-sm px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", current && "font-medium text-foreground")}
-                    href={`/${item.href}`}
-                    key={item.href}
-                    onClick={() => {
-                      setOpen(false);
-                    }}
-                  >
-                    <span>{item.label}</span>
-                    {current && <Check aria-hidden="true" className="size-ui-icon" />}
-                  </a>
-                );
-              })}
-            </nav>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+            <X aria-hidden="true" className="size-ui-icon" />
+          </SheetClose>
+          <nav
+            aria-label={navigationLabel}
+            className={clsx(styles.menu, "overflow-y-auto p-3")}
+            data-lenis-prevent
+          >
+            {items.map((item) => {
+              const current = item.label === activeLabel;
+              return (
+                <a
+                  aria-current={current ? "location" : undefined}
+                  className={clsx(styles.link, "text-ui-xs flex min-h-11 items-center justify-between rounded-sm px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", current && "font-medium text-foreground")}
+                  href={`/${item.href}`}
+                  key={item.href}
+                  onClick={() => {
+                    setOpen(false);
+                  }}
+                >
+                  <span>{item.label}</span>
+                  {current && <Check aria-hidden="true" className="size-ui-icon" />}
+                </a>
+              );
+            })}
+          </nav>
+        </SheetContent>
+      </Sheet>
       <noscript>
         <details className="text-ui-xs absolute left-1/2 top-2 z-50 w-54 -translate-x-1/2 xl:hidden">
           <summary

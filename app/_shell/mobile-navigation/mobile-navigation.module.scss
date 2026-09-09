@@ -16,16 +16,6 @@
 .popup {
   inset: 3.75rem 0 auto;
   max-height: calc(100dvh - 3.75rem);
-  color: var(--foreground);
-  background: var(--mobile-navigation-background);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(1rem);
-}
-
-.backdrop {
-  inset: 3.75rem 0 0;
-  background: color-mix(in oklab, var(--background) 22%, transparent);
-  backdrop-filter: blur(0.5rem);
 }
 
 .close {

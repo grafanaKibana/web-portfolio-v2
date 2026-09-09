@@ -3,6 +3,7 @@
 import { Moon, Sun, SunMoon } from "lucide-react";
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
 import { useSyncExternalStore, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
 /**
  * Provides the stable no-op subscription required for hydration detection.
@@ -70,18 +71,20 @@ export function ThemeToggle({ labels }: { labels: {
   const Icon = selectedTheme === "light" ? Sun : selectedTheme === "dark" ? Moon : SunMoon;
 
   return (
-    <button
+    <Button
       type="button"
       aria-label={label}
       title={mounted ? `Theme: ${selectedTheme}. ${label}` : labels.change}
-      className="inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 xl:size-8"
+      className="size-11 xl:size-8"
       data-slot="theme-toggle"
       disabled={!mounted}
+      size="icon-sm"
+      variant="ghost"
       onClick={() => {
         setTheme(nextTheme);
       }}
     >
-      <Icon aria-hidden className="size-ui-icon opacity-70" />
-    </button>
+      <Icon aria-hidden />
+    </Button>
   );
 }

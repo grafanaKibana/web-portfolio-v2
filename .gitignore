@@ -46,3 +46,6 @@ next-env.d.ts
 
 #ide
 /.idea/
+/.playwright-cli/
+/output/playwright/
+/test-results/

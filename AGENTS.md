@@ -51,10 +51,17 @@ Use a **route-oriented vertical-slice modular monolith**. Keep the implementatio
 - The opening splash remains decorative, `aria-hidden`, non-focusable, pointer-transparent, and terminal on readiness success or failure.
 - Contact remains a native-validating `mailto:` flow unless a backend is explicitly approved.
 - Use standard Tailwind utilities before adding custom CSS. Keep component-specific custom CSS in its colocated module only when Tailwind has no close utility, and promote repeated custom styling to a named reusable utility.
+- Keep native `details`/`summary` disclosures and the compact-navigation `<noscript>` fallback as progressive enhancement contracts.
+
+## Generated UI components
+
+- Treat `components/ui/**` as exact shadcn CLI-owned generated source. Regenerate and review it through the CLI; do not hand-edit, reformat, add TSDoc, or add portfolio behavior there.
+- Keep the generated `base-luma` defaults unless a documented public component prop covers the need. Configure identity through semantic tokens in `app/globals.css` and public props such as `variant`, `size`, and `side`. CLI metadata (`components.json`) was removed by request; restore the generation configuration before adding or regenerating components.
+- Generated files are exempt only from the repository-authored TSDoc check and the incompatible `@typescript-eslint/no-unnecessary-condition` rule. All other lint and type checks still apply.
 
 ## Documentation and tests
 
-- Give every named class and function a concise TSDoc comment that explains purpose or non-obvious logic. Do not restate the signature or add comments to anonymous callbacks and obvious inline lambdas.
+- Give every named class and function in repository-authored source a concise TSDoc comment that explains purpose or non-obvious logic. `components/ui/**` is the sole generated-source exception. Do not restate the signature or add comments to anonymous callbacks and obvious inline lambdas.
 - Use singular `@param name - description` for each runtime parameter, `@returns` only when a function produces a value, `@typeParam name - description` for each named generic parameter, and `@throws` only for meaningful failure contracts. TypeScript signatures own type information; do not duplicate types in tags.
 - Use `@remarks` only when the summary cannot hold essential behavior, `@see` only for a useful related API or resource (with `{@link}` for hyperlinks), `@example` only for genuinely non-obvious usage, and `@deprecated` only with a supported replacement.
 - Keep summaries under 160 characters and all comments current and behavior-focused; update or remove them with the implementation they describe.

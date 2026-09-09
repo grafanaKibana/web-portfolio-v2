@@ -32,8 +32,30 @@
   to { opacity: 0; }
 }
 
-.label {
+.rotation {
   letter-spacing: 0.16em;
+}
+
+.glow {
+  display: none;
+  color: transparent;
+  text-shadow:
+    0 0 4px color-mix(in oklab, white 25%, transparent),
+    0 0 12px color-mix(in oklab, var(--brand-accent-start) 60%, transparent),
+    0 0 28px color-mix(in oklab, var(--brand-accent-end) 35%, transparent);
+  opacity: 0.65;
+}
+
+@media (forced-colors: none) {
+  :global(.dark) .glow {
+    display: block;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not(.light, .dark)) .glow {
+      display: block;
+    }
+  }
 }
 
 .entering {

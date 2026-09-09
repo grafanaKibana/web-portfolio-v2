@@ -14,7 +14,7 @@
 
 - A minimal editorial portfolio: direct, technically credible, calm, and personal without becoming promotional.
 - Let typography, open whitespace, thin dividers, and carefully ordered evidence carry the identity.
-- Use emerald as a restrained signal, not decoration.
+- Use jade green as a restrained signal, with a subtle green-to-jade sweep on the hero descriptor.
 - Avoid dashboard, bento, card-grid, SaaS-shell, marketing-gradient, glass, and component-showcase aesthetics.
 
 - Identity mark: use the softened N/R symbol as a standalone Home control and decorative splash mark. Keep its angular upper-right return and shared vector geometry; use a padded high-contrast version for browser and touch icons. No separate decorative wordmark is established. When the surname is written, use title case: Reshetnik.
@@ -56,7 +56,7 @@
 ## Visual language
 
 - Color: use a quiet neutral foundation with three text levels: foreground for anchors, content-foreground for sustained reading, and muted-foreground for supporting context. Dark mode preserves the same hierarchy rather than becoming a separate visual theme. Exact colors come from code tokens.
-- Accent use: descriptor rule, current timeline dot, merged status, article pull-quote rule, and selection. Avoid decorative accent fills; reserve gradients for semantic icon treatments and the Experience rail's present-to-history fade.
+- Accent use: hero descriptor and availability, latest timeline marker, contribution calendar, native field focus, article quote rules, and selection use Jade. Merged PR icons and addition counts use an independent solid success green. The complete hero heading stays neutral; the descriptor alone has a dark-only glow.
 - Typography: use a confident sans-serif for display, headings, and prose, with a monospaced secondary voice for dates, counts, code, and numbered labels. The hero should feel expressive, section headings clear, body copy comfortable, and metadata deliberately quiet. Exact families, sizes, weights, tracking, and line heights come from code tokens.
 - Measure and rhythm: favor generous outer whitespace, narrow readable prose, clear pauses between sections, and tighter spacing inside related content groups. Long-form pages should feel focused rather than stretched. Exact widths, gutters, and spacing come from code tokens.
 - Shape and depth: keep page surfaces flat, use dividers for structure, and reserve radius or shadow for controls and overlays that need affordance or separation. Shadows use neutral-black alpha in both themes and never derive elevation from foreground or other light colors. Sections are not cards.
@@ -81,8 +81,12 @@ Experience disclosure rows use a pointer cursor across the whole block: the summ
 ## Components
 
 - Reuse the application shell under `app/_shell`, Home sections and interactions under `app/(home)/_components`, native disclosure, route lists, and MDX typography before adding markup.
-- Preserve native `details`/`summary` for experience disclosure and native form controls/validation for contact.
-- Reuse semantic tokens from `app/globals.css`; raw `design/_ds/` primitives do not mandate shadcn components or a new design-system layer.
+- Use exact shadcn CLI-owned `base-luma` components under `components/ui/**` for generic controls and overlays. Keep generated source unchanged and accept its default geometry and presentation.
+- Configure identity through semantic tokens from `app/globals.css` and documented component props such as `variant`, `size`, and `side` before adding consumer layout classes.
+- `app/globals.css` owns the live theme: `--brand-accent` and its start/end tokens define Jade; `--success` independently colors merged PR icons and additions. Generated shadcn controls own focus borders, ring width, opacity, radius, and validation styling; configure only `--ring` for focus color, with no decorative wrappers or CSS focus overrides. Field backgrounds stay neutral through `--input`, and primary buttons retain `--primary`. Selection uses the solid midpoint. The descriptor glow layers a faint white core with shadows from the brand gradient endpoints beneath sharp text; it is disabled in light theme and forced colors.
+- CLI metadata (`components.json`) was removed by request. Existing components run without it; restore the generation configuration before using the shadcn CLI to add or regenerate components.
+- Gradient scale follows the surface: experience stays grey except for the latest role's filled marker and a short gradient lead-in that fades into the neutral rail. Historical markers remain hollow grey circles. The contribution calendar shares one gradient across all columns while retaining per-day intensity. The latest marker uses the edge gradient; hovering that role preserves its gradient.
+- Preserve native `details`/`summary` for experience disclosure, the compact-navigation `<noscript>` fallback, and native form semantics and validation through generated form controls.
 - Keep `app/globals.css` limited to Tailwind imports, application-wide tokens, base element rules, and named utilities with at least two real consumers. Component-specific selectors, keyframes, states, and responsive rules must live in a scoped SCSS module beside their owning component.
 - Do not use Tailwind arbitrary-value or arbitrary-variant syntax in component markup. Use the closest standard utility when it stays within 5% of the approved design, a colocated SCSS module for a one-off customization, or a named reusable utility when the same customization has multiple consumers.
 - Keep route-specific section, index, article, and case-study rendering within its route slice. Home uses the URL-neutral `(home)` route group; its private components live in named folders with colocated SCSS. Keep one-place route markup inside its owner instead of extracting fragment components; promote a shared component only after two independent consumers or for an intrinsically application-wide concern.
@@ -93,7 +97,7 @@ Experience disclosure rows use a pointer cursor across the whole block: the summ
 - Assumption — target standard: WCAG 2.2 AA. Confirm formal conformance scope and audit ownership before claiming compliance.
 - Use semantic landmarks, ordered headings, real links/buttons, labeled form controls, meaningful alternative text, and decorative icons hidden from assistive technology.
 - Preserve visible focus, full keyboard operation, and adequate target sizes. Modal navigation traps focus, closes with Escape, and returns focus to its trigger.
-- Maintain AA contrast for text, controls, dividers that convey meaning, focus indicators, and light/dark themes; do not rely on emerald or motion alone to communicate state.
+- Maintain AA contrast for text, controls, dividers that convey meaning, focus indicators, and light/dark themes; do not rely on color or motion alone to communicate state.
 - Keep readable line lengths and allow text reflow/zoom without clipped content or horizontal page scrolling; code blocks may scroll locally.
 - Under reduced motion, remove translation, stagger, pulsing, and smooth-scroll interpolation; cross-fade the descriptor in place, show a static splash, and make programmatic anchor travel immediate. Home entrances may use a brief opacity-only transition. Maintain usable no-JavaScript fallbacks.
 
@@ -141,7 +145,7 @@ Experience disclosure rows use a pointer cursor across the whole block: the summ
 - Prefer native HTML and CSS to JavaScript. Server-rendered content remains meaningful before hydration; client decoration must fail open.
 - Contact remains a native-validating `mailto:` flow unless a backend is explicitly approved.
 - Use local production assets. Remote prototype fonts, icons, images, and CDN URLs are illustrative delivery evidence only.
-- Reuse existing components and token ownership. All exact design values remain in code; do not synchronize them into this document. Do not add a dependency, registry, global state, component library, or design-system abstraction for this direction.
+- Reuse the generated shadcn component surface and existing token ownership. All exact design values remain in code; do not synchronize them into this document or add another registry, global state, wrapper layer, or design-system abstraction.
 - Use an existing Tailwind utility whenever it reproduces the reference within a 5% visual tolerance. Keep one-off custom values in the owning component's `*.module.scss`; promote a value to a named global utility only when a second real consumer exists.
 
 ## Open questions

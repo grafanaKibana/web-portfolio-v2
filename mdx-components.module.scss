@@ -18,3 +18,9 @@
     color: var(--shiki-dark);
   }
 }
+
+.blockquote {
+  @media (forced-colors: none) {
+    border-image: linear-gradient(to bottom in oklab, var(--brand-accent-stops)) 1;
+  }
+}

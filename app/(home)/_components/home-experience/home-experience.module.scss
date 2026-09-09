@@ -21,9 +21,10 @@
   inset: 8.5px auto 0.5rem 0.25rem;
   width: 1px;
   background: linear-gradient(
-    to bottom,
-    var(--accent-em),
-    color-mix(in oklab, var(--accent-em) 35%, var(--border)) 6rem,
+    to bottom in oklab,
+    var(--brand-accent-start),
+    var(--brand-accent) 3.48rem,
+    var(--brand-accent-end) 6rem,
     var(--border) 12rem
   );
   content: "";
@@ -43,13 +44,33 @@
   border: 1px solid var(--muted-foreground);
   border-radius: 50%;
   background: var(--background);
-  transition: border-color 150ms, background-color 150ms;
+  transition: border-color 150ms;
 }
 
 .timelineDotCurrent {
   animation: timeline-current-dot 2.4s ease-in-out infinite;
-  border-color: var(--accent-em);
-  background: var(--accent-em);
+  border-color: var(--brand-accent);
+  background: var(--brand-accent);
+  background-image: var(--brand-accent-edge-gradient);
+  background-origin: border-box;
+}
+
+@supports (background: linear-gradient(in oklab, green, green)) {
+  .timelineDotCurrent {
+    border-color: transparent;
+  }
+}
+
+@media (forced-colors: active) {
+  .timelineDot {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+
+  .timelineDotCurrent,
+  .timeline::before {
+    background: CanvasText;
+  }
 }
 
 @keyframes timeline-current-dot {
@@ -85,12 +106,8 @@
   color: var(--foreground);
 }
 
-.experienceItem:has(.roleDetails):is(:hover, :has(.roleDetails summary:focus-visible)) .timelineDot {
+.experienceItem:has(.roleDetails):is(:hover, :has(.roleDetails summary:focus-visible)) .timelineDot:not(.timelineDotCurrent) {
   border-color: var(--foreground);
-}
-
-.experienceItem:has(.roleDetails):is(:hover, :has(.roleDetails summary:focus-visible)) .timelineDotCurrent {
-  background: var(--foreground);
 }
 
 .roleDetails summary {
@@ -193,14 +210,7 @@
 @media (min-width: 48rem) {
   .timeline::before {
     inset: 1.5rem auto 0.625rem 8.75rem;
-    background: linear-gradient(
-      to bottom,
-      var(--accent-em),
-      color-mix(in oklab, var(--accent-em) 35%, var(--border)) 6rem,
-      var(--border) 12rem,
-      var(--border) 82%,
-      transparent
-    );
+    mask-image: linear-gradient(#fff 82%, transparent);
   }
 
   .experienceItem {

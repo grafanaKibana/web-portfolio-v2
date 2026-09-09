@@ -67,7 +67,7 @@ const components = {
   blockquote: (props: ComponentProps<"blockquote">) => (
     <blockquote
       {...props}
-      className={clsx(styles.blockquote, "mt-6 border-l-2 border-accent-em pl-5 text-content-foreground")}
+      className={clsx(styles.blockquote, "mt-6 border-l-2 border-brand-accent pl-5 text-content-foreground")}
     />
   ),
   /**
