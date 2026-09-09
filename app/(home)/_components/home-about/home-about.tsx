@@ -9,12 +9,12 @@ import styles from "./home-about.module.scss";
  */
 export function HomeAbout() {
   return (
-    <section id="about" aria-labelledby="about-heading" className={clsx(styles.about, "page-shell-gutter w-full")} data-page-motion-section>
+    <section id="about" aria-labelledby="about-heading" className="home-section page-shell-gutter w-full" data-page-motion-section>
       <h2
         data-page-motion-row
         data-page-motion-trigger
         id="about-heading"
-        className={clsx(styles.sectionLabel, "border-t font-mono font-normal uppercase text-muted-foreground")}
+        className={clsx(styles.sectionLabel, "text-section-label border-t font-mono font-normal uppercase text-muted-foreground")}
       >
         About
       </h2>

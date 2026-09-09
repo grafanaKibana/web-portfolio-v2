@@ -1,14 +1,10 @@
 .skills {
   min-height: 100svh;
-  scroll-margin-top: 0.25rem;
-  padding-block: 3.5rem;
 }
 
 .sectionLabel {
   margin: 0 0 1.5rem;
   padding-top: 0.75rem;
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
 }
 
 .skillGroup {
@@ -181,11 +177,6 @@
 }
 
 @media (min-width: 64rem) {
-  .skills {
-    scroll-margin-top: -2.75rem;
-    padding-block: 6.5rem;
-  }
-
   .sectionLabel {
     margin-bottom: 3rem;
     padding-top: 0.875rem;
@@ -199,10 +190,4 @@
     padding-top: 1.875rem;
   }
 
-}
-
-@media (min-width: 80rem) {
-  .skills {
-    scroll-margin-top: -1.75rem;
-  }
 }

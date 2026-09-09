@@ -1,5 +1,5 @@
 .hero {
-  min-height: calc(100vh - 3.75rem);
+  min-height: calc(100vh - var(--site-header-height));
   padding-bottom: 3.25rem;
 }
 
@@ -87,11 +87,5 @@
 
   .socialLinks {
     margin-top: 3.375rem;
-  }
-}
-
-@media (min-width: 80rem) {
-  .hero {
-    min-height: calc(100vh - 4.75rem);
   }
 }

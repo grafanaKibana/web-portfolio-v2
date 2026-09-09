@@ -24,11 +24,11 @@ export function HomeContact() {
   return (
     <section
       aria-labelledby="contact-heading"
-      className="page-shell-gutter w-full scroll-mt-1 py-14 pb-18 lg:-scroll-mt-11 lg:py-26 lg:pb-30 xl:-scroll-mt-7"
+      className={clsx(styles.contact, "home-section page-shell-gutter w-full")}
       data-page-motion-section
       id="contact"
     >
-      <p className={clsx(styles.sectionLabel, "mb-7 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-14 lg:pt-3.5")} data-page-motion-row>
+      <p className="text-section-label mb-7 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-14 lg:pt-3.5" data-page-motion-row>
         Contact
       </p>
       <div className={clsx(styles.content, "grid gap-12")}>

@@ -1,10 +1,8 @@
-import { clsx } from "clsx";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 import { loadArticles } from "@/content/articles/server";
 import { HomeEditorialRow } from "../home-editorial-row/home-editorial-row";
-import rowStyles from "../home-editorial-row/home-editorial-row.module.scss";
 
 const publishedDate = new Intl.DateTimeFormat("en", {
   dateStyle: "long",
@@ -25,14 +23,14 @@ export async function HomeWriting() {
     <section
       id="writing"
       aria-labelledby="writing-heading"
-      className="page-shell-gutter w-full scroll-mt-1 py-14 lg:-scroll-mt-11 lg:py-26"
+      className="home-section page-shell-gutter w-full"
       data-page-motion-section
     >
       <h2
         data-page-motion-row
         data-page-motion-trigger
         id="writing-heading"
-        className={clsx(rowStyles.sectionLabel, "mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5")}
+        className="text-section-label mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5"
       >
         Writing
       </h2>

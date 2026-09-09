@@ -2600,7 +2600,15 @@ test("Page intro uses the approved Quiet rise timing and stagger", async ({ page
     const transformFrames = transformAnimation.effect.getKeyframes();
     const opacityTiming = opacityAnimation.effect.getTiming();
     const transformTiming = transformAnimation.effect.getTiming();
+    const previousCurrentTime = transformAnimation.currentTime;
+    const wasRunning = transformAnimation.playState === "running";
+    transformAnimation.pause();
+    transformAnimation.currentTime = Number(transformTiming.delay);
+    const initialTranslateY = new DOMMatrixReadOnly(getComputedStyle(target).transform).m42;
+    transformAnimation.currentTime = previousCurrentTime;
+    if (wasRunning) transformAnimation.play();
     return {
+      initialTranslateY,
       opacityDelay: Number(opacityTiming.delay),
       opacityDuration: Number(opacityTiming.duration),
       opacityEasing: opacityTiming.easing,
@@ -2608,7 +2616,6 @@ test("Page intro uses the approved Quiet rise timing and stagger", async ({ page
       transformDuration: Number(transformTiming.duration),
       transformEasing: transformTiming.easing,
       firstOpacity: opacityFrames.at(0)?.opacity,
-      firstTransform: transformFrames.at(0)?.transform,
       lastOpacity: opacityFrames.at(-1)?.opacity,
       lastTransform: transformFrames.at(-1)?.transform,
     };
@@ -2624,7 +2631,7 @@ test("Page intro uses the approved Quiet rise timing and stagger", async ({ page
     expect(contract?.opacityEasing).toBe("cubic-bezier(0.22, 1, 0.36, 1)");
     expect(contract?.transformEasing).toBe("cubic-bezier(0.22, 1, 0.36, 1)");
     expect(contract?.firstOpacity).toBe("0");
-    expect(contract?.firstTransform).toBe("translateY(18px)");
+    expect(contract?.initialTranslateY).toBeCloseTo(18, 3);
     expect(contract?.lastOpacity).toBe("1");
     expect(["none", "translateY(0px)"]).toContain(contract?.lastTransform);
   }

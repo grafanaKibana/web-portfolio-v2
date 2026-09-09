@@ -1,5 +1,5 @@
 .header {
-  height: 3.75rem;
+  height: var(--site-header-height);
   background: linear-gradient(
     to bottom,
     var(--background),
@@ -23,10 +23,6 @@
 }
 
 @media (min-width: 80rem) {
-  .header {
-    height: 4.75rem;
-  }
-
   .navigation {
     padding-inline: 12.5rem;
   }

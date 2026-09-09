@@ -123,7 +123,7 @@ const skillIcons: Readonly<Record<string, ReactNode>> = {
  */
 export function HomeSkills() {
   return (
-    <section id="skills" aria-labelledby="skills-heading" className={clsx(styles.skills, "page-shell-gutter w-full")} data-page-motion-section>
+    <section id="skills" aria-labelledby="skills-heading" className={clsx(styles.skills, "home-section page-shell-gutter w-full")} data-page-motion-section>
       <svg aria-hidden="true" className="absolute size-0 overflow-hidden">
         <defs>
           <linearGradient id="codex-icon-gradient" x1="0" x2="1" y1="0" y2="1">
@@ -137,7 +137,7 @@ export function HomeSkills() {
         data-page-motion-row
         data-page-motion-trigger
         id="skills-heading"
-        className={clsx(styles.sectionLabel, "border-t font-mono font-normal uppercase text-muted-foreground")}
+        className={clsx(styles.sectionLabel, "text-section-label border-t font-mono font-normal uppercase text-muted-foreground")}
       >
         Skills
       </h2>

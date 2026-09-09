@@ -1,13 +1,6 @@
-.about {
-  scroll-margin-top: 0.25rem;
-  padding-block: 3.5rem;
-}
-
 .sectionLabel {
   margin: 0 0 2rem;
   padding-top: 0.75rem;
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
 }
 
 .summary {
@@ -65,11 +58,6 @@
 }
 
 @media (min-width: 64rem) {
-  .about {
-    scroll-margin-top: -2.75rem;
-    padding-block: 6.5rem;
-  }
-
   .sectionLabel {
     margin-bottom: 4rem;
     padding-top: 0.875rem;
@@ -100,11 +88,5 @@
   .factValue {
     margin-top: 0.5rem;
     font-size: 0.9375rem;
-  }
-}
-
-@media (min-width: 80rem) {
-  .about {
-    scroll-margin-top: -1.75rem;
   }
 }

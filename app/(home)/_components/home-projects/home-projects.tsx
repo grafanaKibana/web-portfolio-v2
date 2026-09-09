@@ -1,13 +1,10 @@
 import { Github, Obsidian } from "@thesvg/react";
-import { clsx } from "clsx";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 import { loadProjects } from "@/content/projects/server";
 import { home } from "@/content/structured";
 import { HomeEditorialRow } from "../home-editorial-row/home-editorial-row";
-import rowStyles from "../home-editorial-row/home-editorial-row.module.scss";
-import styles from "./home-projects.module.scss";
 
 /**
  * Renders validated local projects as editorial links to their static case studies.
@@ -27,14 +24,14 @@ export async function HomeProjects() {
     <section
       id="projects"
       aria-labelledby="projects-heading"
-      className={clsx(styles.projects, "page-shell-gutter w-full last:min-h-screen")}
+      className="home-section page-shell-gutter w-full last:min-h-screen"
       data-page-motion-section
     >
       <h2
         data-page-motion-row
         data-page-motion-trigger
         id="projects-heading"
-        className={clsx(rowStyles.sectionLabel, "mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5")}
+        className="text-section-label mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5"
       >
         Selected work
       </h2>

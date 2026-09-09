@@ -1,13 +1,12 @@
+.contact {
+  padding-bottom: 4.5rem;
+}
+
 .content {
   @media (min-width: 56.25rem) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6rem;
   }
-}
-
-.sectionLabel {
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
 }
 
 .title {
@@ -29,5 +28,11 @@
 
   .description {
     font-size: 1.0625rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .contact {
+    padding-bottom: 7.5rem;
   }
 }

@@ -1,13 +1,6 @@
-.experience {
-  scroll-margin-top: 0.25rem;
-  padding-block: 3.5rem;
-}
-
 .experienceHeader {
   margin-bottom: 2.75rem;
   padding-top: 0.75rem;
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
 }
 
 .experienceHeader h2 {
@@ -272,11 +265,6 @@
 }
 
 @media (min-width: 64rem) {
-  .experience {
-    scroll-margin-top: -2.75rem;
-    padding-block: 6.5rem;
-  }
-
   .experienceHeader {
     margin-bottom: 5rem;
     padding-top: 0.875rem;
@@ -284,10 +272,6 @@
 }
 
 @media (min-width: 80rem) {
-  .experience {
-    scroll-margin-top: -1.75rem;
-  }
-
   .timeline::before {
     left: 12.5rem;
   }

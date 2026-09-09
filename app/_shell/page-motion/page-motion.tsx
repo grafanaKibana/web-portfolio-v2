@@ -80,7 +80,7 @@ function clearMotionStyles(element: HTMLElement) {
 function concealForMotion(element: HTMLElement, reducedMotion: boolean) {
   element.style.opacity = "0";
   element.style.willChange = reducedMotion ? "opacity" : "opacity, transform";
-  if (!reducedMotion) element.style.transform = "translateY(18px)";
+  if (!reducedMotion) element.style.transform = "translateY(var(--page-motion-distance))";
 }
 
 /**
@@ -400,7 +400,7 @@ export function PageMotion() {
           ? animate(group.targets, { opacity: [0, 1] }, { duration: 0.12 })
           : animate(
               group.targets,
-              { opacity: [0, 1], transform: ["translateY(18px)", "none"] },
+              { opacity: [0, 1], transform: ["translateY(var(--page-motion-distance))", "none"] },
               { delay: group.staggerTargets ? stagger(STAGGER_INTERVAL, { startDelay }) : startDelay, duration: REVEAL_DURATION, ease: EASE },
             );
         group.control = control;
@@ -450,7 +450,7 @@ export function PageMotion() {
             ? animate(introTargets, { opacity: [0, 1] }, { duration: 0.12 })
             : animate(
                 introTargets,
-                { opacity: [0, 1], transform: ["translateY(18px)", "none"] },
+                { opacity: [0, 1], transform: ["translateY(var(--page-motion-distance))", "none"] },
                 { delay: stagger(STAGGER_INTERVAL, { startDelay: 0.04 }), duration: REVEAL_DURATION, ease: EASE },
               );
           const ownedIntroControl = introControl;

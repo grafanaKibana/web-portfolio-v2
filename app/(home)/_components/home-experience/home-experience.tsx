@@ -12,8 +12,8 @@ import styles from "./home-experience.module.scss";
  */
 export function HomeExperience() {
   return (
-    <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "page-shell-gutter w-full")} data-page-motion-section>
-      <div className={clsx(styles.experienceHeader, "border-t font-mono uppercase text-muted-foreground")} data-page-motion-row>
+    <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "home-section page-shell-gutter w-full")} data-page-motion-section>
+      <div className={clsx(styles.experienceHeader, "text-section-label border-t font-mono uppercase text-muted-foreground")} data-page-motion-row>
         <h2 data-page-motion-trigger id="experience-heading">Experience</h2>
       </div>
       <ol className={clsx(styles.timeline, "relative m-0 list-none p-0 pl-5.5 md:pl-0")}>
@@ -76,7 +76,7 @@ export function HomeExperience() {
         data-slot="experience-recommendations"
       >
         <h3
-          className="m-0 border-t pt-3 font-mono text-[0.6875rem] font-normal uppercase tracking-[0.14em] text-muted-foreground lg:pt-3.5"
+          className="text-section-label m-0 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:pt-3.5"
           data-page-motion-row
           id="experience-recommendations-heading"
         >

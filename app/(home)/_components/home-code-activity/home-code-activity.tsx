@@ -59,18 +59,18 @@ export async function HomeCodeActivity() {
   }));
 
   return (
-    <section id="code" aria-labelledby="code-heading" className={clsx(styles.code, "page-shell-gutter w-full")} data-page-motion-section>
+    <section id="code" aria-labelledby="code-heading" className="home-section page-shell-gutter w-full" data-page-motion-section>
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-t pt-3 lg:mb-14 lg:pt-3.5" data-page-motion-row>
         <h2
           data-page-motion-trigger
           id="code-heading"
-          className={clsx(styles.sectionLabel, "m-0 font-mono font-normal uppercase text-muted-foreground")}
+          className="text-section-label m-0 font-mono font-normal uppercase text-muted-foreground"
         >
           Code activity
         </h2>
         {summary ? (
           <p
-            className={clsx(styles.sectionLabel, "m-0 font-mono uppercase text-muted-foreground")}
+            className="text-section-label m-0 font-mono uppercase text-muted-foreground"
             data-slot="activity-summary"
           >
             {summary}
