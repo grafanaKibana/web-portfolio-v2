@@ -18,6 +18,13 @@
   max-height: calc(100dvh - var(--site-header-height));
 }
 
+.popup::before {
+  position: absolute;
+  inset: calc(-1 * var(--site-header-height)) 0 100%;
+  background: inherit;
+  content: "";
+}
+
 .close {
   position: absolute;
   top: -3.25rem;
@@ -35,7 +42,7 @@
 }
 
 :global(body):has(.popup) {
-  --mobile-navigation-background: var(--background);
+  --mobile-navigation-background: var(--popover);
 }
 
 :global(body):has(.popup) :global([data-slot="site-header"]) {

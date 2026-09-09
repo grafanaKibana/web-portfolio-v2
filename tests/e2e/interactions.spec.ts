@@ -228,6 +228,7 @@ test("compact selector opens as a content-height header extension", async ({ pag
     await expect(themeToggle).toHaveCSS("visibility", "hidden");
     const currentLink = dialog.getByRole("link", { name: "About" });
     await expect(currentLink).toHaveAttribute("aria-current", "location");
+    await expect(currentLink.locator('[data-slot="mobile-navigation-current"]')).toBeVisible();
 
     const openBox = await dialog.boundingBox();
     const closeBox = await close.boundingBox();
@@ -240,8 +241,43 @@ test("compact selector opens as a content-height header extension", async ({ pag
     expect(openBox.width).toBeCloseTo(viewport.width, 1);
     expect(openBox.height).toBeLessThan(viewport.height / 2);
     expect(closeBox).toEqual(themeBox);
-    await expect(page.locator("header")).toHaveCSS("background-image", "none");
+    const header = page.locator("header");
+    await expect(header).toHaveCSS("background-image", "none");
     await expect(currentLink).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    const surfaceColors = await dialog.evaluate((element) => ({
+      aboveList: getComputedStyle(element, "::before").backgroundColor,
+      list: getComputedStyle(element).backgroundColor,
+    }));
+    expect(surfaceColors.aboveList).toBe(surfaceColors.list);
+    expect(await header.evaluate((element) => getComputedStyle(element).backgroundColor))
+      .toBe(surfaceColors.list);
+    const homeControl = page.locator('[data-slot="site-header"] a[href="/#top"]');
+    const controlStyles = await Promise.all([homeControl, close].map((control) =>
+      control.evaluate((element) => {
+        const computed = getComputedStyle(element);
+        return {
+          borderRadius: computed.borderRadius,
+          color: computed.color,
+          height: computed.height,
+          transitionProperty: computed.transitionProperty,
+          width: computed.width,
+        };
+      })));
+    expect(controlStyles[1]).toEqual(controlStyles[0]);
+    const experienceLink = dialog.getByRole("link", { name: "Experience" });
+    const experienceChevron = experienceLink.locator('[data-slot="mobile-navigation-chevron"]');
+    await expect(experienceChevron).toHaveCSS("opacity", "0");
+    const restingRowStyles = await experienceLink.evaluate((element) => ({
+      backgroundColor: getComputedStyle(element).backgroundColor,
+      color: getComputedStyle(element).color,
+    }));
+    await experienceLink.hover();
+    await expect(experienceLink).toHaveCSS("background-color", restingRowStyles.backgroundColor);
+    await expect.poll(() => experienceLink.evaluate((element) => getComputedStyle(element).color))
+      .not.toBe(restingRowStyles.color);
+    await expect(experienceChevron).toHaveCSS("opacity", "0.5");
+    await page.mouse.move(0, viewport.height - 1);
+    await expect(experienceChevron).toHaveCSS("opacity", "0");
     expect(await currentLink.evaluate((element) => getComputedStyle(element).fontSize)).toBe(closedFontSize);
 
     await page.keyboard.press("Escape");

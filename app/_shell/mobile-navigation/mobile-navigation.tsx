@@ -1,10 +1,11 @@
 "use client";
 
 import { clsx } from "clsx";
-import { ArrowLeft, Check, ChevronDown, House, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronRight, House, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
   SheetClose,
@@ -16,6 +17,12 @@ import { BrandMark } from "../brand-mark/brand-mark";
 import { ThemeToggle } from "../theme/theme";
 import styles from "./mobile-navigation.module.scss";
 import headerStyles from "../site-header/site-header.module.scss";
+
+const headerIconButtonClassName = buttonVariants({
+  className: "size-11 text-foreground xl:size-8",
+  size: "icon-sm",
+  variant: "ghost",
+});
 
 interface NavigationItem {
   label: string;
@@ -166,7 +173,7 @@ export function MobileNavigation({
         <div className="flex items-center">
           <Link
             aria-label={detailRoute.homeLabel}
-            className="group/button inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-transparent text-foreground transition-all hover:bg-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:translate-y-px dark:hover:bg-muted/50 xl:size-8"
+            className={headerIconButtonClassName}
             href="/"
           >
             <span className="relative size-4 text-foreground">
@@ -197,7 +204,7 @@ export function MobileNavigation({
     >
       <Link
         aria-label={backToTopLabel}
-        className="group/button inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-transparent text-foreground transition-all hover:bg-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:translate-y-px dark:hover:bg-muted/50 xl:size-8"
+        className={headerIconButtonClassName}
         href="/#top"
       >
         <span className="relative size-4 text-foreground">
@@ -238,7 +245,7 @@ export function MobileNavigation({
           <SheetTitle className="sr-only">{triggerLabel}</SheetTitle>
           <SheetClose
             aria-label={closeLabel}
-            className={clsx(styles.close, "inline-flex size-11 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
+            className={clsx(styles.close, headerIconButtonClassName)}
           >
             <X aria-hidden="true" className="size-ui-icon" />
           </SheetClose>
@@ -252,7 +259,7 @@ export function MobileNavigation({
               return (
                 <a
                   aria-current={current ? "location" : undefined}
-                  className={clsx(styles.link, "text-ui-xs flex min-h-11 items-center justify-between rounded-sm px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", current && "font-medium text-foreground")}
+                  className={clsx(styles.link, "group text-ui-xs flex min-h-11 items-center justify-between rounded-sm px-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", current && "font-medium text-foreground")}
                   href={`/${item.href}`}
                   key={item.href}
                   onClick={() => {
@@ -260,7 +267,9 @@ export function MobileNavigation({
                   }}
                 >
                   <span>{item.label}</span>
-                  {current && <Check aria-hidden="true" className="size-ui-icon" />}
+                  {current
+                    ? <Check aria-hidden="true" className="size-ui-icon" data-slot="mobile-navigation-current" />
+                    : <ChevronRight aria-hidden="true" className="size-ui-icon opacity-0 transition-opacity group-hover:opacity-50 motion-reduce:transition-none" data-slot="mobile-navigation-chevron" />}
                 </a>
               );
             })}
