@@ -3,7 +3,7 @@ profile:
   headline: "I make things. Some talk back."
   summary:
     - "I’m an AI Engineer with 5 years of experience building enterprise software. I work on .NET applications and AI systems that run in production."
-    - "I see features through implementation, testing, and release, and help the team coordinate the work along the way. Outside my day job, I maintain open-source projects and write about the technical side of what I do."
+    - "I see features through implementation, testing, and release, and help the team coordinate the work along the way. In my free time, I sometimes contribute to open-source projects and write about technical topics that interest me."
   careerChapters:
     - id: ai
       title: "AI Engineering"
@@ -13,7 +13,7 @@ profile:
       summary: "I build features across .NET services, plugins, and desktop applications. That also means working through slow SQL queries, reviewing code, and teaming up with QA and DevOps to get releases out and sort out deployment issues."
   facts:
     - { label: "Current role", value: "Senior AI Engineer" }
-    - { label: "Education", value: "Bachelor of Software Engineering" }
+    - { label: "Education", value: "Bachelor’s degree, Software Engineering" }
     - { label: "Languages", value: "English, Ukrainian, Russian" }
     - { label: "Based in", value: "Europe" }
   recommendations:
@@ -101,16 +101,16 @@ profile:
         - "Achieved at least 80% unit and integration test coverage on the back end."
   education:
     institution: "State University of Information and Communication Technologies"
-    qualification: "Bachelor of Software Engineering"
+    qualification: "Bachelor’s degree, Software Engineering"
     start: 2019-09
     end: 2023-06
     location: "Kyiv, Ukraine"
   certifications:
-    - title: "Azure AI Fundamentals"
+    - title: "Microsoft Certified: Azure AI Fundamentals"
       date: 2025-08
       icon: /certifications/microsoft-azure.svg
       href: "https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134"
-    - title: "GitHub Copilot"
+    - title: "GitHub Copilot Certification Program"
       date: 2025-06
       icon: /certifications/github-copilot.svg
       href: "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url"
@@ -127,13 +127,13 @@ profile:
     - { title: "AI / Machine Learning", skills: ["Microsoft Agent Framework", "Semantic Kernel", "Microsoft.Extensions.AI", "Large Language Models", "LLM Evaluation", "Retrieval-Augmented Generation", "Azure AI Foundry", "Langfuse"] }
     - { title: "Programming Languages", skills: ["C#", "Python", "TypeScript", "SQL"] }
     - { title: "Backend", skills: [".NET", "ASP.NET Web API", "Entity Framework", "REST API"] }
-    - { title: "Data", skills: ["Microsoft SQL Server", "PostgreSQL", "MongoDB", "Elasticsearch", "Kafka"] }
+    - { title: "Data", skills: ["Microsoft SQL Server", "PostgreSQL", "Elasticsearch", "MongoDB", "Kafka"] }
     - { title: "Cloud & DevOps", skills: ["Microsoft Azure", "Amazon Web Services", "Vercel", "Docker", "Kubernetes", "Argo CD", "Jenkins"] }
     - { title: "Observability & CI/CD", skills: ["Grafana", "Prometheus", "Kibana", "Azure DevOps", "GitHub Actions", "GitLab CI/CD"] }
-    - { title: "AI Development Tools", skills: ["Claude Code", "Claude Design", "Codex", "Pi", "OpenCode", "Cursor", "CodeRabbit", "GitHub Copilot"] }
+    - { title: "AI Development Tools", skills: ["Claude Code", "Claude Design", "Codex", "OpenCode", "Pi", "Cursor", "CodeRabbit", "GitHub Copilot"] }
   links:
     - { label: "LinkedIn", href: "https://www.linkedin.com/in/nikitareshetnik/" }
-    - { label: "Telegram", href: "https://t.me/grafanaKibana" }
+    - { label: "Telegram", href: "https://t.me/reshetnigram" }
     - { label: "GitHub", href: "https://github.com/grafanaKibana" }
     - { label: "LeetCode", href: "https://leetcode.com/u/grafanaKibana/" }
 
