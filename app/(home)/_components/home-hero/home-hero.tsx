@@ -62,7 +62,7 @@ export function HomeHero() {
           className={clsx(styles.availabilityDot, "size-1.5 animate-pulse rounded-full motion-reduce:animate-none")}
           data-slot="availability-dot"
         />
-        <span className="text-brand-gradient">{home.hero.availability.status}</span>
+        <span className="text-foreground">{home.hero.availability.status}</span>
         <span className="font-normal text-muted-foreground">
           {home.hero.availability.qualifier}
         </span>

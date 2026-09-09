@@ -51,14 +51,58 @@
 
 @layer utilities {
   .text-brand-gradient {
-    color: var(--brand-accent);
+    color: var(--text-brand-color, var(--brand-accent));
+  }
+
+  /* Pair a decorative glow layer with sharp gradient text; only active glow mixes in foreground. */
+  .brand-glow {
+    --brand-glow-mix: 100%;
+    --brand-glow-display: none;
+  }
+
+  .brand-glow > .text-brand-gradient {
+    --text-brand-color: color-mix(in oklab, var(--brand-accent) var(--brand-glow-mix), var(--foreground));
+    --text-brand-gradient: linear-gradient(
+      90deg in oklab,
+      color-mix(in oklab, var(--brand-accent-start) var(--brand-glow-mix), var(--foreground)),
+      var(--text-brand-color) 58%,
+      color-mix(in oklab, var(--brand-accent-end) var(--brand-glow-mix), var(--foreground))
+    );
+  }
+
+  .brand-glow-layer {
+    display: none;
+    color: transparent;
+    text-shadow:
+      0 0 1px color-mix(in oklab, white 20%, transparent),
+      0 0 6px color-mix(in oklab, var(--brand-accent-start) 55%, transparent),
+      0 0 18px color-mix(in oklab, var(--brand-accent-end) 25%, transparent);
+    opacity: 0.65;
+  }
+
+  .brand-glow > .brand-glow-layer {
+    display: var(--brand-glow-display);
+  }
+
+  @media (forced-colors: none) {
+    .dark .brand-glow {
+      --brand-glow-mix: var(--brand-glow-strength);
+      --brand-glow-display: block;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not(.light, .dark) .brand-glow {
+        --brand-glow-mix: var(--brand-glow-strength);
+        --brand-glow-display: block;
+      }
+    }
   }
 
   @supports (background: linear-gradient(in oklab, green, green)) and (background-clip: text) {
     @media (forced-colors: none) {
       .text-brand-gradient {
         color: transparent;
-        background-image: var(--brand-accent-gradient);
+        background-image: var(--text-brand-gradient, var(--brand-accent-gradient));
         background-clip: text;
       }
     }
@@ -137,6 +181,7 @@
   --brand-accent: #007865;
   --brand-accent-start: #0a7a3d;
   --brand-accent-end: #00756c;
+  --brand-glow-strength: 80%;
   --success: #1a7f37;
   --brand-accent-stops: var(--brand-accent-start), var(--brand-accent) 58%, var(--brand-accent-end);
   --brand-accent-gradient: linear-gradient(90deg in oklab, var(--brand-accent-stops));

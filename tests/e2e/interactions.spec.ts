@@ -2076,7 +2076,8 @@ for (const theme of ["light", "dark"] as const) {
     }
     await expect(heading).toHaveCSS("background-image", "none");
     await expect(availability).toHaveCSS("background-image", /linear-gradient/);
-    await expect(availabilityStatus).toHaveCSS("background-image", /linear-gradient.*58%/);
+    await expect(availabilityStatus).toHaveCSS("background-image", "none");
+    await expect(availabilityStatus).toHaveCSS("color", headingColor);
     await expect(availabilityDot).toHaveCSS("background-image", /linear-gradient.*58%/);
     expect(await timeline.evaluate((element) => getComputedStyle(element, "::before").backgroundImage))
       .toContain("192px");
@@ -2155,12 +2156,14 @@ for (const theme of ["light", "dark"] as const) {
     const endpoint = "rgb(235, 85, 45)";
     const directGradient = /rgb\(120,\s*70,\s*190\).*rgb\(235,\s*85,\s*45\)/;
     const availabilityBefore = await availability.evaluate((element) => getComputedStyle(element).backgroundImage);
+    const descriptorBefore = await descriptor.evaluate((element) => getComputedStyle(element).backgroundImage);
     await page.evaluate(({ accentColor, endpointColor }) => {
       document.documentElement.style.setProperty("--brand-accent", accentColor);
       document.documentElement.style.setProperty("--brand-accent-end", endpointColor);
     }, { accentColor: accent, endpointColor: endpoint });
-    await expect(descriptor).toHaveCSS("background-image", directGradient);
-    await expect(availabilityStatus).toHaveCSS("background-image", directGradient);
+    await expect(descriptor).not.toHaveCSS("background-image", descriptorBefore);
+    await expect(availabilityStatus).toHaveCSS("background-image", "none");
+    await expect(availabilityStatus).toHaveCSS("color", headingColor);
     await expect(availabilityDot).toHaveCSS("background-image", directGradient);
     expect(await availability.evaluate((element) => getComputedStyle(element).backgroundImage))
       .not.toBe(availabilityBefore);
