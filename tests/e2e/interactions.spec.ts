@@ -339,7 +339,7 @@ test("the home page contains approved content through Phase 9 Contact", async ({
   await expect(about.locator("dt")).toHaveText(["Current role", "Education", "Languages", "Based in"]);
   await expect(about.locator("dd")).toHaveText([
     "Senior AI Engineer",
-    "Bachelor of Software Engineering",
+    "Bachelor’s degree, Software Engineering",
     "English, Ukrainian, Russian",
     "Europe",
   ]);
@@ -385,16 +385,16 @@ test("the home page contains approved content through Phase 9 Contact", async ({
     "Industry certifications",
   ]);
   await expect(education.getByText("September 2019 — June 2023", { exact: true })).toHaveCount(0);
-  await expect(education.getByText("Bachelor of Software Engineering", { exact: true })).toBeVisible();
+  await expect(education.getByText("Bachelor’s degree, Software Engineering", { exact: true })).toBeVisible();
   await expect(education.getByText("State University of Information and Communication Technologies", { exact: true })).toBeVisible();
   await expect(education.getByText("Kyiv, Ukraine", { exact: true })).toBeVisible();
   await expect(education.locator('[data-slot="certification"]')).toHaveText([
-    "Azure AI FundamentalsAugust 2025",
-    "GitHub CopilotJune 2025",
+    "Microsoft Certified: Azure AI FundamentalsAugust 2025",
+    "GitHub Copilot Certification ProgramJune 2025",
   ]);
   await expect(education.locator('[data-slot="certification-icon"] > span')).toHaveCount(2);
   await expect(education.getByRole("heading", { level: 3, name: "Learning & training" })).toHaveCount(0);
-  const azureCredential = education.getByRole("link", { name: "Azure AI Fundamentals" });
+  const azureCredential = education.getByRole("link", { name: "Microsoft Certified: Azure AI Fundamentals" });
   await expect(azureCredential).toHaveAttribute(
     "href",
     "https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134",
@@ -426,7 +426,7 @@ test("the home page contains approved content through Phase 9 Contact", async ({
     localStorage.setItem("theme", "dark");
   });
   await page.reload();
-  const darkAzureCredential = page.locator("#education").getByRole("link", { name: "Azure AI Fundamentals" });
+  const darkAzureCredential = page.locator("#education").getByRole("link", { name: "Microsoft Certified: Azure AI Fundamentals" });
   const darkAzureIcon = darkAzureCredential.locator('[data-slot="certification-icon"]');
   const darkDate = darkAzureCredential.getByText("August 2025", { exact: true });
   const darkDateColor = await darkDate.evaluate((element) => getComputedStyle(element).color);
@@ -1066,8 +1066,8 @@ test("Skills renders every validated item with one consistent icon slot", async 
     "REST API",
     "Microsoft SQL Server",
     "PostgreSQL",
-    "MongoDB",
     "Elasticsearch",
+    "MongoDB",
     "Kafka",
     "Microsoft Azure",
     "Amazon Web Services",
@@ -1085,8 +1085,8 @@ test("Skills renders every validated item with one consistent icon slot", async 
     "Claude Code",
     "Claude Design",
     "Codex",
-    "Pi",
     "OpenCode",
+    "Pi",
     "Cursor",
     "CodeRabbit",
     "GitHub Copilot",

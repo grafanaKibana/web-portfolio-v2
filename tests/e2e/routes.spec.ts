@@ -590,11 +590,11 @@ test.describe("without JavaScript", () => {
       "Industry certifications",
     ]);
     await expect(education.getByRole("heading", { level: 3, name: "Learning & training" })).toHaveCount(0);
-    await expect(education.getByRole("link", { name: "Azure AI Fundamentals" })).toHaveAttribute(
+    await expect(education.getByRole("link", { name: "Microsoft Certified: Azure AI Fundamentals" })).toHaveAttribute(
       "href",
       "https://learn.microsoft.com/api/credentials/share/en-us/nikitareshetnik/F3083C3D360731B0?sharingId=8BF347D38A5CD134",
     );
-    await expect(education.getByRole("link", { name: "GitHub Copilot" })).toHaveAttribute(
+    await expect(education.getByRole("link", { name: "GitHub Copilot Certification Program" })).toHaveAttribute(
       "href",
       "https://www.credly.com/badges/ba1ea295-7465-4edc-8ca1-faa90eee9ec1/public_url",
     );
