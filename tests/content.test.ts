@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import test from "node:test"
@@ -17,6 +17,36 @@ import { validateMdxModule } from "../content/load"
 import { validateContentMetadata } from "../content/metadata"
 import { validateSlug } from "../content/slugs"
 import { home, profile, validatePortfolio } from "../content/structured"
+
+test("project descriptions share a project-centered MDX structure and local media", async () => {
+  const directory = join(process.cwd(), "content/projects")
+  const projects = (await readdir(directory)).filter((file) => file.endsWith(".mdx"))
+  assert.ok(projects.length > 0)
+
+  for (const file of projects) {
+    const source = await readFile(join(directory, file), "utf8")
+    const headings = Array.from(source.matchAll(/^## (.+)$/gm), (match) => match[1])
+    assert.deepEqual(headings, ["About", "Highlights", "How it works", "Project details"], file)
+    assert.doesNotMatch(source, /^#{2,3} (?:Role|My part|My role|My contribution)\s*$/gim, file)
+
+    const figures = Array.from(source.matchAll(/<figure>([\s\S]*?)<\/figure>/g), (match) => match[1] ?? "")
+    for (const image of source.matchAll(/<img\b([^>]+)>/g)) {
+      const figure = figures.find((body) => body.includes(image[0]))
+      assert.ok(figure, `${file}: image must belong to a figure`)
+      assert.match(figure, /<figcaption>\s*[^\s<][^<]*<\/figcaption>/, `${file}: image caption is required`)
+      const attributes = image[1] ?? ""
+      const src = /\bsrc="([^"]+)"/.exec(attributes)?.[1]
+      assert.ok(src, `${file}: image source is required`)
+      assert.ok(src.startsWith(`/projects/${file.slice(0, -4)}/`), `${file}: image must be local to its project`)
+      assert.ok(!src.includes(".."), `${file}: image path must not traverse directories`)
+      assert.match(attributes, /\balt="[^"\s][^"]*"/, `${file}: meaningful image alternative`)
+      assert.match(attributes, /\bwidth=(?:"[1-9]\d*"|\{[1-9]\d*\})/, `${file}: image width`)
+      assert.match(attributes, /\bheight=(?:"[1-9]\d*"|\{[1-9]\d*\})/, `${file}: image height`)
+      assert.match(attributes, /\bloading="lazy"/, `${file}: lazy image loading`)
+      assert.ok((await readFile(join(process.cwd(), "public", src))).byteLength > 0, `${file}: nonempty image file`)
+    }
+  }
+})
 
 test("valid article and project metadata is accepted", () => {
   const article = validateContentMetadata(

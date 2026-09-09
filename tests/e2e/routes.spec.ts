@@ -628,7 +628,7 @@ test.describe("without JavaScript", () => {
     await expect(page.getByRole("link", { name: "Back to list" })).toHaveAttribute("href", "/projects");
     await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
     await expect(
-      page.getByRole("heading", { level: 2, name: "One source, different uses" }),
+      page.getByRole("heading", { level: 2, name: "How it works" }),
     ).toBeVisible();
   });
 });

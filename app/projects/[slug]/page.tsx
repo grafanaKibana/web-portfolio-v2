@@ -1,10 +1,12 @@
 import { Github, Obsidian } from "@thesvg/react";
+import { clsx } from "clsx";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getProjectSlugs, loadProject } from "@/content/projects/server";
+import styles from "./project-page.module.scss";
 
 export const dynamicParams = false;
 
@@ -61,7 +63,7 @@ export default async function ProjectPage({
   return (
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
       <article>
-        <header className="pb-10" data-slot="project-hero">
+        <header className="mx-auto max-w-3xl pb-10" data-slot="project-hero">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" data-page-motion-intro data-slot="project-title-row">
             <h1 className="min-w-0 text-4xl font-semibold tracking-tight">{project.metadata.title}</h1>
             {project.metadata.links?.length ? (
@@ -99,9 +101,9 @@ export default async function ProjectPage({
             </p>
           ) : null}
         </header>
-        <hr aria-hidden="true" className="m-0 border-0 border-b" data-page-motion-intro />
+        <hr aria-hidden="true" className="mx-auto my-0 max-w-3xl border-0 border-b" data-page-motion-intro />
 
-        <div className="pt-6" data-page-motion-rows="children" data-page-motion-section data-page-motion-trigger>
+        <div className={clsx(styles.content, "mx-auto max-w-3xl pt-6")} data-page-motion-rows="children" data-page-motion-section data-page-motion-trigger>
           <project.Content />
         </div>
       </article>
