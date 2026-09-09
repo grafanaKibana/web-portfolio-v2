@@ -300,11 +300,11 @@ test("the home page contains approved content through Phase 9 Contact", async ({
   const primaryBox = await resume.boundingBox();
   const secondaryBox = await secondaryAction.boundingBox();
   if (!primaryBox || !secondaryBox) throw new Error("Hero actions must be measurable");
-  await expect(resume.locator("svg")).toHaveClass(/lucide-file-down/);
+  await expect(resume.locator("svg")).toHaveClass(/lucide-arrow-big-down-dash/);
   expect(primaryBox).toMatchObject({ x: 22, width: 346 });
   expect(secondaryBox.y - primaryBox.y - primaryBox.height).toBe(6);
   await secondaryAction.hover();
-  await expect(secondaryAction.locator("svg")).toHaveCSS("translate", "none");
+  await expect(secondaryAction.locator("svg")).toHaveCount(0);
   const hero = page.locator('section[aria-labelledby="intro-heading"]');
   const socialBoxes = [];
   for (const label of ["LinkedIn", "Telegram", "GitHub", "LeetCode"]) {
@@ -2993,7 +2993,8 @@ test("reduced motion makes same-page anchor travel immediate", async ({ page }) 
   }).toBeLessThanOrEqual(1);
 });
 
-test("the recommendation strip keeps native horizontal wheel scrolling", async ({ page }) => {
+for (const diagonal of [false, true]) {
+test(`the recommendation strip preserves both scroll axes with ${diagonal ? "diagonal" : "straight"} wheel gestures`, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/#experience");
   const track = page.locator('[data-slot="recommendation-track"]');
@@ -3001,11 +3002,20 @@ test("the recommendation strip keeps native horizontal wheel scrolling", async (
   const pageScroll = await page.evaluate(() => window.scrollY);
 
   await track.hover();
-  await page.mouse.wheel(240, 0);
+  await page.mouse.wheel(240, diagonal ? 60 : 0);
 
   await expect.poll(() => track.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
   expect(await page.evaluate(() => window.scrollY)).toBe(pageScroll);
+
+  await page.mouse.wheel(diagonal ? 40 : 0, 160);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(pageScroll + 100);
+
+  await track.hover();
+  const scrolledPage = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(diagonal ? -40 : 0, -160);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(scrolledPage - 100);
 });
+}
 
 test("real Tab focus finishes an active section reveal synchronously", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });

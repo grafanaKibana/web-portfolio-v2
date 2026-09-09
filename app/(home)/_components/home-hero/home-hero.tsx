@@ -1,4 +1,4 @@
-import { FileDown, ArrowDown, type LucideIcon } from "lucide-react";
+import { ArrowBigDownDash, type LucideIcon } from "lucide-react";
 import { home, profile } from "@/content/structured";
 import { buttonVariants } from "@/components/ui/button";
 import { clsx } from "clsx";
@@ -6,8 +6,7 @@ import { DescriptorRotation } from "../descriptor-rotation/descriptor-rotation";
 import styles from "./home-hero.module.scss";
 
 const icons: Record<string, LucideIcon> = {
-  "arrow-down": ArrowDown,
-  download: FileDown,
+  download: ArrowBigDownDash,
 };
 
 const socialIconNames = {
@@ -88,13 +87,9 @@ export function HomeHero() {
           href="#experience"
         >
           Explore Experience
-          <Icon
-            name="arrow-down"
-            className="-order-1 size-3.5 opacity-60 lg:order-none"
-          />
         </a>
       </div>
-      <ul className={clsx(styles.socialLinks, "desktop-link-row-gap grid w-full grid-cols-2 justify-items-center gap-x-1 gap-y-1 sm:flex sm:flex-wrap sm:justify-center sm:gap-y-0 lg:w-auto")} data-page-motion-intro>
+      <ul className={clsx(styles.socialLinks, "desktop-link-row-gap grid w-full grid-cols-2 justify-items-center gap-x-1 gap-y-1 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-6 sm:gap-y-0 lg:w-auto")} data-page-motion-intro>
         {profile.links.map((link) => (
           <li key={link.href}>
             <a

@@ -84,8 +84,8 @@ export function HomeExperience() {
         </h3>
         <ul
           aria-label="Recommendations"
-          className={clsx(styles.recommendationTrack, "m-0 mt-10 flex snap-x snap-mandatory list-none gap-6 overflow-x-auto overscroll-x-contain p-0 pb-4 pr-[12%] focus-visible:outline-2 focus-visible:outline-offset-4 md:gap-8 md:pr-[20%] lg:mt-14 lg:gap-12 lg:pr-[14%]")}
-          data-lenis-prevent
+          className={clsx(styles.recommendationTrack, "m-0 mt-10 flex snap-x snap-mandatory list-none gap-6 overflow-x-auto overscroll-x-contain overscroll-y-auto! p-0 pb-4 pr-[12%] focus-visible:outline-2 focus-visible:outline-offset-4 md:gap-8 md:pr-[20%] lg:mt-14 lg:gap-12 lg:pr-[14%]")}
+          data-lenis-prevent-horizontal
           data-page-motion-row
           data-slot="recommendation-track"
           tabIndex={0}
