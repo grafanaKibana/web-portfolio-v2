@@ -487,7 +487,7 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/#experience");
     await expect(experience).toHaveAttribute("data-page-motion-revealed", "true");
-    await waitForAnimationsToSettle(page, "#experience [data-page-motion-row]");
+    await waitForAnimationsToSettle(page, '#experience [data-page-motion-row], #experience [data-page-motion-item], #experience [data-slot="timeline-dot"]');
     await expect(experience).toHaveCSS("transform", "none");
     await expect(experience).toHaveCSS("scroll-margin-top", "4px");
     expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
@@ -542,7 +542,7 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/#experience");
     await expect(experience).toHaveAttribute("data-page-motion-revealed", "true");
-    await waitForAnimationsToSettle(page, "#experience [data-page-motion-row]");
+    await waitForAnimationsToSettle(page, '#experience [data-page-motion-row], #experience [data-page-motion-item], #experience [data-slot="timeline-dot"]');
     await expect(experience).toHaveCSS("transform", "none");
     expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
     const geometry = await experience.locator("ol").evaluate((timeline) => {
@@ -611,7 +611,7 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/#experience");
   await expect(experience).toHaveAttribute("data-page-motion-revealed", "true");
-  await waitForAnimationsToSettle(page, "#experience [data-page-motion-row]");
+  await waitForAnimationsToSettle(page, '#experience [data-page-motion-row], #experience [data-page-motion-item], #experience [data-slot="timeline-dot"]');
   await expect(experience).toHaveCSS("transform", "none");
   await expect(experience).toHaveCSS("scroll-margin-top", "-28px");
   const desktopItem = experience.locator("li").first();
@@ -706,23 +706,53 @@ test("Experience keeps the date rail, compact reading order, and native disclosu
   expect(await experience.evaluate((section) => section.scrollWidth <= section.clientWidth)).toBe(true);
 });
 
-test("Experience present marker grows subtly from a matching gradient rail", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+for (const width of [390, 1440]) {
+for (const theme of ["light", "dark"] as const) {
+test(`Experience present marker flies once up its revealing rail at ${String(width)}px in ${theme}`, async ({ page }, testInfo) => {
+  await page.setViewportSize({ width, height: 900 });
+  await page.addInitScript((preferredTheme) => { localStorage.setItem("theme", preferredTheme); }, theme);
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-page-motion-active", "true");
+  await expect(page.locator("#experience")).not.toHaveAttribute("data-page-motion-revealed", "true");
+  expect(await page.locator("#experience ol").evaluate((element) => getComputedStyle(element, "::before").clipPath)).toBe("inset(100% 0px 0px)");
+  await expect(page.locator('#experience [data-slot="timeline-dot"]').first()).toHaveCSS("visibility", "hidden");
   await page.goto("/#experience");
   const timeline = page.locator("#experience ol");
   const currentDot = timeline.locator('[data-slot="timeline-dot"]').first();
-  const dotBackground = await currentDot.evaluate((dot) => getComputedStyle(dot).backgroundColor);
+  const markerColor = await currentDot.evaluate((dot) => getComputedStyle(dot).color);
   const railBackground = await timeline.evaluate((element) => getComputedStyle(element, "::before").backgroundImage);
 
   expect(railBackground).toContain("linear-gradient");
-  expect(railBackground).toContain(dotBackground);
-  await expect(currentDot).toHaveCSS("animation-name", /timeline-current-dot/);
-  await expect(currentDot).toHaveCSS("animation-duration", "2.4s");
+  expect(railBackground).toContain(markerColor);
+  await expect(currentDot.locator(".lucide-navigation-2")).toBeVisible();
+  await expect(currentDot).toHaveCSS("animation-name", /timeline-flight/);
+  for (const time of [0, 600, 1200]) {
+    const alignment = await timeline.evaluate((element, currentTime) => {
+      for (const animation of element.getAnimations({ subtree: true })) {
+        if (animation instanceof CSSAnimation && /timeline-(flight|reveal)/.test(animation.animationName)) {
+          animation.pause();
+          animation.currentTime = currentTime;
+        }
+      }
+      const marker = element.querySelector('[data-slot="timeline-dot"]');
+      if (!marker) throw new Error("Expected current timeline marker");
+      const rail = getComputedStyle(element, "::before");
+      const rect = element.getBoundingClientRect();
+      const railHeight = rect.height - parseFloat(rail.top) - parseFloat(rail.bottom);
+      const clippedPercent = parseFloat(rail.clipPath.slice(6));
+      const markerRect = marker.getBoundingClientRect();
+      return Math.abs(markerRect.y + markerRect.height / 2 - (rect.y + parseFloat(rail.top) + railHeight * clippedPercent / 100));
+    }, time);
+    expect(alignment).toBeLessThan(1);
+    if (time === 600) await timeline.screenshot({ path: testInfo.outputPath("timeline-mid-flight.png") });
+  }
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
   await expect(timeline.locator('[data-slot="timeline-dot"]').first()).toHaveCSS("animation-name", "none");
 });
+}
+}
 
 test("Experience rows toggle highlights while preserving text selection", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 900 });
@@ -2054,7 +2084,8 @@ for (const theme of ["light", "dark"] as const) {
       await expect(dot).toHaveCSS("background-image", "none");
       await expect(dot).toHaveCSS("border-color", await dot.locator("..").evaluate((element) => getComputedStyle(element).color));
     }
-    await expect(currentDot).toHaveCSS("background-image", /linear-gradient.*58%/);
+    await expect(currentDot.locator(".lucide-navigation-2")).toBeVisible();
+    await expect(currentDot).toHaveCSS("background-image", "none");
     await expect(mergedStatus).toHaveCSS("stroke", successColor);
     await expect(additions).toHaveCSS("background-image", "none");
     await expect(levelFourDay).toHaveCSS("background-image", /linear-gradient.*58%/);

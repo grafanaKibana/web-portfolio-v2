@@ -48,17 +48,41 @@
 }
 
 .timelineDotCurrent {
-  animation: timeline-current-dot 2.4s ease-in-out infinite;
-  border-color: var(--brand-accent);
-  background: var(--brand-accent);
-  background-image: var(--brand-accent-edge-gradient);
-  background-origin: border-box;
+  border: 0;
+  background: transparent;
+  color: var(--brand-accent);
 }
 
-@supports (background: linear-gradient(in oklab, green, green)) {
-  .timelineDotCurrent {
-    border-color: transparent;
+@media (prefers-reduced-motion: no-preference) {
+  :global(html:is([data-page-motion-pending="true"], [data-page-motion-active="true"])) .experience:not([data-page-motion-revealed="true"]) {
+    .timeline::before {
+      clip-path: inset(100% 0 0);
+    }
+
+    .timelineDotCurrent {
+      visibility: hidden;
+    }
   }
+
+  .experience[data-page-motion-revealed="true"] .timeline[data-timeline-ready] {
+    &::before {
+      animation: timeline-reveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .timelineDotCurrent {
+      animation: timeline-flight 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+}
+
+@keyframes timeline-reveal {
+  from { clip-path: inset(100% 0 0); }
+  to { clip-path: inset(0); }
+}
+
+@keyframes timeline-flight {
+  from { transform: translateY(var(--timeline-flight-distance)); }
+  to { transform: translateY(0); }
 }
 
 @media (forced-colors: active) {
@@ -67,15 +91,13 @@
     background: Canvas;
   }
 
-  .timelineDotCurrent,
+  .timelineDotCurrent {
+    background: transparent;
+    color: CanvasText;
+  }
+
   .timeline::before {
     background: CanvasText;
-  }
-}
-
-@keyframes timeline-current-dot {
-  50% {
-    transform: scale(1.18);
   }
 }
 
@@ -205,6 +227,10 @@
   .timelineDot {
     top: calc(50% - 0.2813rem);
   }
+
+  .timelineDotCurrent {
+    top: 0.25rem;
+  }
 }
 
 @media (min-width: 48rem) {
@@ -224,6 +250,10 @@
   .timelineDot {
     top: 19.5px;
     left: calc(100% - 0.25rem);
+  }
+
+  .timelineDotCurrent {
+    left: 8.5rem;
   }
 
   .roleTitle {
@@ -264,6 +294,10 @@
   .experienceItem {
     grid-template-columns: 12.5rem minmax(0, 1fr);
   }
+
+  .timelineDotCurrent {
+    left: 12.25rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -273,10 +307,6 @@
   .roleDetails::details-content,
   .detailsIcon {
     transition: none;
-  }
-
-  .timelineDotCurrent {
-    animation: none;
   }
 
   .roleDetails::details-content {

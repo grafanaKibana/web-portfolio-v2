@@ -31,7 +31,7 @@ Use a **route-oriented vertical-slice modular monolith**. Keep the implementatio
 - Client modules may receive serializable props and browser-safe shared UI. They must not import `server-only`, Node filesystem/path APIs, MDX discovery, secrets, or server content loaders.
 - Prefer native HTML and CSS before JavaScript: `details/summary` for disclosures, native form validation, and CSS reduced-motion handling.
 - Keep server-rendered content meaningful without hydration. Client decoration must fail open and must never block, hide, or inert core content.
-- Page motion is shared progressive enhancement: each route's intro targets enter from an armed splash handoff, and each marked row reveals once after crossing the 90% viewport line. Rows entering together cascade in document order; explicit nested items may stagger within a row. Cells, controls, and icons remain static.
+- Page motion is shared progressive enhancement: each route's intro targets enter from an armed splash handoff, and each marked row reveals once after crossing the 90% viewport line. Rows entering together cascade in document order; explicit nested items may stagger within a row. Cells, controls, and icons remain static except the Experience navigation marker, which flies once from the rail bottom to its top as the rail reveals.
 
 ## Content, routing, and assets
 

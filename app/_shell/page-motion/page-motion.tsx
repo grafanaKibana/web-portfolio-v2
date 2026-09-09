@@ -282,6 +282,7 @@ export function PageMotion() {
 
     /** Clears every inline style currently owned by this controller. */
     function exposeOwnedContent() {
+      delete root.dataset.pageMotionActive;
       if (ownsIntroStyles) {
         for (const target of introTargets) clearMotionStyles(target);
         ownsIntroStyles = false;
@@ -408,6 +409,7 @@ export function PageMotion() {
       }
 
       try {
+        root.dataset.pageMotionActive = "true";
         for (const target of introTargets) concealForMotion(target, reducedMotion);
         ownsIntroStyles = introTargets.length > 0;
         for (const record of records) {

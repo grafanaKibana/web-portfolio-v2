@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Navigation2 } from "lucide-react";
 import Image from "next/image";
 import { profile } from "@/content/structured";
 import { clsx } from "clsx";
@@ -22,17 +22,22 @@ export function HomeExperience() {
 
           return (
             <ExperienceItem className={clsx(styles.experienceItem, "relative pb-10 last:pb-0 md:grid md:pb-14")} key={`${experience.organization}-${experience.role}-${experience.period}`}>
-              <p className={clsx(styles.experiencePeriod, "relative mb-2.5 flex self-start items-center gap-x-2 font-mono text-muted-foreground md:m-0 md:min-h-12 md:flex-col md:items-end md:justify-center md:gap-0 md:pr-8 md:text-right")} data-slot="experience-period">
-                <span
+              {index === 0 && (
+                <span aria-hidden="true" className={clsx(styles.timelineDot, styles.timelineDotCurrent, "pointer-events-none z-10")} data-slot="timeline-dot">
+                  <Navigation2 className="absolute top-1/2 left-1/2 size-5 -translate-1/2 fill-background" />
+                </span>
+              )}
+              <p className={clsx(styles.experiencePeriod, "relative mb-2.5 flex self-start items-center gap-x-2 font-mono text-muted-foreground md:m-0 md:min-h-12 md:flex-col md:items-end md:justify-center md:gap-0 md:pr-8 md:text-right")} data-slot="experience-period" data-page-motion-item={index === 0 ? "" : undefined}>
+                {index !== 0 && <span
                   aria-hidden="true"
-                  className={clsx(styles.timelineDot, index === 0 && styles.timelineDotCurrent)}
+                  className={styles.timelineDot}
                   data-slot="timeline-dot"
-                />
+                />}
                 <span className="whitespace-nowrap" data-slot="period-part">{periodStart}</span>
                 <span aria-hidden="true" className={clsx(styles.periodSeparator, "md:hidden")} data-slot="period-separator">—</span>
                 <span className="whitespace-nowrap" data-slot="period-part">{periodEnd}</span>
               </p>
-              <article className="relative md:pl-8">
+              <article className="relative md:pl-8" data-page-motion-item={index === 0 ? "" : undefined}>
                 <div className="flex items-center gap-3 lg:gap-3.5">
                   <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border bg-white" data-slot="company-logo">
                     <Image alt="" className="size-full rounded-full object-contain" height={32} src={experience.logo} width={32} />
