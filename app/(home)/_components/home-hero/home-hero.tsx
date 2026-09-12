@@ -83,7 +83,7 @@ export function HomeHero() {
           Download Résumé
         </a>
         <a
-          className={clsx(styles.secondaryAction, "mt-1.5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md font-medium text-content-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-0 lg:w-auto")}
+          className={buttonVariants({ variant: "ghost", className: "mt-1.5 w-full lg:mt-0 lg:w-auto" })}
           href="#experience"
         >
           Explore Experience
