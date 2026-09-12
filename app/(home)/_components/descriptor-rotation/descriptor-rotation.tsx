@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { clsx } from "clsx";
 import styles from "./descriptor-rotation.module.scss";
 
@@ -16,35 +17,49 @@ export function DescriptorRotation({ descriptors, interval }: {
   interval: number;
 }) {
   const [index, setIndex] = useState(0);
-  const [phase, setPhase] = useState<"entering" | "exiting">("entering");
-  const phaseClass = phase === "entering" ? styles.entering : styles.exiting;
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    /** Applies live motion preferences without resetting the rotation cadence. */
+    function updateReducedMotion() {
+      setReducedMotion(preference.matches);
+    }
+
+    updateReducedMotion();
+    preference.addEventListener("change", updateReducedMotion);
+    return () => {
+      preference.removeEventListener("change", updateReducedMotion);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setPhase("exiting");
+      setIndex((current) => (current + 1) % descriptors.length);
     }, interval);
     return () => {
       window.clearInterval(timer);
     };
-  }, [interval]);
+  }, [descriptors.length, interval]);
 
   return (
-    <span
-      key={`${String(index)}-${phase}`}
-      className={clsx(styles.rotation, phaseClass, "inline-block font-mono text-xs font-medium uppercase")}
-      onAnimationEnd={() => {
-        if (phase !== "exiting") return;
-        setIndex((current) => (current + 1) % descriptors.length);
-        setPhase("entering");
-      }}
-    >
-      <span
-        className="text-brand-gradient inline-block"
-        data-slot="hero-descriptor"
-        data-state={phase}
+    <AnimatePresence key={String(reducedMotion)} initial={false} mode="wait">
+      <motion.span
+        key={index}
+        className={clsx(styles.rotation, "inline-block font-mono text-xs font-medium uppercase")}
+        initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: "0.875rem" }}
+        animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: "0rem" }}
+        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: "-0.875rem" }}
+        transition={{
+          duration: reducedMotion ? 0.5 : 0.58,
+          ease: reducedMotion ? [0.25, 0.1, 0.25, 1] : [0.22, 0.61, 0.36, 1],
+        }}
       >
-        {descriptors[index] ?? ""}
-      </span>
-    </span>
+        <span className="text-brand-gradient inline-block" data-slot="hero-descriptor">
+          {descriptors[index] ?? ""}
+        </span>
+      </motion.span>
+    </AnimatePresence>
   );
 }

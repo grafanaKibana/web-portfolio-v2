@@ -2267,30 +2267,33 @@ test("descriptor follows the reference timing and reduced-motion animation", asy
   const descriptor = page.locator('[data-slot="hero-descriptor"]');
   const rotation = descriptor.locator("..");
   await expect(descriptor).toHaveText("AI Engineer");
-  await expect(descriptor).toHaveAttribute("data-state", "entering");
-  await expect(rotation).toHaveCSS("animation-duration", "0.58s");
-  await expect(rotation).toHaveCSS("animation-timing-function", "cubic-bezier(0.22, 0.61, 0.36, 1)");
-  await page.waitForFunction(() =>
-    document.querySelector<HTMLElement>('[data-slot="hero-descriptor"]')?.dataset.state === "exiting",
-  );
-  const outgoingDescriptor = await descriptor.textContent();
-  await expect(rotation).toHaveCSS("animation-name", /descriptor-out/);
-  await expect(descriptor).toHaveCount(1);
-  await page.waitForFunction((outgoing) => {
-    const current = document.querySelector<HTMLElement>('[data-slot="hero-descriptor"]');
-    return current?.dataset.state === "entering" && current.textContent !== outgoing;
-  }, outgoingDescriptor);
-  await expect(descriptor).toHaveAttribute("data-state", "entering");
   await page.waitForFunction(() => {
-    const outgoing = document.querySelector<HTMLElement>('[data-slot="hero-descriptor"][data-state="exiting"]');
-    return outgoing?.parentElement?.getAnimations().some((animation) => animation.playState === "running");
+    const parent = document.querySelector('[data-slot="hero-descriptor"]')?.parentElement;
+    return parent?.getAnimations().some((animation) => animation.playState === "running");
   });
+  const normal = await rotation.evaluate((element) => ({
+    durations: element.getAnimations().map((animation) => Number(animation.effect?.getTiming().duration)),
+    easings: element.getAnimations().map((animation) => animation.effect?.getTiming().easing),
+    transform: getComputedStyle(element).transform,
+  }));
+  expect(normal.durations).toContain(580);
+  expect(normal.easings).toContain("cubic-bezier(0.22, 0.61, 0.36, 1)");
+  expect(normal.transform).not.toBe("none");
   await expect(descriptor).toHaveCount(1);
+  await expect(descriptor).toHaveText("Software Developer");
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
-  await expect(rotation).toHaveCSS("animation-duration", "0.5s");
-  await expect(rotation).toHaveCSS("animation-name", /descriptor-fade/);
+  await page.waitForFunction(() => {
+    const parent = document.querySelector('[data-slot="hero-descriptor"]')?.parentElement;
+    return parent?.getAnimations().some((animation) => animation.playState === "running");
+  });
+  expect(await rotation.evaluate((element) => element.getAnimations().map((animation) =>
+    Number(animation.effect?.getTiming().duration)))).toContain(500);
+  expect(await rotation.evaluate((element) => element.getAnimations().map((animation) =>
+    animation.effect?.getTiming().easing))).toEqual([expect.stringMatching(/^(?:ease|cubic-bezier\(0\.25, 0\.1, 0\.25, 1\))$/)]);
+  await expect(rotation).toHaveCSS("transform", "none");
+  await expect(descriptor).toHaveCount(1);
 });
 
 test("Page motion markers map five Home intro groups and staged rows across eight stable sections", async ({ page }) => {
@@ -3222,7 +3225,7 @@ test("splash fails open when a readiness dependency fails", async ({ page }) => 
     const querySelector = Document.prototype.querySelector;
     // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/no-unnecessary-type-parameters -- Preserve the DOM method's generic return contract while patching it.
     Document.prototype.querySelector = function <ElementType extends Element = Element>(selector: string) {
-      if (selector === "#intro-heading") return null;
+      if (selector === "main#main") return null;
       return querySelector.call(this, selector) as ElementType | null;
     };
   });
@@ -3277,7 +3280,11 @@ test("splash slides down and supports an indefinite debug flag", async ({ page }
     (window as typeof window & { __splashVisibleAt?: number }).__splashVisibleAt ?? performance.now());
   await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 2_000 });
   await expect(splash).toHaveCSS("opacity", "1");
-  await expect(splash).toHaveCSS("transition-property", "transform");
+  expect(await splash.evaluate((element) => element.getAnimations().some((animation) =>
+    Number(animation.effect?.getTiming().duration) === 700
+      && animation.effect instanceof KeyframeEffect
+      && animation.effect.getKeyframes().some((frame) => frame.transform !== undefined),
+  ))).toBe(true);
   await expect.poll(async () => (await splash.boundingBox())?.y ?? 0).toBeGreaterThan(0);
   const exitElapsed = await page.evaluate((startedAt) => performance.now() - startedAt, visibleAt);
   expect(exitElapsed).toBeGreaterThanOrEqual(1_700);
@@ -3345,6 +3352,7 @@ test("splash waits for delayed readiness and fails open on stalled fonts", async
   await page.addInitScript(() => {
     let markerReady = false;
     let markerTimerStarted = false;
+    const timingWindow = window as typeof window & { markerReadinessStartedAt?: number };
     // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/unbound-method -- The test intentionally patches this DOM prototype method.
     const querySelector = Document.prototype.querySelector;
     // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/no-unnecessary-type-parameters -- Preserve the DOM method's generic return contract while patching it.
@@ -3352,6 +3360,7 @@ test("splash waits for delayed readiness and fails open on stalled fonts", async
       if (selector === "main#main" && !markerReady) {
         if (!markerTimerStarted) {
           markerTimerStarted = true;
+          timingWindow.markerReadinessStartedAt = performance.now();
           window.setTimeout(() => {
             markerReady = true;
             document.documentElement.appendChild(document.createComment("readiness-marker"));
@@ -3365,7 +3374,8 @@ test("splash waits for delayed readiness and fails open on stalled fonts", async
   await page.goto("/");
   const splash = page.locator('[data-slot="opening-splash"]');
   await expect(splash).toHaveAttribute("data-state", "visible");
-  const delayedVisibleAt = await page.evaluate(() => performance.now());
+  const delayedVisibleAt = await page.evaluate(() =>
+    (window as typeof window & { markerReadinessStartedAt?: number }).markerReadinessStartedAt ?? performance.now());
   await page.waitForTimeout(1_800);
   await expect(splash).toHaveAttribute("data-state", "visible");
   await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 500 });
