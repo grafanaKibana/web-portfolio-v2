@@ -37,13 +37,16 @@ function recordRouteChange(previousPathname: { current: string | undefined }, pa
 }
 
 type RowGroup = {
+  cascadeInterval: number | undefined;
   control: AnimationPlaybackControlsWithThen | undefined;
   disconnect: VoidFunction | undefined;
+  duration: number;
   fullyVisible: boolean;
   ownsInlineStyles: boolean;
   queued: boolean;
   revealed: boolean;
   root: HTMLElement;
+  staggerInterval: number;
   staggerTargets: boolean;
   targets: HTMLElement[];
   trigger: HTMLElement;
@@ -142,6 +145,20 @@ function resolveRowTargets(row: HTMLElement) {
 }
 
 /**
+ * Reads optional route-owned animation timing while preserving the shared default.
+ *
+ * @param value - Optional duration in seconds from motion metadata.
+ * @param fallback - Shared timing used when the route does not override it.
+ * @returns A finite, non-negative duration in seconds.
+ */
+function resolveTiming(value: string | undefined, fallback: number) {
+  if (value === undefined) return fallback;
+  const timing = Number(value);
+  if (!Number.isFinite(timing) || timing < 0) throw new Error("Page motion timing must be finite and non-negative.");
+  return timing;
+}
+
+/**
  * Creates mutable controller state for one ordered row group.
  *
  * @param targets - Rows revealed together.
@@ -152,13 +169,18 @@ function resolveRowTargets(row: HTMLElement) {
  */
 function createRowGroup(targets: HTMLElement[], trigger: HTMLElement, root: HTMLElement, staggerTargets: boolean): RowGroup {
   return {
+    cascadeInterval: root.dataset.pageMotionCascade === undefined
+      ? undefined
+      : resolveTiming(root.dataset.pageMotionCascade, STAGGER_INTERVAL),
     control: undefined,
     disconnect: undefined,
+    duration: resolveTiming(root.dataset.pageMotionDuration, REVEAL_DURATION),
     fullyVisible: false,
     ownsInlineStyles: false,
     queued: false,
     revealed: false,
     root,
+    staggerInterval: resolveTiming(root.dataset.pageMotionStagger, STAGGER_INTERVAL),
     staggerTargets,
     targets,
     trigger,
@@ -197,7 +219,8 @@ function flushRevealQueue(
   for (const { group, record } of groups) {
     group.queued = false;
     if (group.revealed) continue;
-    const span = STAGGER_INTERVAL * (group.staggerTargets ? group.targets.length : 1);
+    const span = group.cascadeInterval
+      ?? group.staggerInterval * (group.staggerTargets ? group.targets.length : 1);
     if (sequence && record.root.matches(TRIGGER_SELECTOR)) {
       const delay = Math.max(0, sequence.nextStart - now);
       reveal(record, group, delay);
@@ -401,7 +424,7 @@ export function PageMotion() {
           : animate(
               group.targets,
               { opacity: [0, 1], transform: ["translateY(var(--page-motion-distance))", "none"] },
-              { delay: group.staggerTargets ? stagger(STAGGER_INTERVAL, { startDelay }) : startDelay, duration: REVEAL_DURATION, ease: EASE },
+              { delay: group.staggerTargets ? stagger(group.staggerInterval, { startDelay }) : startDelay, duration: group.duration, ease: EASE },
             );
         group.control = control;
 

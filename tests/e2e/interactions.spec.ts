@@ -2333,9 +2333,12 @@ test("Page motion markers map five Home intro groups and staged rows across eigh
     section.querySelectorAll("[data-page-motion-row]").length >= 2,
   ))).toBe(true);
   expect(await page.locator('#skills [data-slot="skill-group"]').evaluateAll((groups) => groups.every((group) =>
-    group.getAttribute("data-page-motion-order") === "center-out"
+    group.getAttribute("data-page-motion-cascade") === "0.062"
+      && group.getAttribute("data-page-motion-duration") === "0.34"
+      && group.getAttribute("data-page-motion-stagger") === "0.082"
       && group.querySelectorAll("[data-page-motion-lead]").length === 1
-      && group.querySelectorAll("[data-page-motion-item]").length > 1,
+      && group.querySelectorAll(":scope > [data-page-motion-item]").length === 1
+      && group.querySelectorAll('li[data-page-motion-item]').length === 0,
   ))).toBe(true);
 });
 
@@ -2840,44 +2843,101 @@ test("Recommendations stagger in when the horizontal strip enters the viewport",
   }))).toBe(true);
 });
 
-test("Skills reveal each group with a center-out item stagger", async ({ page }) => {
+test("Skills reveal each group in two editorial beats", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.addInitScript(() => {
     sessionStorage.setItem("portfolio-opening-splash-seen", "true");
   });
   await page.goto("/");
   const group = page.locator('#skills [data-slot="skill-group"]').last();
-  const lead = group.locator("[data-page-motion-lead]");
-  const items = group.locator("[data-page-motion-item]");
-  await expect(items.first()).toHaveCSS("opacity", "0");
+  const targets = group.locator(":scope > [data-page-motion-lead], :scope > [data-page-motion-item]");
+  const skills = group.locator('[data-slot="skill"]');
+  await expect(targets).toHaveCount(2);
+  await expect(targets.first()).toHaveCSS("opacity", "0");
+  await expect(targets.last()).toHaveCSS("opacity", "0");
   await group.evaluate((element) => {
     const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
     window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
   });
-  await expect.poll(() => items.evaluateAll((targets) => targets.every((target) =>
+  await expect.poll(() => targets.evaluateAll((elements) => elements.every((target) =>
     target.getAnimations().length > 0,
   ))).toBe(true);
 
-  const leadDelay = await lead.evaluate((target) => {
+  const contracts = await targets.evaluateAll((elements) => elements.map((target) => {
     const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
-    return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
-  });
-  expect(leadDelay).not.toBeNull();
-  const delays = await items.evaluateAll((targets) => targets.map((target) => {
-    const animation = target.getAnimations().find((candidate) => candidate.effect instanceof KeyframeEffect);
-    return animation?.effect instanceof KeyframeEffect ? Number(animation.effect.getTiming().delay) : null;
+    if (!animation || !(animation.effect instanceof KeyframeEffect)) return null;
+    const timing = animation.effect.getTiming();
+    const previousCurrentTime = animation.currentTime;
+    const wasRunning = animation.playState === "running";
+    animation.pause();
+    animation.currentTime = Number(timing.delay);
+    const initialTranslateY = new DOMMatrixReadOnly(getComputedStyle(target).transform).m42;
+    animation.currentTime = previousCurrentTime;
+    if (wasRunning) animation.play();
+    return {
+      delay: Number(timing.delay),
+      duration: Number(timing.duration),
+      easing: timing.easing,
+      initialTranslateY,
+    };
   }));
-  const expectedOrder: number[] = [];
-  let left = Math.floor((delays.length - 1) / 2), right = left + 1;
-  while (left >= 0 || right < delays.length) {
-    if (left >= 0) expectedOrder.push(left--);
-    if (right < delays.length) expectedOrder.push(right++);
-  }
-  expect(delays.map((delay, index) => ({ delay, index })).toSorted((a, b) => Number(a.delay) - Number(b.delay))
-    .map(({ index }) => index)).toEqual(expectedOrder);
-  for (const [staggerIndex, itemIndex] of expectedOrder.entries()) {
-    expect(delays[itemIndex]).toBeCloseTo(Number(leadDelay) + (staggerIndex + 1) * 75, 0);
-  }
+
+  expect(contracts).toHaveLength(2);
+  expect(contracts.every((contract) => contract !== null)).toBe(true);
+  expect(Number(contracts[1]?.delay) - Number(contracts[0]?.delay)).toBeCloseTo(82, 0);
+  expect(contracts.map((contract) => contract?.duration)).toEqual([340, 340]);
+  expect(contracts.map((contract) => contract?.easing)).toEqual([
+    "cubic-bezier(0.22, 1, 0.36, 1)",
+    "cubic-bezier(0.22, 1, 0.36, 1)",
+  ]);
+  expect(contracts[0]?.initialTranslateY).toBeCloseTo(5, 3);
+  expect(contracts[1]?.initialTranslateY).toBeCloseTo(4, 3);
+  expect(await skills.evaluateAll((elements) => elements.every((skill) => skill.getAnimations().length === 0))).toBe(true);
+});
+
+test("Skills reduced motion keeps both beats opacity-only", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    const probeWindow = window as typeof window & {
+      __skillsMotionContracts?: Array<{ delay: number; duration: number; transforms: unknown[] }>;
+    };
+    probeWindow.__skillsMotionContracts = [];
+    const animateDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, "animate");
+    if (!animateDescriptor || typeof animateDescriptor.value !== "function") return;
+    const nativeAnimate = animateDescriptor.value as typeof Element.prototype.animate;
+    Element.prototype.animate = function (keyframes, options) {
+      const animation = nativeAnimate.call(this, keyframes, options);
+      if (this instanceof HTMLElement && this.closest('[data-test-skills-motion="true"]')
+        && animation.effect instanceof KeyframeEffect) {
+        const timing = animation.effect.getTiming();
+        probeWindow.__skillsMotionContracts?.push({
+          delay: Number(timing.delay),
+          duration: Number(timing.duration),
+          transforms: animation.effect.getKeyframes().map((frame) => frame.transform).filter(Boolean),
+        });
+      }
+      return animation;
+    };
+  });
+  await page.goto("/");
+  const group = page.locator('#skills [data-slot="skill-group"]').last();
+  await group.evaluate((element) => {
+    element.setAttribute("data-test-skills-motion", "true");
+    element.scrollIntoView({ block: "center" });
+  });
+
+  await expect.poll(() => page.evaluate(() => (window as typeof window & {
+    __skillsMotionContracts?: unknown[];
+  }).__skillsMotionContracts?.length)).toBe(2);
+  expect(await page.evaluate(() => (window as typeof window & {
+    __skillsMotionContracts?: Array<{ delay: number; duration: number; transforms: unknown[] }>;
+  }).__skillsMotionContracts)).toEqual([
+    { delay: 0, duration: 120, transforms: [] },
+    { delay: 0, duration: 120, transforms: [] },
+  ]);
+  await expect(group.locator(":scope > [data-page-motion-lead]")).toHaveCSS("transform", "none");
+  await expect(group.locator(":scope > [data-page-motion-item]")).toHaveCSS("transform", "none");
 });
 
 test("Home section navigation stages visible rows and keeps later rows armed", async ({ page }) => {

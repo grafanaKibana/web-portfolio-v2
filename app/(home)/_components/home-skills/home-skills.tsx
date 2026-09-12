@@ -145,8 +145,10 @@ export function HomeSkills() {
         {profile.skills.map((group) => (
           <section
             className={styles.skillGroup}
-            data-page-motion-order="center-out"
+            data-page-motion-cascade="0.062"
+            data-page-motion-duration="0.34"
             data-page-motion-row
+            data-page-motion-stagger="0.082"
             data-slot="skill-group"
             key={group.title}
           >
@@ -156,11 +158,16 @@ export function HomeSkills() {
             )} data-page-motion-lead>
               {group.title}
             </h3>
-            <ul className="m-0 mt-4.5 flex list-none flex-wrap justify-center gap-x-5.5 gap-y-3.5 p-0 md:gap-x-8 lg:mt-6.5 lg:gap-x-10 lg:gap-y-4.5">
+            <ul
+              className={clsx(
+                styles.skillList,
+                "m-0 mt-4.5 flex list-none flex-wrap justify-center gap-x-5.5 gap-y-3.5 p-0 md:gap-x-8 lg:mt-6.5 lg:gap-x-10 lg:gap-y-4.5",
+              )}
+              data-page-motion-item
+            >
               {group.skills.map((skill) => (
                 <li
                   className="inline-flex items-center gap-2 text-sm leading-snug text-content-foreground lg:gap-2.5 lg:text-base"
-                  data-page-motion-item
                   data-slot="skill"
                   key={skill}
                 >

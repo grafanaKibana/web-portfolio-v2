@@ -16,8 +16,14 @@
 }
 
 .groupLabel {
+  --page-motion-distance: 5px;
+
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
+}
+
+.skillList {
+  --page-motion-distance: 4px;
 }
 
 .groupLabel::before,
