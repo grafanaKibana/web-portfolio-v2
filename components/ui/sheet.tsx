@@ -7,22 +7,53 @@ import { cn } from "cn"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
+/**
+ * Renders the shared Sheet UI primitive.
+ *
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
 
+/**
+ * Renders the shared SheetTrigger UI primitive.
+ *
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
   return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
 }
 
+/**
+ * Renders the shared SheetClose UI primitive.
+ *
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
   return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
 }
 
+/**
+ * Renders the shared SheetPortal UI primitive.
+ *
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
+/**
+ * Renders the shared SheetOverlay UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   return (
     <SheetPrimitive.Backdrop
@@ -36,6 +67,16 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   )
 }
 
+/**
+ * Renders the shared SheetContent UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param children - Content rendered inside the primitive.
+ * @param side - Preferred side of the owning surface.
+ * @param showCloseButton - Whether to render the built-in close control.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function SheetContent({
   className,
   children,
@@ -80,6 +121,13 @@ function SheetContent({
   )
 }
 
+/**
+ * Renders the shared SheetHeader UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -90,6 +138,13 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * Renders the shared SheetFooter UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -100,6 +155,13 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * Renders the shared SheetTitle UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
   return (
     <SheetPrimitive.Title
@@ -113,6 +175,13 @@ function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
   )
 }
 
+/**
+ * Renders the shared SheetDescription UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function SheetDescription({
   className,
   ...props

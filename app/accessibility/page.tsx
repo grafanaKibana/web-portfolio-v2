@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+/** Search and sharing metadata for the accessibility statement. */
 export const metadata: Metadata = {
   title: "Accessibility",
   description: "Accessibility measures, current assessment status, known limitations, and feedback contact for this portfolio.",

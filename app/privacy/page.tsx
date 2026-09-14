@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+/** Search and sharing metadata for the privacy policy. */
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "How this personal portfolio handles analytics, performance measurements, and information sent by email.",

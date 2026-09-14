@@ -50,6 +50,7 @@ const splashPreflight = `
   }
 })();`;
 
+/** Application-wide metadata defaults and title template. */
 export const metadata: Metadata = {
   title: {
     default: profile.name,

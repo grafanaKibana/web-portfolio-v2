@@ -2,6 +2,14 @@ import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
 import { cn } from "cn"
 
+/**
+ * Renders the shared Input UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param type - Native input type.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
     <InputPrimitive

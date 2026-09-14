@@ -1,7 +1,9 @@
 import "server-only";
 
+/** Display state assigned to a public pull request. */
 export type CodeContributionStatus = "merged" | "under-review" | "draft";
 
+/** Normalized public pull-request data used by the portfolio UI. */
 export interface CodeContribution {
   repository: string;
   number: number;
@@ -12,12 +14,14 @@ export interface CodeContribution {
   deletions: number;
 }
 
+/** Normalized contribution-calendar cell. */
 export interface ContributionDay {
   date: string;
   level: number;
   count: number;
 }
 
+/** Fail-open GitHub activity result with independent data availability. */
 export interface GitHubActivityResult {
   pullRequestsAvailable: boolean;
   merged: readonly CodeContribution[];
@@ -31,6 +35,7 @@ interface GitHubRequestInit extends RequestInit {
   next: { revalidate: number };
 }
 
+/** Fetch-compatible dependency used to retrieve GitHub activity. */
 export type GitHubFetch = (input: string, init: GitHubRequestInit) => Promise<Response>;
 
 const revalidateSeconds = 300;

@@ -1,6 +1,13 @@
 import * as React from "react"
 import { cn } from "cn"
 
+/**
+ * Renders the shared Textarea UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
   return (
     <textarea

@@ -9,6 +9,7 @@ const publishedDate = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 
+/** Search and sharing metadata for the article collection. */
 export const metadata: Metadata = {
   title: "Articles",
   description: home.writing.indexDescription,

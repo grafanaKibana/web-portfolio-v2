@@ -9,6 +9,7 @@ import { resolvePluginLinks } from "@/content/plugin-links";
 import { getProjectSlugs, loadProject } from "@/content/projects/server";
 import styles from "./project-page.module.scss";
 
+/** Restricts project detail routes to statically generated slugs. */
 export const dynamicParams = false;
 
 /**

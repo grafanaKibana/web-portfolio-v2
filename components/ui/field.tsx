@@ -7,6 +7,13 @@ import { cn } from "cn"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 
+/**
+ * Renders the shared FieldSet UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
     <fieldset
@@ -20,6 +27,14 @@ function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   )
 }
 
+/**
+ * Renders the shared FieldLegend UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param variant - Visual style variant.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function FieldLegend({
   className,
   variant = "legend",
@@ -38,6 +53,13 @@ function FieldLegend({
   )
 }
 
+/**
+ * Renders the shared FieldGroup UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -69,6 +91,14 @@ const fieldVariants = cva(
   }
 )
 
+/**
+ * Renders the shared Field UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param orientation - Layout direction for the field or separator.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function Field({
   className,
   orientation = "vertical",
@@ -85,6 +115,13 @@ function Field({
   )
 }
 
+/**
+ * Renders the shared FieldContent UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -98,6 +135,13 @@ function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * Renders the shared FieldLabel UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function FieldLabel({
   className,
   ...props
@@ -115,6 +159,13 @@ function FieldLabel({
   )
 }
 
+/**
+ * Renders the shared FieldTitle UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -128,6 +179,13 @@ function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * Renders the shared FieldDescription UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
@@ -143,6 +201,14 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   )
 }
 
+/**
+ * Renders the shared FieldSeparator UI primitive.
+ *
+ * @param children - Content rendered inside the primitive.
+ * @param className - Optional classes merged with the default styles.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function FieldSeparator({
   children,
   className,
@@ -173,6 +239,15 @@ function FieldSeparator({
   )
 }
 
+/**
+ * Renders the shared FieldError UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param children - Content rendered inside the primitive.
+ * @param errors - Validation errors available for display.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function FieldError({
   className,
   children,

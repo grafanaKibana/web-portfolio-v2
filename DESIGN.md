@@ -2,157 +2,149 @@
 
 ## Source of truth
 
-- Status: Active
-- Last refreshed: 2026-08-29
-- This document explains the intended look, feel, and design behavior. It is not a token registry and does not depend on `design/` to remain complete or available.
-- Authority is divided by domain: code owns every exact design token and implementation value; `DESIGN.md` owns qualitative design direction; `AGENTS.md`, application code, and tests govern technical behavior, accessibility, architecture, and safety; validated records and local MDX under `content/` govern production facts.
-- Optional supporting snapshots and evidence inspected during authoring include `design/Home Desktop.dc.html`, `design/Home Mobile.dc.html`, `design/Project Case Study.dc.html`, `design/Article.dc.html`, `design/States and System.dc.html`, and `design/_ds/`. They are not live dependencies or governing authority. GitHub's validated live responses are the Code section's factual source, not the illustrative prototype data.
-- Prototype copy and remote CDN assets are illustrative, not production facts or dependencies. Global tokens and base rules belong in `app/globals.css`; component values belong in Tailwind utilities or a colocated `*.module.scss` file when custom CSS is necessary. Tests including `tests/e2e/interactions.spec.ts` govern observable behavior.
-- Token-value changes alone do not require a documentation update. Refresh this document only when the qualitative direction, token ownership, behavior, or constraints change.
+**Status:** Current design direction. **Updated:** 2026-09-14.
+
+This document explains how portfolio should look, read, and behave. It records established design decisions, checked against the current site. Code owns exact tokens, dimensions, breakpoints, and animation timings; [AGENTS.md](AGENTS.md) owns engineering rules; [content](content/) owns portfolio facts.
+
+Evidence: [Home composition](app/(home)/page.tsx), [fonts and shell](app/layout.tsx), [theme and shared styles](app/globals.css), [navigation](app/_shell/site-header/site-header.tsx), [About](app/(home)/_components/home-about/home-about.tsx), and [Skills](app/(home)/_components/home-skills/home-skills.tsx). Repository evidence includes work in progress; implementation alone does not establish an approved design change. This refresh makes no new visual-audit claim. Unselected explorations remain outside this direction.
 
 ## Brand
 
-- A minimal editorial portfolio: direct, technically credible, calm, and personal without becoming promotional.
-- Let typography, open whitespace, thin dividers, and carefully ordered evidence carry the identity.
-- Use jade green as a restrained signal, with a subtle green-to-jade sweep on the hero descriptor.
-- Avoid dashboard, bento, card-grid, SaaS-shell, marketing-gradient, glass, and component-showcase aesthetics.
+The portfolio feels personal, calm, precise, and technically credible. Typography, whitespace, and specific work carry the identity. Jade adds recognition without dominating the page.
 
-- Identity mark: use the softened N/R symbol as a standalone Home control and decorative splash mark. Keep its angular upper-right return and shared vector geometry; use a padded high-contrast version for browser and touch icons. No separate decorative wordmark is established. When the surname is written, use title case: Reshetnik.
+Use the shared [N/R mark](public/brand/mark.svg) for the Home identity and decorative opening treatment. Keep the name “Nikita Reshetnik” consistent. Build trust through readable experience, project evidence, writing, and direct links.
+
+Avoid promotional slogans, decorative dashboards, bento layouts, glass effects, and boxing every section into a card. Keep broad marketing gradients out of page backgrounds; existing accent and icon treatments have specific roles below.
 
 ## Product goals
 
-- Make identity, experience, selected projects, writing, code activity, and contact paths easy to scan and inspect in depth.
-- Support hiring, peer evaluation, and professional contact with factual, accessible evidence.
-- Keep curated work available when JavaScript, optional activity data, animation, or a mail client is unavailable.
-- Non-goals: social feed, analytics dashboard, CMS, remote-content platform, or generic design-system product.
-- Assumed success signals: visitors can identify role and strengths, reach a relevant project or article, and find a contact route without assistance. No analytics or user research currently validates these signals.
+Help visitors understand the work, inspect the evidence that interests them, and find a straightforward way to make contact. Support both a quick overview and deeper reading without forcing an interaction.
+
+Curated content remains useful when optional data or enhancements are unavailable.
+
+A useful qualitative check is whether a visitor can identify relevant experience, reach supporting work, and find contact details. This is a design criterion, not a measured conversion result.
 
 ## Personas and jobs
 
-- Assumption — hiring reviewers: establish fit quickly, then inspect role history, outcomes, and representative work.
-- Assumption — engineering peers or collaborators: assess technical depth through case studies, writing, and source links.
-- Assumption — prospective contacts: understand the person and open a reliable contact path.
-- Key contexts: fast desktop review, tablet reading, one-handed mobile scanning, keyboard navigation, reduced motion, and no-JavaScript browsing.
+Working audiences are hiring reviewers assessing fit, engineering peers exploring technical work, and prospective collaborators seeking contact. Their shared needs are clear context, credible evidence, and easy navigation. Relative audience priority remains an assumption.
+
+Support desktop review, mobile scanning, and focused long-form reading. Keyboard use and reduced-motion preferences are ordinary browsing contexts.
 
 ## Information architecture
 
-- `/`: editorial overview with hero, About, Experience, Education, Skills, Selected work, Code activity, Writing, and Contact anchors.
-- `/projects` and `/projects/[slug]`: project index and evidence-led case studies.
-- `/articles` and `/articles/[slug]`: writing index and long-form articles.
-- `/privacy`, `/terms`, `/accessibility`, and `/for-robots`: global footer site information, with `/llms.txt` as the companion machine-readable guide.
-- Unknown project and article slugs resolve to static, noindex 404s.
-- Desktop navigation exposes primary destinations inline. Compact layouts use a modal section/navigation sheet. Collection pages keep those destinations pointed at Home section anchors; project and article details center a Back to list link in the header and retain a Home control, while the content title leads the page body.
-- Order content from identity and relevance to proof and contact. Metadata stays secondary and in flow; it does not become dashboard chrome.
-- About pairs the biography with two quiet career-chapter summaries. Experience begins directly with the timeline, does not repeat those summaries, and ends with a restrained, attributed recommendation strip that scrolls horizontally without carousel controls.
+Home progresses through **Hero → About → Experience → Education → Skills → Selected work → Code activity → Writing → Contact**.
+
+The hero introduces Nikita and offers résumé and experience actions. About provides the personal overview and career chapters; Experience carries the detailed timeline and recommendations. Projects and writing provide deeper evidence before Contact.
+
+| Surface | Role |
+| --- | --- |
+| `/` | Editorial overview with direct section navigation |
+| `/projects` and `/projects/[slug]` | Project index and individual case studies |
+| `/articles` and `/articles/[slug]` | Writing index and focused reading |
+| `/privacy`, `/terms`, `/accessibility`, `/for-robots` | Supporting site information linked from the footer |
+| `/llms.txt` | Machine-readable companion information |
+
+Keep desktop section navigation inline. Compact navigation extends below the header. Collection pages link sections back to Home; detail pages offer Home and Back to list, leaving the content title in the reading area.
 
 ## Design principles
 
-- Editorial before interface: lead with readable content, not containers or controls.
-- Evidence before claims: show verified roles, outcomes, work, dates, and links; omit what is unavailable.
-- One hierarchy: headings, mono metadata, spacing, and full-measure rules establish structure without boxed section wrappers.
-- Progressive by default: semantic HTML and server-rendered content remain useful before hydration; optional behavior must fail open.
-- Restraint over novelty: one accent hue, few radii, minimal elevation, and short purposeful motion.
+- **Lead with content.** Establish hierarchy with type, spacing, and rules before adding containers.
+- **Make depth optional.** Let visitors scan summaries, follow evidence, or open details at their own pace.
+- **Keep meaning stable.** Text hierarchy, status colors, and action labels remain understandable across themes and states.
+- **Use familiar interactions.** Links navigate, buttons act, disclosures expand in flow, and forms explain what happens next.
+- **Keep enhancements dependable.** Motion and optional features must leave core reading and navigation available when they fail.
+
+When expression competes with legibility or reliable interaction, preserve reading and navigation.
 
 ## Visual language
 
-- Color: use a quiet neutral foundation with three text levels: foreground for anchors, content-foreground for sustained reading, and muted-foreground for supporting context. Dark mode preserves the same hierarchy rather than becoming a separate visual theme. Exact colors come from code tokens.
-- Accent use: hero descriptor and availability, latest timeline marker, contribution calendar, native field focus, article quote rules, and selection use Jade. Merged PR icons and addition counts use an independent solid success green. The complete hero heading stays neutral.
-- Typography: use a confident sans-serif for display, headings, and prose, with a monospaced secondary voice for dates, counts, code, and numbered labels. The hero should feel expressive, section headings clear, body copy comfortable, and metadata deliberately quiet. Exact families, sizes, weights, tracking, and line heights come from code tokens.
-- Measure and rhythm: favor generous outer whitespace, narrow readable prose, clear pauses between sections, and tighter spacing inside related content groups. Long-form pages should feel focused rather than stretched. Exact widths, gutters, and spacing come from code tokens.
-- Shape and depth: keep page surfaces flat, use dividers for structure, and reserve radius or shadow for controls and overlays that need affordance or separation. Shadows use neutral-black alpha in both themes and never derive elevation from foreground or other light colors. Sections are not cards.
-- Iconography: use Lucide interface icons with consistent outline weight and a subtle theme-aware semantic gradient. Technology and brand marks use a theme-aware solid brand color, a restrained two-color gradient when it suits the mark, or theSVG color variant only when the simpler treatments harm recognition. No emoji or unrelated substitute marks. Exact icon sizing comes from code tokens.
-- Motion: keep transitions brief, subtle, and purposeful. Movement should clarify readiness, disclosure, navigation, or state change without becoming a visual event. Each normal route may enter marked intro targets after the opening splash, then reveal each marked row once that row enters the viewport. Explicit nested items may stagger within a row; contribution-calendar squares, controls, and icons remain static except the Experience navigation marker, which flies once from the rail bottom to its top as the rail reveals. Interactive rows may promote their L2 and L3 text to foreground while keeping L1 and semantic colors stable. Desktop wheel and trackpad scrolling may use barely perceptible interpolation that settles promptly; touch remains native. Nothing parallaxes or replays on scroll; exact timing and easing come from code tokens.
+### Color
 
-### Text-color roles
+Use neutral light and dark foundations with three text roles: foreground for titles and controls, content foreground for prose, and muted foreground for dates and supporting labels. Keep neutral text readable through semantic colors rather than opacity.
 
-Use foreground, content-foreground, and muted-foreground in both themes. Color follows the content's purpose, not its HTML element.
+Jade marks selected identity and state moments: the hero descriptor, availability, current experience, contribution activity, and focus. Preserve distinct success and destructive semantics. Fields stay neutral through `--input`; focus uses `--ring`. Standard primary buttons retain their semantic treatment.
 
-| Content role | Resting treatment | Hover and keyboard focus |
-| --- | --- | --- |
-| L1 anchor: page and section headings, names, job titles, and primary controls | Foreground | Stable |
-| L2 reading: prose, descriptions, summaries, quotes, and other content intended to be read | Content foreground | Promote to foreground only when it belongs to a real interactive row or link |
-| L3 support: dates, tags, labels, helpers, secondary navigation, and standalone secondary actions | Muted foreground | Promote to foreground only when the supporting text itself is interactive |
-| Embedded prose link | Content foreground, medium weight, permanent underline | Foreground with visible keyboard focus |
+Inline prose links stay underlined. Hover and focus may strengthen the text of an actual link or interactive row; static content must not react to an unrelated hovered container.
 
-Static text never changes color merely because a nearby container is hovered. Interactive rows promote their reading content and action cues; stable metadata, L1 identity, and semantic status colors do not change. Experience summaries and highlights are L2, while organization, period, and disclosure labels are L3. Pull-request titles are L2 and promote with the row; repository names and periods remain L3. Writing descriptions promote, while their date and reading-time metadata remain L3. Project pagination keeps its L1 destination stable and promotes its L3 label and arrow. Preserve semantic status, syntax, brand, and primary-control colors as separate roles; do not use opacity to weaken neutral text contrast.
+### Typography, layout, and shape
 
-Experience disclosure rows use a pointer cursor across the whole block: the summary, disclosure label, and timeline circle respond to hover and keyboard focus, while company names and dates stay muted. University names use L2. Each certification is one full-block link with its icon, title, and date centered horizontally. Its borderless icon uses L2 and promotes to foreground on hover or keyboard focus, without a background treatment; its title stays L1 and its date stays L3.
+Use Geist Sans for headings and reading, and Geist Mono for dates, labels, counts, and code. Balance an expressive hero with quiet section labels, clear headings, and comfortable prose.
+
+Give the page generous gutters and clear pauses between sections. Keep related material close, metadata secondary, and long-form reading narrower than the overall canvas. Thin dividers and open rows provide structure. Reserve rounded surfaces and shadows for controls and overlays that need separation.
+
+### Icons and imagery
+
+Use Lucide for interface actions and recognizable technology marks for skills and external identities. Preserve the existing solid, gradient, and multicolor skill treatments where they convey identity or category. Avoid replacing all marks with one universal brand color. Keep assets local and decorative icons hidden from assistive technology.
+
+### Motion
+
+Use motion for entry, disclosure, navigation, and meaningful state changes. The decorative opening hands off to page introductions; rows reveal once in document order. Skills reveal at group level. Preserve the established one-time Experience navigation-marker movement.
+
+Keep controls and individual icons still unless their existing behavior requires movement. Avoid parallax, repeated scroll reveals, and prolonged coasting. Wheel interpolation settles promptly; touch scrolling stays native. Reduced motion removes spatial movement, stagger, pulsing, and interpolation in favor of static or brief opacity treatments.
 
 ## Components
 
-- Reuse the application shell under `app/_shell`, Home sections and interactions under `app/(home)/_components`, native disclosure, route lists, and MDX typography before adding markup.
-- Use exact shadcn CLI-owned `base-luma` components under `components/ui/**` for generic controls and overlays. Keep generated source unchanged and accept its default geometry and presentation.
-- Configure identity through semantic tokens from `app/globals.css` and documented component props such as `variant`, `size`, and `side` before adding consumer layout classes.
-- `app/globals.css` owns the live theme: `--brand-accent` and its start/end tokens mix 80% Jade with 20% foreground in OKLab by default in both themes; `--success` independently colors merged PR icons and additions. Generated shadcn controls own focus borders, ring width, opacity, radius, and validation styling; configure only `--ring` for focus color, with no decorative wrappers or CSS focus overrides. Field backgrounds stay neutral through `--input`, and primary buttons retain `--primary`. Selection uses the solid midpoint.
-- CLI metadata (`components.json`) was removed by request. Existing components run without it; restore the generation configuration before using the shadcn CLI to add or regenerate components.
-- Gradient scale follows the surface: experience stays grey except for the latest role's navigation icon and a short gradient lead-in that fades into the neutral rail. Historical markers remain hollow grey circles. The contribution calendar shares one gradient across all columns while retaining per-day intensity. The latest marker uses the solid accent; hovering that role preserves its color.
-- Preserve native `details`/`summary` for experience disclosure, the compact-navigation `<noscript>` fallback, and native form semantics and validation through generated form controls.
-- Keep `app/globals.css` limited to Tailwind imports, application-wide tokens, base element rules, and named utilities with at least two real consumers. Component-specific selectors, keyframes, states, and responsive rules must live in a scoped SCSS module beside their owning component.
-- Do not use Tailwind arbitrary-value or arbitrary-variant syntax in component markup. Use the closest standard utility when it stays within 5% of the approved design, a colocated SCSS module for a one-off customization, or a named reusable utility when the same customization has multiple consumers.
-- Keep route-specific section, index, article, and case-study rendering within its route slice. Home uses the URL-neutral `(home)` route group; its private components live in named folders with colocated SCSS. Keep one-place route markup inside its owner instead of extracting fragment components; promote a shared component only after two independent consumers or for an intrinsically application-wide concern.
-- Required states belong to the owning component: default, hover, focus-visible, active/open, invalid, disabled, loading/readiness, success, and unavailable where relevant.
+| Pattern | Direction |
+| --- | --- |
+| Header | Quiet, sticky navigation with selected-section feedback; compact navigation feels continuous with it |
+| Editorial sections | Open rows and dividers; selectable text and independently usable links |
+| Experience | In-flow native disclosures; accent on the current role, neutral historical markers |
+| Skills | Centered semantic groups, recognizable marks, and restrained group reveals |
+| Project and article pages | Strong title, secondary metadata, focused prose, clear return navigation |
+| Contact | Native validation, mail-app handoff, and direct email fallback |
+
+Reuse existing route and shell patterns and shared [UI components](components/ui/). These components are editable repository source: keep them reusable, document authored declarations, and review affected consumers when changing shared behavior. Configure controls through public props and semantic tokens. Keep feature geometry in its owning styles and avoid introducing a separate design-system layer.
 
 ## Accessibility
 
-- Assumption — target standard: WCAG 2.2 AA. Confirm formal conformance scope and audit ownership before claiming compliance.
-- Use semantic landmarks, ordered headings, real links/buttons, labeled form controls, meaningful alternative text, and decorative icons hidden from assistive technology.
-- Preserve visible focus, full keyboard operation, and adequate target sizes. Modal navigation traps focus, closes with Escape, and returns focus to its trigger.
-- Maintain AA contrast for text, controls, dividers that convey meaning, focus indicators, and light/dark themes; do not rely on color or motion alone to communicate state.
-- Keep readable line lengths and allow text reflow/zoom without clipped content or horizontal page scrolling; code blocks may scroll locally.
-- Under reduced motion, remove translation, stagger, pulsing, and smooth-scroll interpolation; cross-fade the descriptor in place, show a static splash, and make programmatic anchor travel immediate. Home entrances may use a brief opacity-only transition. Maintain usable no-JavaScript fallbacks.
+WCAG 2.2 AA remains the working design target; this document does not certify conformance.
+
+Preserve semantic landmarks and heading order, the skip link, accessible names, visible focus, keyboard actions, and text selection. Color and motion must not be the only indicators of state. Hover cannot be the only way to reach information.
+
+Compact navigation is modal: contain focus, close with Escape, and restore focus to its trigger. Keep native disclosure behavior, no-JavaScript fallbacks, and a decorative, non-focusable splash that cannot block content.
+
+Support readable contrast in both themes, text zoom, and reflow without page-level horizontal scrolling. Code and intentional horizontal tracks may scroll locally. Keep targets usable by touch and honor reduced motion.
 
 ## Responsive behavior
 
-- Desktop: use generous side whitespace, inline primary navigation, expressive hero typography, multi-column editorial compositions, and a distinct experience date rail.
-- Tablet: reduce unused side space, open compact navigation as a content-height blurred extension below the header, compress supporting rails, and retain split layouts only while they remain comfortably readable.
-- Mobile: use a compact header whose section selector opens the same content-height blurred extension below it, comfortable page edges, a focused hero, single-column reading flow, and stacked metadata and actions. When four social links cannot stay on one line, lay them out as two balanced rows of two rather than leaving an orphan link.
-- About uses equal biography and career-chapter columns separated by a divider on desktop, then stacks biography, chapters, and facts in that order on mobile.
-- Adapt hierarchy rather than scaling the desktop canvas: preserve reading order, move side metadata into flow, stack split layouts, and keep controls reachable without hover.
-- Exact breakpoints, dimensions, and responsive type or spacing values come from code tokens and must not be duplicated here.
+Desktop has generous outer space, inline navigation, split editorial compositions, and a distinct experience date rail. Narrow layouts move toward a single reading column with metadata and actions in normal flow. About stacks its biography, chapters, and facts as space tightens.
+
+Let social links and skill groups wrap naturally. Keep reading order intact and use split layouts only while both columns remain comfortable. Compact navigation fits the available viewport, including the on-screen keyboard. Touch actions remain available without hover.
+
+Breakpoints belong in code. Evaluate both representative screen sizes and the widths where a layout changes.
 
 ## Interaction states
 
-- Splash: a quiet softened N/R symbol with a secondary role label with no progress bar and a deliberate reading pause before exit. A first-load pre-paint marker makes it fully opaque before page content can paint; only its departure animates. Publish completion while the splash still covers the page so route motion is armed before removal. Refreshes and internal navigation never replay it. Keep it decorative, pointer-transparent, non-focusable, light/dark aware, terminal on success or failure, static for reduced motion, absent as a blocker under no-JavaScript, and indefinitely visible only under the explicit debug query.
-- Page entrance: begin each route's semantic intro targets from the covered splash handoff. Keep later section roots stable, then reveal their meaningful rows once the trigger crosses the 90% viewport-height line. Rows entering together cascade in document order, while nested row items keep the same quiet stagger. Fail open terminally for keyboard focus and hydration/setup errors, and keep server-rendered content visible when JavaScript is unavailable.
-- Scrolling: soften vertical wheel and trackpad input without a visible coast, preserve native touch, and stop residual inertia across route navigation. Same-page anchors may travel smoothly while retaining their CSS scroll margins. Nested menus and horizontal tracks keep native scrolling, and no content or reveal behavior depends on the enhancement.
-- Navigation: transparent/quiet at rest, separated by a border when scrolled; highlight the desktop and compact link whose section top has reached the sticky-header edge. Keep the closed compact selector unchanged while its content-height phone and tablet sheet shares one continuous background, typography, color, width, and flat styling with the open header. Omit a redundant visible menu title, and replace the header theme control with the dialog close control while open. Preserve the blurred backdrop, selected-section state, Escape, focus containment, and focus return without a floating-modal treatment.
-- Disclosure: collapsed and expanded in document flow with native keyboard semantics; avoid overlaying or hiding its content.
-- Contact: empty, focused, invalid, ready, and native mail-app handoff states. Keep the direct `mailto:` address as fallback; do not imply server delivery.
-- Optional activity: derive PR counts, PR rows, summaries, dates, and the contribution graph from validated live GitHub responses with bounded revalidation. On empty, error, slow, or offline states, keep the profile link and render no stale fixture, broken row, or empty graph.
-- Content collections: omit unavailable optional fields; provide a quiet empty explanation only when an entire index has no entries.
-- Errors: invalid known content fails validation/build; unknown routes use the relevant static 404 with a route back to valid content.
-- Success and disabled: acknowledge completed local actions without celebratory decoration; disabled controls remain visibly unavailable and are not the sole route to core content.
+| Situation | Visitor-facing behavior |
+| --- | --- |
+| Opening and reveals | Decorative, once-only enhancement; content remains available when setup fails or JavaScript is absent |
+| Empty or missing data | Quiet empty-index explanation; omit absent optional fields and retain useful source/profile links |
+| Unknown content | A clear not-found page with a route back |
+| Error or interruption | Readable explanation and an appropriate retry, edit, or fallback action |
+| Success | Brief confirmation tied to the action; no decorative celebration or misleading delivery claim |
+| Unavailable action | Recognizable control with accessible state and an available alternative where applicable |
+
+Contact opens the visitor’s email app; it does not confirm delivery. Optional activity must never substitute fabricated events for unavailable data.
 
 ## Content voice
 
-- Write in first person for the introduction, profile, and career chapters, as Nikita talking to a professional colleague. Keep the wording factual and relaxed, with enough warmth to sound like a person.
-- Let the work establish competence. Describe what Nikita builds, takes responsibility for, and helps others do; avoid self-ratings such as “strong foundation,” “expert,” or “exceptional.”
-- Prefer everyday verbs and natural phrasing: “I build,” “I work on,” “teaming up,” and “outside my day job.” Replace bureaucratic wording such as “my responsibilities encompass” with a direct description of the work.
-- Summaries condense experience and responsibility. Use present tense to describe expertise; reserve detailed chronology and past accomplishments for experience entries. Keep breadth visible without listing every tool or LLM workflow.
-- Add warmth through rhythm, contractions, and ordinary language. Avoid forced jokes, invented personality traits, motivational slogans, metaphors, and clever contrasts such as “a foundation, not a boundary.”
-- Keep short headings plain and specific. Do not claim scale, impact, or other outcomes that the source material does not establish.
-- Voice example: “I build features across .NET services, plugins, and desktop applications. That also means working through slow SQL queries, reviewing code, and teaming up with QA and DevOps to get releases out and sort out deployment issues.” Preserve this balance of substance and ease when revising copy.
-- Use sentence case, short labels, active verbs, and unrounded factual values. Avoid hype, fake urgency, generic endorsements, emoji, and invented metrics.
-- Production biography, credentials, canonical origin, projects, articles, dates, and links come from validated repository sources. Code activity comes from validated live GitHub responses. Omit unavailable facts rather than displaying placeholders, cached fixtures, or illustrative canvas copy.
+Write in first person, factual, conversational, and lightly warm—as Nikita speaking to a professional colleague.
+
+Use concrete verbs and specific work. Let experience and outcomes establish competence without self-ratings, invented metrics, or unsupported scale. Use current tense for present expertise and chronology for experience entries.
+
+Prefer short, specific headings, ordinary language, natural contractions, and sentence case. Keep summaries selective instead of listing every tool. Avoid hype, bureaucratic phrasing, slogans, forced jokes, emoji, and clever contrasts.
+
+Use validated records and local MDX for biography, credentials, dates, projects, and links. Label actions honestly: opening an email app is a handoff. Preserve original link labels when optional metadata is unavailable.
 
 ## Implementation constraints
 
-- Preserve the route-oriented vertical-slice modular monolith: routes own routing, metadata, Server Components composition, static parameters, not-found decisions, route rendering, and route tests.
-- Server Components remain the default. The exact client entries are `app/_shell/theme/theme.tsx`, `app/_shell/mobile-navigation/mobile-navigation.tsx`, `app/_shell/opening-splash/opening-splash.tsx`, `app/_shell/page-motion/page-motion.tsx`, `app/_shell/smooth-scroll/smooth-scroll.tsx`, `app/_shell/local-time/local-time.tsx`, `app/(home)/_components/descriptor-rotation/descriptor-rotation.tsx`, `app/(home)/_components/contact-form/contact-form.tsx`, `app/(home)/_components/home-editorial-row/home-editorial-row.tsx`, and `app/(home)/_components/home-experience/experience-item.tsx`.
-- `app/layout.tsx` is the sole application layout. `app/(home)/page.tsx` owns `/`, and the `(home)` group has no layout or URL segment.
-- Keep structured portfolio data as typed TypeScript records and local repository-authored MDX as trusted executable content. Validate imported metadata, normalized slugs, and case-insensitive duplicates.
-- Project and article detail routes use static parameters with dynamic params disabled; optional activity cannot delay or remove curated content.
-- Home project and writing rows share one layout and follow their Read link from ordinary clicks outside the action row. Empty action-row space has no navigation or Read-link hover treatment; each link retains its own hover and navigation. Text stays selectable. Home writing metadata shows the publication date without reading time.
-- On opened plugin project pages, the existing Obsidian store link displays the download count and each source link displays that repository's released version. Home retains its original store/source labels. Destinations and icons stay unchanged; accessible names retain the source/store purpose. Optional server-cached data falls back to the original label when unavailable.
-- Prefer native HTML and CSS to JavaScript. Server-rendered content remains meaningful before hydration; client decoration must fail open.
-- Contact remains a native-validating `mailto:` flow unless a backend is explicitly approved.
-- Use local production assets. Remote prototype fonts, icons, images, and CDN URLs are illustrative delivery evidence only.
-- Reuse the generated shadcn component surface and existing token ownership. All exact design values remain in code; do not synchronize them into this document or add another registry, global state, wrapper layer, or design-system abstraction.
-- Use an existing Tailwind utility whenever it reproduces the reference within a 5% visual tolerance. Keep one-off custom values in the owning component's `*.module.scss`; promote a value to a named global utility only when a second real consumer exists.
+Work within the existing Next.js, React, Tailwind, and colocated SCSS structure. Keep server-rendered content meaningful before hydration; prefer native HTML and CSS for interaction where practical. Follow [AGENTS.md](AGENTS.md) for ownership, editable shared-UI boundaries, imported-source handling, source documentation, and verification.
+
+Change this document when design direction changes. Keep exact visual values and runtime details in their existing source files. A token adjustment alone does not require duplicate prose edits.
+
+For visual changes, verify rendered light/dark and mobile/desktop states, including affected keyboard, reduced-motion, fallback, and error behavior. Report what was actually checked; source inspection alone is not visual verification.
 
 ## Open questions
 
-- [ ] Validate the assumed hiring-reviewer, engineering-peer, and prospective-contact personas with actual audience research; impact: prioritization and language, not current architecture.
-- [ ] Define measurable success signals and whether privacy-preserving analytics are wanted; impact: evaluation only, not permission to add tracking.
-- [ ] Confirm the WCAG 2.2 AA audit scope, supported browser matrix, and named owner before making a formal conformance claim.
-- [ ] Confirm which illustrative canvas copy and assets, if any, have been validated into `content/`; until then, production must omit them.
+- Audience priorities and success measures have not been validated; they should inform future emphasis rather than be presented as established research.
+- The supported browser matrix and scope of a formal accessibility audit remain to be defined.

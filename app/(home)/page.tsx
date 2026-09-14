@@ -8,6 +8,7 @@ import { HomeProjects } from "./_components/home-projects/home-projects";
 import { HomeSkills } from "./_components/home-skills/home-skills";
 import { HomeWriting } from "./_components/home-writing/home-writing";
 
+/** Refresh interval for server-rendered Home content, in seconds. */
 export const revalidate = 300;
 
 /**

@@ -10,11 +10,13 @@ const monthFormatter = new Intl.DateTimeFormat("en", {
   year: "numeric",
 });
 
+/** A labeled external destination. */
 export interface ExternalLink {
   label: string;
   href: string;
 }
 
+/** One validated career experience entry. */
 export interface Experience {
   organization: string;
   logo: string;
@@ -27,6 +29,7 @@ export interface Experience {
   highlights: readonly string[];
 }
 
+/** A derived group of related career experience. */
 export interface CareerChapter {
   id: string;
   meta: string;
@@ -34,6 +37,7 @@ export interface CareerChapter {
   summary: string;
 }
 
+/** A validated education record. */
 export interface Education {
   institution: string;
   qualification: string;
@@ -41,17 +45,20 @@ export interface Education {
   location: string;
 }
 
+/** A named group of related skills. */
 export interface SkillGroup {
   title: string;
   skills: readonly string[];
 }
 
+/** A professional recommendation displayed in the portfolio. */
 export interface Recommendation {
   author: string;
   position: string;
   quote: string;
 }
 
+/** Validated profile content used across portfolio routes. */
 export interface PortfolioProfile {
   name: string;
   headline: string;
@@ -67,6 +74,7 @@ export interface PortfolioProfile {
   links: readonly ExternalLink[];
 }
 
+/** Validated configuration and copy for the home route. */
 export interface HomeContent {
   metadataDescription: string;
   mobileNavigation: {
@@ -100,6 +108,7 @@ export interface HomeContent {
   };
 }
 
+/** An untrusted object value awaiting field validation. */
 type RecordValue = Record<string, unknown>;
 
 /**
@@ -393,4 +402,5 @@ export function validatePortfolio(value: unknown): { profile: PortfolioProfile; 
 
 const content = validatePortfolio(load(readFileSync(join(process.cwd(), "content", "portfolio.yaml"), "utf8")));
 
+/** Validated profile and Home records loaded from repository-authored YAML. */
 export const { profile, home } = content;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+/** Search and sharing metadata for the terms and conditions. */
 export const metadata: Metadata = {
   title: "Terms & Conditions",
   description: "Terms for using this personal portfolio and understanding source-code rights in linked repositories.",

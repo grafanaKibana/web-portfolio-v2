@@ -4,6 +4,7 @@ import Link from "next/link";
 import { loadProjects } from "@/content/projects/server";
 import { home } from "@/content/structured";
 
+/** Search and sharing metadata for the project collection. */
 export const metadata: Metadata = {
   title: "Projects",
   description: home.projects.indexDescription,

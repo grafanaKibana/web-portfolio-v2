@@ -3,6 +3,13 @@
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 import { cn } from "cn"
 
+/**
+ * Renders the shared TooltipProvider UI primitive.
+ *
+ * @param delay - Delay before the provider opens a tooltip.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function TooltipProvider({
   delay = 0,
   ...props
@@ -16,14 +23,38 @@ function TooltipProvider({
   )
 }
 
+/**
+ * Renders the shared Tooltip UI primitive.
+ *
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function Tooltip({ ...props }: TooltipPrimitive.Root.Props) {
   return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
 }
 
+/**
+ * Renders the shared TooltipTrigger UI primitive.
+ *
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
 }
 
+/**
+ * Renders the shared TooltipContent UI primitive.
+ *
+ * @param className - Optional classes merged with the default styles.
+ * @param side - Preferred side of the owning surface.
+ * @param sideOffset - Distance between the surface and its anchor.
+ * @param align - Alignment within the owning primitive.
+ * @param alignOffset - Additional alignment offset from the anchor.
+ * @param children - Content rendered inside the primitive.
+ * @param props - Remaining properties forwarded to the underlying primitive.
+ * @returns The configured UI element.
+ */
 function TooltipContent({
   className,
   side = "top",

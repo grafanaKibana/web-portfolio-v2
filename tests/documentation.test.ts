@@ -8,7 +8,6 @@ import ts from "typescript";
 const sourceRoots = ["app", "components", "content", "lib", "scripts", "tests"];
 const rootSources = ["mdx-components.tsx"];
 const codeActivityPath = "app/(home)/_components/home-code-activity/home-code-activity.tsx";
-const generatedSourceRoot = join("components", "ui");
 
 /**
  * Recursively collects TypeScript and JavaScript source files.
@@ -17,7 +16,7 @@ const generatedSourceRoot = join("components", "ui");
  * @returns The discovered source-file paths.
  */
 function collectSourceFiles(directory: string): string[] {
-  if (directory === generatedSourceRoot || !existsSync(directory)) return [];
+  if (!existsSync(directory)) return [];
 
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const source = join(directory, entry.name);
@@ -26,11 +25,11 @@ function collectSourceFiles(directory: string): string[] {
   });
 }
 
-test("TSDoc coverage excludes only generated shadcn source", () => {
+test("TSDoc coverage includes shared UI source", () => {
   const files = sourceRoots.flatMap(collectSourceFiles);
-  const generatedButtonPath = join(generatedSourceRoot, "button.tsx");
-  assert.ok(existsSync(generatedButtonPath));
-  assert.ok(!files.includes(generatedButtonPath));
+  const sharedButtonPath = join("components", "ui", "button.tsx");
+  assert.ok(existsSync(sharedButtonPath));
+  assert.ok(files.includes(sharedButtonPath));
   assert.ok(files.includes(codeActivityPath));
 });
 
@@ -59,6 +58,37 @@ function documentationOwner(node: ts.Node): ts.Node {
 }
 
 /**
+ * Collects local declarations exposed through same-file export lists.
+ *
+ * @param sourceFile - Parsed source file whose exports should be inspected.
+ * @returns Local declaration names exported by the file.
+ */
+function exportedLocalNames(sourceFile: ts.SourceFile): ReadonlySet<string> {
+  return new Set(sourceFile.statements.flatMap((statement) => {
+    if (
+      !ts.isExportDeclaration(statement)
+      || statement.moduleSpecifier
+      || !statement.exportClause
+      || !ts.isNamedExports(statement.exportClause)
+    ) return [];
+
+    return statement.exportClause.elements.map((element) =>
+      (element.propertyName ?? element.name).text);
+  }));
+}
+
+/**
+ * Checks whether a declaration carries an export modifier.
+ *
+ * @param node - Declaration or statement to inspect.
+ * @returns Whether the node is exported directly.
+ */
+function hasExportModifier(node: ts.Node): boolean {
+  return ts.canHaveModifiers(node)
+    && (ts.getModifiers(node)?.some(({ kind }) => kind === ts.SyntaxKind.ExportKeyword) ?? false);
+}
+
+/**
  * Extracts and normalizes the first TSDoc block on a declaration.
  *
  * @param node - Declaration being inspected.
@@ -82,13 +112,18 @@ function documentationText(node: ts.Node, sourceFile: ts.SourceFile): string | u
 }
 
 /**
- * Labels named function-like and class declarations for diagnostics.
+ * Labels authored functions, classes, and exported API declarations for diagnostics.
  *
  * @param node - Syntax node being inspected.
  * @param sourceFile - Parsed source file containing the node.
+ * @param exportedNames - Local names exposed through same-file export lists.
  * @returns The declaration label, or `undefined` for ignored nodes.
  */
-function declarationLabel(node: ts.Node, sourceFile: ts.SourceFile): string | undefined {
+function declarationLabel(
+  node: ts.Node,
+  sourceFile: ts.SourceFile,
+  exportedNames: ReadonlySet<string>,
+): string | undefined {
   if (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) {
     return node.name?.text;
   }
@@ -97,6 +132,20 @@ function declarationLabel(node: ts.Node, sourceFile: ts.SourceFile): string | un
     && ts.isIdentifier(node.name)
     && node.initializer
     && (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
+  ) {
+    return node.name.text;
+  }
+  if (ts.isVariableDeclaration(node)) {
+    const names = bindingNames(node.name);
+    const statement = node.parent.parent;
+    if (
+      ts.isVariableStatement(statement)
+      && (hasExportModifier(statement) || names.some((name) => exportedNames.has(name)))
+    ) return names.join(", ");
+  }
+  if (
+    (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node))
+    && (hasExportModifier(node) || exportedNames.has(node.name.text))
   ) {
     return node.name.text;
   }
@@ -171,13 +220,17 @@ function parameterNames(node: ts.Node): string[] {
 }
 
 /**
- * Collects generic parameter names from a function or class.
+ * Collects generic parameter names from a function, class, interface, or type alias.
  *
  * @param node - Named declaration being inspected.
  * @returns The declared generic parameter names.
  */
 function typeParameterNames(node: ts.Node): string[] {
-  const typeParameters = ts.isClassDeclaration(node)
+  const typeParameters = (
+    ts.isClassDeclaration(node)
+    || ts.isInterfaceDeclaration(node)
+    || ts.isTypeAliasDeclaration(node)
+  )
     ? node.typeParameters
     : functionLike(node)?.typeParameters;
   return typeParameters?.map(({ name }) => name.text) ?? [];
@@ -242,7 +295,7 @@ function tagLines(documentation: string, tag: string): string[] {
   return documentation.match(new RegExp(`^@${tag}\\b.*$`, "gm")) ?? [];
 }
 
-test("named functions and classes have concise TSDoc with accurate contract tags", () => {
+test("authored functions, classes, and exported APIs have concise TSDoc", () => {
   const files = [
     ...sourceRoots.flatMap(collectSourceFiles),
     ...rootSources.filter(existsSync),
@@ -260,6 +313,7 @@ test("named functions and classes have concise TSDoc with accurate contract tags
       true,
       file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
     );
+    const exportedNames = exportedLocalNames(sourceFile);
 
     /**
      * Traverses one syntax tree and validates documented declarations.
@@ -267,7 +321,7 @@ test("named functions and classes have concise TSDoc with accurate contract tags
      * @param node - Syntax node to inspect.
      */
     const visit = (node: ts.Node) => {
-      const label = declarationLabel(node, sourceFile);
+      const label = declarationLabel(node, sourceFile, exportedNames);
       if (label) {
         const line = sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
         const documentation = documentationText(node, sourceFile);

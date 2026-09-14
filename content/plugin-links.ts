@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 
 import type { ProjectLink } from "./types";
 
+/** Project link enriched with optional accessible context. */
 export interface ResolvedProjectLink extends ProjectLink {
   ariaLabel?: string;
 }

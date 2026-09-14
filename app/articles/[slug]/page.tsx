@@ -8,6 +8,7 @@ const publishedDate = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 
+/** Restricts article detail routes to statically generated slugs. */
 export const dynamicParams = false;
 
 /**
