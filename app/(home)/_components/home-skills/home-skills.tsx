@@ -35,6 +35,7 @@ import {
 import { BrainCircuit, Database, Gauge, Sparkles, TextSearch, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { Marker, MarkerContent } from "@/components/ui/marker";
 import { profile } from "@/content/structured";
 import { clsx } from "clsx";
 import styles from "./home-skills.module.scss";
@@ -152,12 +153,12 @@ export function HomeSkills() {
             data-slot="skill-group"
             key={group.title}
           >
-            <h3 className={clsx(
+            <Marker render={<h3 />} variant="separator" className={clsx(
               styles.groupLabel,
-              "m-0 flex items-center gap-6 text-center font-mono font-normal uppercase text-muted-foreground",
+              "m-0 gap-6 text-center font-mono font-normal uppercase before:mr-0 after:ml-0",
             )} data-page-motion-lead>
-              {group.title}
-            </h3>
+              <MarkerContent className="group-data-[variant=separator]/marker:flex-initial">{group.title}</MarkerContent>
+            </Marker>
             <ul
               className={clsx(
                 styles.skillList,

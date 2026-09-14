@@ -1108,8 +1108,10 @@ test("Skills renders every validated item with one consistent icon slot", async 
   expect(await skills.getByRole("heading", { level: 3 }).evaluateAll((headings) => headings.every((heading) => {
     const before = getComputedStyle(heading, "::before");
     const after = getComputedStyle(heading, "::after");
-    return before.borderTopWidth === "1px"
-      && after.borderTopWidth === "1px"
+    return before.height === "1px"
+      && after.height === "1px"
+      && before.backgroundColor !== "rgba(0, 0, 0, 0)"
+      && after.backgroundColor !== "rgba(0, 0, 0, 0)"
       && before.flexGrow === "1"
       && after.flexGrow === "1";
   }))).toBe(true);
