@@ -95,6 +95,84 @@ $chart-gap: 0.1875rem;
   color: var(--foreground);
 }
 
+.disclosure {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+
+.disclosure::details-content {
+  display: grid;
+  overflow: hidden;
+  content-visibility: visible;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 200ms ease,
+    opacity 200ms ease;
+}
+
+.disclosure[open]::details-content {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.disclosureSummary {
+  display: flex;
+  min-height: 2.75rem;
+  order: 1;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  border-radius: 0.125rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  transition: color 150ms;
+}
+
+.disclosureSummary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure[open] .disclosureSummary {
+  border-top: 1px solid var(--border);
+}
+
+.disclosureSummary:is(:hover, :focus-visible),
+.disclosure[open] .disclosureSummary {
+  color: var(--foreground);
+}
+
+.disclosureSummary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.disclosure:not([open]) [data-slot="show-less"],
+.disclosure[open] [data-slot="show-more"] {
+  display: none;
+}
+
+.remainder {
+  visibility: hidden;
+  min-height: 0;
+  overflow: hidden;
+  transition: visibility 0s linear 200ms;
+}
+
+.disclosure[open] .remainder {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclosure::details-content,
+  .disclosureSummary,
+  .remainder {
+    transition: none;
+  }
+}
+
 .title {
   min-width: 0;
   overflow-wrap: anywhere;
