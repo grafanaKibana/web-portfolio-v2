@@ -2,11 +2,11 @@ import { expect, test } from "@playwright/test";
 
 const brandSources = {
   dark: ["#4fdf8a", "#2ad2a1", "#34c7bd"],
-  light: ["#0a7a3d", "#007865", "#00756c"],
+  light: ["#0fb25e", "#04ac84", "#0aaeb4"],
 } as const;
 
 for (const theme of ["light", "dark"] as const) {
-  test(`brand accents always mix with foreground in ${theme} mode`, async ({ page }) => {
+  test(`brand accents keep readable ${theme} surface and text treatments`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme === "light" ? "dark" : "light", reducedMotion: "reduce" });
     await page.addInitScript((preferredTheme) => {
       localStorage.setItem("theme", preferredTheme);
@@ -14,17 +14,18 @@ for (const theme of ["light", "dark"] as const) {
     }, theme);
     await page.goto("/#experience");
 
-    const actual = await page.evaluate((sources) => {
+    const actual = await page.evaluate(({ sources, themeName }) => {
       const names = ["--brand-accent-start", "--brand-accent", "--brand-accent-end"];
       const expected = sources.map((source) => {
         const sample = document.createElement("span");
-        sample.style.color = `color-mix(in oklab, ${source} 80%, var(--foreground))`;
+        sample.style.color = themeName === "light"
+          ? source
+          : `color-mix(in oklab, ${source} 80%, var(--foreground))`;
         document.body.append(sample);
         const color = getComputedStyle(sample).color;
         sample.remove();
         return color;
       });
-      const rootStyle = getComputedStyle(document.documentElement);
       const background = getComputedStyle(document.body).backgroundColor;
       const resolved = names.map((name) => {
         const sample = document.createElement("span");
@@ -34,8 +35,28 @@ for (const theme of ["light", "dark"] as const) {
         sample.remove();
         return color;
       });
-      const contrast = resolved.map((color) => {
-        const luminances = [color, background].map((cssColor) => {
+      const textColors = names.map((name) => {
+        const sample = document.createElement("span");
+        sample.style.color = themeName === "light"
+          ? `color-mix(in oklab, var(${name}) 75%, var(--foreground))`
+          : `var(${name})`;
+        document.body.append(sample);
+        const color = getComputedStyle(sample).color;
+        sample.remove();
+        return color;
+      });
+      const gradientSample = document.createElement("span");
+      gradientSample.style.backgroundImage = "var(--brand-accent-text-gradient)";
+      document.body.append(gradientSample);
+      const textGradient = getComputedStyle(gradientSample).backgroundImage;
+      gradientSample.remove();
+      /** Measures contrast for browser-resolved colors against one background.
+       * @param colors - Foreground colors to measure.
+       * @param against - Shared background color.
+       * @returns Contrast ratio for each foreground color.
+       */
+      const contrast = (colors: string[], against: string) => colors.map((color) => {
+        const luminances = [color, against].map((cssColor) => {
           const canvas = document.createElement("canvas");
           canvas.width = 1;
           canvas.height = 1;
@@ -53,28 +74,31 @@ for (const theme of ["light", "dark"] as const) {
           / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
       });
       return {
-        contrast,
         expected,
-        foreground: rootStyle.getPropertyValue("--foreground").trim(),
         resolved,
+        surfaceContrast: contrast(resolved, background),
+        textContrast: contrast(textColors, background),
+        textGradient,
       };
-    }, brandSources[theme]);
+    }, { sources: brandSources[theme], themeName: theme });
 
     expect(actual.resolved).toEqual(actual.expected);
-    expect(actual.contrast.every((ratio) => ratio >= 4.5)).toBe(true);
+    expect(actual.textContrast.every((ratio) => ratio >= 4.5)).toBe(true);
+    if (theme === "dark") expect(actual.surfaceContrast.every((ratio) => ratio >= 4.5)).toBe(true);
     const descriptor = page.locator('[data-slot="hero-descriptor"]');
     const currentDot = page.locator('[data-slot="timeline-dot"]').first();
     await expect(page.locator('[data-slot="hero-descriptor-glow"]')).toHaveCount(0);
     await expect(page.locator('[data-slot="timeline-icon-glow"]')).toHaveCount(0);
     await expect(descriptor).toHaveCSS("filter", "none");
     await expect(descriptor).toHaveCSS("text-shadow", "none");
+    await expect(descriptor).toHaveCSS("background-image", actual.textGradient);
     await expect(currentDot.locator('[data-slot="timeline-icon"]')).toHaveCount(1);
     await expect(currentDot.locator('[data-slot="timeline-icon"]')).toHaveCSS("filter", "none");
     expect(await page.locator("#experience ol").evaluate((element) => getComputedStyle(element, "::after").content)).toBe("none");
   });
 }
 
-test("system and no-script rendering use the same foreground-mixed accent", async ({ page, browser }) => {
+test("system and no-script rendering use the same theme-specific accent treatment", async ({ page, browser }) => {
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
   await page.addInitScript(() => {
     localStorage.setItem("theme", "system");

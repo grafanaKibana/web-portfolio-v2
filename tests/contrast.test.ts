@@ -129,9 +129,16 @@ test("hex color checks retain a known contrast baseline and reject invalid input
   assert.throws(() => hexToken(":root", "missing-token"), /Missing hexadecimal/)
 })
 
-test("brand accents use the approved foreground mix in every theme declaration", () => {
+test("dark brand accents retain the foreground mix while light accents use vivid surfaces", () => {
   const declarations = css.match(/--brand-accent(?:-start|-end)?: color-mix\(in oklab, #[0-9a-f]{6} 80%, var\(--foreground\)\);/gi)
-  assert.equal(declarations?.length, 9)
+  assert.equal(declarations?.length, 6)
+  const background = token(":root", "background")
+  assert.ok(hexContrast(hexToken(":root", "brand-accent-text"), background) >= 4.5)
+  for (const name of ["brand-accent-start", "brand-accent", "brand-accent-end"]) {
+    const surface = hexToken(":root", name)
+    const ink = hexToken(":root", "foreground")
+    assert.ok((hexLuminance(surface) + 0.05) / (hexLuminance(ink) + 0.05) >= 4.5)
+  }
 })
 
 test("shared MDX prose links own the content-to-foreground interaction contract", () => {
@@ -142,8 +149,9 @@ test("shared MDX prose links own the content-to-foreground interaction contract"
   assert.match(mdxComponents, /underline underline-offset-4/)
 })
 
-test("app accents and field focus share the brand accent while field surfaces stay neutral", () => {
-  assert.equal([...css.matchAll(/--ring: var\(--brand-accent\);/g)].length, 3)
+test("field focus uses the readable theme accent while field surfaces stay neutral", () => {
+  assert.equal([...css.matchAll(/--ring: var\(--brand-accent\);/g)].length, 2)
+  assert.match(css, /--ring: var\(--brand-accent-text\);/)
   assert.deepEqual(token(":root", "input"), [0.93, 0.007, 106.5])
   assert.equal([...css.matchAll(/--input: oklch\(1 0 0 \/ 15%\);/g)].length, 2)
   assert.doesNotMatch(css, /--input:[^;]*var\(--brand-accent\)/)

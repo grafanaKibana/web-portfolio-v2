@@ -51,14 +51,14 @@
 
 @layer utilities {
   .text-brand-gradient {
-    color: var(--brand-accent);
+    color: var(--brand-accent-text);
   }
 
   @supports (background: linear-gradient(in oklab, green, green)) and (background-clip: text) {
     @media (forced-colors: none) {
       .text-brand-gradient {
         color: transparent;
-        background-image: var(--brand-accent-gradient);
+        background-image: var(--brand-accent-text-gradient);
         background-clip: text;
       }
     }
@@ -142,7 +142,7 @@
 :root {
   --site-header-height: 3.75rem;
 
-  /* Jade accents mix 80% brand with 20% foreground in both themes. */
+  /* Light Jade surfaces stay vivid; text and focus use a deeper companion. */
   --background: oklch(1 0 0);
   /* stylelint-disable-next-line color-hex-length -- Keep the approved token notation exact. */
   --foreground: #111111;
@@ -153,9 +153,12 @@
   --popover-foreground: oklch(0 0 0);
   --primary: oklch(0 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --brand-accent: color-mix(in oklab, #007865 80%, var(--foreground));
-  --brand-accent-start: color-mix(in oklab, #0a7a3d 80%, var(--foreground));
-  --brand-accent-end: color-mix(in oklab, #00756c 80%, var(--foreground));
+  --brand-accent: #04ac84;
+  --brand-accent-start: #0fb25e;
+  --brand-accent-end: #0aaeb4;
+  --brand-accent-text: #007c60;
+  --brand-accent-foreground: var(--foreground);
+  --brand-accent-text-gradient: linear-gradient(90deg in oklab, color-mix(in oklab, var(--brand-accent-start) 75%, var(--foreground)), color-mix(in oklab, var(--brand-accent) 75%, var(--foreground)) 58%, color-mix(in oklab, var(--brand-accent-end) 75%, var(--foreground)));
   --success: #1a7f37;
   --brand-accent-stops: var(--brand-accent-start), var(--brand-accent) 58%, var(--brand-accent-end);
   --brand-accent-gradient: linear-gradient(90deg in oklab, var(--brand-accent-stops));
@@ -169,7 +172,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.93 0.007 106.5);
   --input: oklch(0.93 0.007 106.5);
-  --ring: var(--brand-accent);
+  --ring: var(--brand-accent-text);
   --chart-1: color-mix(in oklab, var(--brand-accent) 28%, var(--background));
   --chart-2: color-mix(in oklab, var(--brand-accent) 48%, var(--background));
   --chart-3: color-mix(in oklab, var(--brand-accent) 70%, var(--background));
@@ -205,6 +208,9 @@
   --brand-accent: color-mix(in oklab, #2ad2a1 80%, var(--foreground));
   --brand-accent-start: color-mix(in oklab, #4fdf8a 80%, var(--foreground));
   --brand-accent-end: color-mix(in oklab, #34c7bd 80%, var(--foreground));
+  --brand-accent-text: var(--brand-accent);
+  --brand-accent-foreground: var(--background);
+  --brand-accent-text-gradient: var(--brand-accent-gradient);
   --success: #3fb950;
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -240,6 +246,9 @@
     --brand-accent: color-mix(in oklab, #2ad2a1 80%, var(--foreground));
     --brand-accent-start: color-mix(in oklab, #4fdf8a 80%, var(--foreground));
     --brand-accent-end: color-mix(in oklab, #34c7bd 80%, var(--foreground));
+    --brand-accent-text: var(--brand-accent);
+    --brand-accent-foreground: var(--background);
+    --brand-accent-text-gradient: var(--brand-accent-gradient);
     --success: #3fb950;
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
@@ -272,6 +281,10 @@
 }
 
 @layer base {
+  :is(a[href], button, summary, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="checkbox"], [role="switch"], input[type="button"], input[type="submit"], input[type="reset"], input[type="checkbox"], input[type="radio"], select):not(:disabled, [aria-disabled="true"], [data-disabled]) {
+    cursor: pointer;
+  }
+
   ::selection {
     color: var(--foreground);
     background: color-mix(in oklab, var(--brand-accent) 24%, transparent);
