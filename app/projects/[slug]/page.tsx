@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { resolvePluginLinks } from "@/content/plugin-links";
 import { getProjectSlugs, loadProject } from "@/content/projects/server";
 import styles from "./project-page.module.scss";
 
@@ -57,6 +58,7 @@ export default async function ProjectPage({
   const project = await loadProject(slug);
   if (!project) notFound();
   const projectSlugs = getProjectSlugs();
+  const links = await resolvePluginLinks(project.metadata.links);
   const nextSlug = projectSlugs[projectSlugs.indexOf(slug) + 1];
   const nextProject = nextSlug ? await loadProject(nextSlug) : undefined;
 
@@ -66,9 +68,9 @@ export default async function ProjectPage({
         <header className="mx-auto max-w-3xl pb-10" data-slot="project-hero">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" data-page-motion-intro data-slot="project-title-row">
             <h1 className="min-w-0 text-4xl font-semibold tracking-tight">{project.metadata.title}</h1>
-            {project.metadata.links?.length ? (
+            {links.length ? (
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-6" data-slot="project-actions">
-                {project.metadata.links.map((link) => {
+                {links.map((link) => {
                   let icon = <ExternalLink aria-hidden="true" className="size-3.5 opacity-60" />;
                   if (link.href.startsWith("https://obsidian.md/plugins")) {
                     icon = <Obsidian aria-hidden="true" className="size-3.5 opacity-60" data-slot="obsidian-icon" variant="mono" />;
@@ -78,11 +80,13 @@ export default async function ProjectPage({
 
                   return (
                     <a
+                      aria-label={link.ariaLabel}
                       className="project-action-link"
                       href={link.href}
                       key={link.href}
                       rel="noreferrer"
                       target="_blank"
+                      title={link.ariaLabel}
                     >
                       {icon}
                       {link.label}

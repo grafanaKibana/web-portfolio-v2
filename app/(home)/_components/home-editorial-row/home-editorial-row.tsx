@@ -25,13 +25,13 @@ interface HomeEditorialRowProps {
  */
 export function HomeEditorialRow({ actions, dataSlot, description, metadata, title }: HomeEditorialRowProps) {
   /**
-   * Follows the primary link while preserving text selection and other controls.
+   * Follows the primary link outside the action row while preserving text selection and other controls.
    *
    * @param event - Pointer click bubbling through the row.
    */
   function followRowLink(event: ReactMouseEvent<HTMLLIElement>) {
     if (event.defaultPrevented || !(event.target instanceof Element)
-      || event.target.closest("a, button, input, label, select, summary, textarea")) return;
+      || event.target.closest('[data-slot="project-actions"], a, button, input, label, select, summary, textarea')) return;
     const selection = document.getSelection();
     if (selection && !selection.isCollapsed) return;
     event.currentTarget.querySelector<HTMLAnchorElement>("a[data-row-link]")
@@ -44,7 +44,7 @@ export function HomeEditorialRow({ actions, dataSlot, description, metadata, tit
         <h3 className={styles.title}>{title}</h3>
         <p className={styles.description}>{description}</p>
         <div className={styles.metadata} data-slot="row-metadata">{metadata}</div>
-        <div className={styles.actions} data-slot="project-actions">{actions}</div>
+        <div className={clsx(styles.actions, "cursor-default [&_a]:cursor-pointer")} data-slot="project-actions">{actions}</div>
       </article>
     </li>
   );

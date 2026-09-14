@@ -142,7 +142,8 @@ Experience disclosure rows use a pointer cursor across the whole block: the summ
 - `app/layout.tsx` is the sole application layout. `app/(home)/page.tsx` owns `/`, and the `(home)` group has no layout or URL segment.
 - Keep structured portfolio data as typed TypeScript records and local repository-authored MDX as trusted executable content. Validate imported metadata, normalized slugs, and case-insensitive duplicates.
 - Project and article detail routes use static parameters with dynamic params disabled; optional activity cannot delay or remove curated content.
-- Home project and writing rows share one layout and follow their Read link from ordinary row clicks. Text stays selectable; other links remain independent. Hovering another link suppresses the Read hover highlight. Home writing metadata shows the publication date without reading time.
+- Home project and writing rows share one layout and follow their Read link from ordinary clicks outside the action row. Empty action-row space has no navigation or Read-link hover treatment; each link retains its own hover and navigation. Text stays selectable. Home writing metadata shows the publication date without reading time.
+- On opened plugin project pages, the existing Obsidian store link displays the download count and each source link displays that repository's released version. Home retains its original store/source labels. Destinations and icons stay unchanged; accessible names retain the source/store purpose. Optional server-cached data falls back to the original label when unavailable.
 - Prefer native HTML and CSS to JavaScript. Server-rendered content remains meaningful before hydration; client decoration must fail open.
 - Contact remains a native-validating `mailto:` flow unless a backend is explicitly approved.
 - Use local production assets. Remote prototype fonts, icons, images, and CDN URLs are illustrative delivery evidence only.

@@ -88,6 +88,53 @@ test("Home project links keep independent hover and navigation", async ({ page, 
   await popup.close();
 });
 
+for (const { width, colorScheme } of [
+  { width: 390, colorScheme: "light" },
+  { width: 390, colorScheme: "dark" },
+  { width: 1280, colorScheme: "light" },
+  { width: 1280, colorScheme: "dark" },
+] as const) {
+  test(`Home action-row gaps do not promote or follow Read links at ${String(width)}px in ${colorScheme}`, async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: "reduce", colorScheme });
+    await page.setViewportSize({ width, height: 900 });
+
+    for (const slot of ["home-project", "home-article"]) {
+      await page.goto("/");
+      await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
+      const row = page.locator(`[data-slot="${slot}"]`).first();
+      const actions = row.locator('[data-slot="project-actions"]');
+      const readLink = actions.locator("a[data-row-link]");
+      await actions.scrollIntoViewIfNeeded();
+      await page.mouse.move(0, 0);
+      const restingColor = await readLink.evaluate((link) => getComputedStyle(link).color);
+      const position = await actions.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        for (const x of [box.width - 2, box.width / 2, 2]) {
+          for (const y of [box.height - 2, box.height / 2, 2]) {
+            if (document.elementFromPoint(box.left + x, box.top + y) === element) return { x, y };
+          }
+        }
+        throw new Error("Action row must expose an empty gap for this regression");
+      });
+
+      await actions.hover({ position });
+      await expect(actions).toHaveCSS("cursor", "default");
+      await expect(readLink).toHaveCSS("color", restingColor);
+      await actions.click({ position });
+      await expect(page).toHaveURL(/\/$/);
+      await row.screenshot({ path: testInfo.outputPath(`${slot}-action-gap.png`) });
+
+      await readLink.hover();
+      await expect(readLink).toHaveCSS("cursor", "pointer");
+      await expect.poll(() => readLink.evaluate((link) => getComputedStyle(link).color)).not.toBe(restingColor);
+      const destination = await readLink.getAttribute("href");
+      if (!destination) throw new Error("Read link must retain a destination");
+      await readLink.click();
+      await expect(page).toHaveURL(new RegExp(`${destination}$`));
+    }
+  });
+}
+
 test("Home row selection and missing Read links do not navigate", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1280, height: 900 });

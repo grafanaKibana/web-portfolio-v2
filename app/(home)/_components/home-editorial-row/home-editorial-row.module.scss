@@ -6,7 +6,7 @@
   cursor: pointer;
 }
 
-.row:hover:not(:has(a:not([data-row-link]):hover)) [data-row-link] {
+.row:hover:not(:has(.actions:hover)) [data-row-link] {
   color: var(--foreground);
 }
 
