@@ -58,6 +58,7 @@ Use a route-oriented vertical-slice modular monolith: organize by route and feat
 ## Verification
 
 - Focus tests on core generic invariants and meaningful edge cases for the affected behavior. Prefer reusable cases that exercise the same contract across inputs; avoid implementation-mirroring assertions and redundant scenario tests.
+- Tests must be deterministic, idempotent, and independent of current portfolio records or live third-party data. Use synthetic fixtures and controlled responses for content-shaped inputs; do not assert current identities, wording, dates, counts, or inventory. Browser smoke may discover available route-shaped links only to verify generic navigation and semantic contracts, and must remain valid for empty collections.
 - Run the smallest relevant checks that establish those invariants. There is no blanket requirement to run the full test suite, production build, or all browser tests. Use additional checks only to resolve a concrete validation need.
 - Keep automated tests under `tests/` and browser specifications under `tests/e2e/`. Use existing commands from `package.json`; documentation-only changes need reference, consistency, and diff checks.
 - When browser tests are needed, build their production prerequisite first. The Playwright configuration owns its temporary server on port 3192; confirm it stops afterward without stopping unrelated listeners.

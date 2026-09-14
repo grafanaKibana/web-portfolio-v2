@@ -140,6 +140,8 @@ Use validated records and local MDX for biography, credentials, dates, projects,
 
 Work within the existing Next.js, React, Tailwind, and colocated SCSS structure. Keep server-rendered content meaningful before hydration; prefer native HTML and CSS for interaction where practical. Follow [AGENTS.md](AGENTS.md) for ownership, editable shared-UI boundaries, imported-source handling, source documentation, and verification.
 
+Verify design behavior with synthetic or controlled fixtures. Production portfolio records own published facts; they are not test fixtures or expected values. Optional collections may be empty without invalidating functional verification.
+
 Change this document when design direction changes. Keep exact visual values and runtime details in their existing source files. A token adjustment alone does not require duplicate prose edits.
 
 For visual changes, verify rendered light/dark and mobile/desktop states, including affected keyboard, reduced-motion, fallback, and error behavior. Report what was actually checked; source inspection alone is not visual verification.

@@ -288,6 +288,38 @@ test("reduced motion reveals overflow without hidden or animating rows", async (
   }))).toBe(true);
 });
 
+for (const theme of ["light", "dark"] as const) {
+  test(`synthetic activity keeps success and brand accents independent in ${theme} mode`, async ({ page }) => {
+    const calendarMarkup = `<div class="chart"><div class="chartDays" role="group" aria-label="Synthetic contribution calendar">
+      <button aria-label="Synthetic contribution day" class="chartDay" data-level="4" data-slot="contribution-day" type="button"></button>
+    </div></div>`;
+    await mount(page, `${groupMarkup("merged", "Merged", contributions(1, "merged"))}${calendarMarkup}`, theme);
+
+    const status = page.locator('[data-slot="pull-request-status"][data-status="merged"]');
+    const additions = page.locator('[data-slot="pull-request-diff"] > span:first-child');
+    const day = page.locator('[data-slot="contribution-day"][data-level="4"]');
+    const successColor = await additions.evaluate((element) => getComputedStyle(element).color);
+    const dayBefore = await day.evaluate((element) => getComputedStyle(element).backgroundImage);
+
+    await expect(status).toHaveCSS("stroke", successColor);
+    await expect(additions).toHaveCSS("background-image", "none");
+    await expect(day).toHaveCSS("background-image", /linear-gradient.*58%/);
+    await page.evaluate(() => {
+      document.documentElement.style.setProperty("--brand-accent", "rgb(120, 70, 190)");
+      document.documentElement.style.setProperty("--brand-accent-end", "rgb(235, 85, 45)");
+    });
+    await expect(day).not.toHaveCSS("background-image", dayBefore);
+    await expect(status).toHaveCSS("stroke", successColor);
+    await expect(additions).toHaveCSS("color", successColor);
+
+    await page.evaluate(() => {
+      document.documentElement.style.setProperty("--success", "rgb(20, 120, 60)");
+    });
+    await expect(status).toHaveCSS("stroke", "rgb(20, 120, 60)");
+    await expect(additions).toHaveCSS("color", "rgb(20, 120, 60)");
+  });
+}
+
 test("disclosure animates both directions and keeps its control below the visible list", async ({ page }) => {
   await mount(page, groupMarkup("merged", "Merged", contributions(7)));
   const disclosure = page.locator('[data-slot="pull-request-disclosure"]');

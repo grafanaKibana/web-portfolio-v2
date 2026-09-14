@@ -1,62 +1,51 @@
-import { expect, test } from "@playwright/test";
-import { readdirSync } from "node:fs";
+import { expect, test, type Page } from "@playwright/test";
 
-const projectSlugs = readdirSync("content/projects")
-  .filter((file) => file.endsWith(".mdx"))
-  .map((file) => file.slice(0, -4));
+/**
+ * Discovers rendered project-detail destinations without assuming content inventory.
+ *
+ * @param page - Browser page used to render the project collection.
+ * @returns Unique project-detail paths in rendered order.
+ */
+async function discoverProjectPaths(page: Page) {
+  await page.goto("/projects");
+  return page.locator('a[href^="/projects/"]').evaluateAll((links) => [...new Set(links
+    .map((link) => link.getAttribute("href"))
+    .filter((href): href is string => Boolean(href)))]);
+}
 
-test("project MDX renders shared sections, local figures, and existing metadata", async ({ page }) => {
-  for (const slug of projectSlugs) {
-    const response = await page.goto(`/projects/${slug}`);
+test("rendered project links resolve to semantic, locally sourced case studies", async ({ page }) => {
+  const paths = await discoverProjectPaths(page);
+  for (const path of paths) {
+    const response = await page.goto(path);
     expect(response?.status()).toBe(200);
     const article = page.locator("main#main > article");
-    await expect(article.locator("h1")).toHaveCount(1);
-    await expect(article.locator("h2")).toHaveText(["About", "Highlights", "How it works", "Project details"]);
-    await expect(article.getByRole("heading", { name: /^(my part|role|my role)$/i })).toHaveCount(0);
+    await expect(article).toBeVisible();
+    await expect(article.getByRole("heading", { level: 1 })).toHaveCount(1);
+    const headingLevels = await article.locator("h1, h2, h3, h4, h5, h6").evaluateAll((headings) =>
+      headings.map((heading) => Number(heading.tagName.slice(1))));
+    expect(headingLevels[0]).toBe(1);
+    expect(headingLevels.every((level, index) => index === 0 || level > 1)).toBe(true);
 
     for (const figure of await article.locator("figure:has(img)").all()) {
       const image = figure.locator("img");
-      await image.scrollIntoViewIfNeeded();
-      await expect(image).toBeVisible();
-      await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
-      await expect(image).toHaveAttribute("alt", /\S+/);
-      await expect(image).toHaveAttribute("loading", "lazy");
+      await expect(image).toHaveAttribute("src", /^\/(?!\/).+/);
+      await expect(image).toHaveAttribute("alt", /\S/);
       await expect(figure.locator("figcaption")).toBeVisible();
     }
   }
 });
 
-for (const colorScheme of ["light", "dark"] as const) {
-  test(`project descriptions and figures remain readable without JavaScript in ${colorScheme}`, async ({ browser }, testInfo) => {
-    const context = await browser.newContext({
-      colorScheme,
-      javaScriptEnabled: false,
-      viewport: { width: 375, height: 900 },
-    });
-    const page = await context.newPage();
-    try {
-      for (const slug of projectSlugs) {
-        await page.goto(new URL(`/projects/${slug}`, testInfo.project.use.baseURL).href);
-        await expect(page.locator('[data-slot="project-hero"] > p').first()).toBeVisible();
-        for (const code of await page.locator("main pre").all()) await expect(code).toBeVisible();
-        await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible();
-        await expect(page.getByRole("heading", { name: "Project details", exact: true })).toBeVisible();
-        for (const image of await page.locator("main figure img").all()) {
-          await image.scrollIntoViewIfNeeded();
-          await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
-          expect(await image.evaluate((element) => element.getBoundingClientRect().width)).toBeLessThanOrEqual(375);
-        }
-        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
-        if (slug === "obsidian-tabsdown") {
-          await page.evaluate(() => { window.scrollTo(0, 0); });
-          await page.screenshot({ path: testInfo.outputPath(`tabsdown-mobile-${colorScheme}.png`), fullPage: true });
-          await page.setViewportSize({ width: 1440, height: 1000 });
-          await page.screenshot({ path: testInfo.outputPath(`tabsdown-desktop-${colorScheme}.png`), fullPage: true });
-          await page.setViewportSize({ width: 375, height: 900 });
-        }
-      }
-    } finally {
-      await context.close();
-    }
+test.describe("project details without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("keep any rendered case study readable", async ({ page }) => {
+    const paths = await discoverProjectPaths(page);
+    test.skip(paths.length === 0, "Project collection is empty");
+    await page.goto(paths[0] ?? "/projects");
+
+    const article = page.locator("main#main > article");
+    await expect(article).toBeVisible();
+    await expect(article.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
   });
-}
+});

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { clsx } from "clsx";
+import { nextDescriptorIndex } from "./descriptor-sequence";
 import styles from "./descriptor-rotation.module.scss";
 
 /**
@@ -35,8 +36,9 @@ export function DescriptorRotation({ descriptors, interval }: {
   }, []);
 
   useEffect(() => {
+    if (descriptors.length < 2) return;
     const timer = window.setInterval(() => {
-      setIndex((current) => (current + 1) % descriptors.length);
+      setIndex((current) => nextDescriptorIndex(current, descriptors.length));
     }, interval);
     return () => {
       window.clearInterval(timer);

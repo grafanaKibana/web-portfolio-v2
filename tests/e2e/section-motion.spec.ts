@@ -1,10 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-/** Records actual animation timestamps so assertions survive completed entrances. */
+/** Records animation start timestamps so assertions survive completed entrances. */
 function recordMotionTimeline() {
   sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-  // apply below restores the native method's element receiver.
-  // eslint-disable-next-line @typescript-eslint/unbound-method
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- The fixture restores the native element receiver.
   const animate = Element.prototype.animate;
   Element.prototype.animate = function (...args) {
     const animation = animate.apply(this, args);
@@ -17,62 +16,94 @@ function recordMotionTimeline() {
   };
 }
 
-for (const path of ["/projects/latex-cv", "/articles/fixing-bugs-with-mcps"]) {
-  for (const entry of ["direct", "client"]) {
-    test(`Slug sections continue the intro cadence across section boundaries on ${path} via ${entry}`, async ({ page }) => {
+/**
+ * Opens a collection through either a direct request or the Home collection link.
+ *
+ * @param page - Browser page used for navigation.
+ * @param route - Collection path and matching Home link slot.
+ * @param entry - Navigation method to exercise.
+ * @returns Whether the requested navigation path is available and was exercised.
+ */
+async function enterCollection(
+  page: Page,
+  route: { homeLinkSlot: string; path: string },
+  entry: "client" | "direct",
+): Promise<boolean> {
+  if (entry === "direct") {
+    await page.goto(route.path);
+    return true;
+  }
+
+  await page.goto("/");
+  const link = page.locator(`[data-slot="${route.homeLinkSlot}"]`);
+  if (await link.count() === 0) return false;
+  await link.click();
+  await expect(page).toHaveURL(new RegExp(`${route.path}$`));
+  return true;
+}
+
+for (const route of [
+  { homeLinkSlot: "more-projects-link", label: "project collection", path: "/projects", rowSlot: "project-row" },
+  { homeLinkSlot: "more-articles-link", label: "article collection", path: "/articles", rowSlot: "article-row" },
+]) {
+  for (const entry of ["direct", "client"] as const) {
+    test(`${route.label} preserves document-order motion via ${entry} navigation`, async ({ page }) => {
       await page.setViewportSize({ width: 1280, height: 2400 });
       await page.addInitScript(recordMotionTimeline);
-      if (entry === "client") {
-        await page.goto(path.startsWith("/projects/") ? "/projects" : "/articles");
-        await page.locator(`a[href="${path}"]`).click();
-      } else {
-        await page.goto(path);
+      if (!await enterCollection(page, route, entry)) return;
+
+      const introTargets = page.locator("[data-page-motion-intro]");
+      await expect(introTargets.first()).toHaveAttribute("data-test-motion-start", /\d/);
+      expect(await introTargets.evaluateAll((items) => items.every((item) => {
+        const start = item.getAttribute("data-test-motion-start");
+        return start !== null && start.trim() !== "" && Number.isFinite(Number(start));
+      }))).toBe(true);
+      const rows = page.locator(`[data-slot="${route.rowSlot}"]`);
+      if (await rows.count() === 0) return;
+      await expect.poll(async () => rows.evaluateAll((items) => {
+        const starts = items
+          .filter((item) => {
+            const bounds = item.getBoundingClientRect();
+            return bounds.bottom > 0 && bounds.top < window.innerHeight;
+          })
+          .map((item) => item.getAttribute("data-test-motion-start"));
+        return starts.length > 0 && starts.every((start) =>
+          start !== null && start.trim() !== "" && Number.isFinite(Number(start)));
+      })).toBe(true);
+      const rawStarts = await rows.evaluateAll((items) => items
+        .filter((item) => {
+          const bounds = item.getBoundingClientRect();
+          return bounds.bottom > 0 && bounds.top < window.innerHeight;
+        })
+        .map((item) => item.getAttribute("data-test-motion-start")));
+      expect(rawStarts.every((start) =>
+        start !== null && start.trim() !== "" && Number.isFinite(Number(start)))).toBe(true);
+      const starts = rawStarts.map(Number);
+
+      for (const [index, start] of starts.entries()) {
+        if (index > 0) expect(start - Number(starts[index - 1])).toBeCloseTo(75, 0);
       }
-      const body = page.locator('[data-page-motion-rows="children"]').first();
-      await expect(body.locator("h2").nth(1)).toHaveAttribute("data-test-motion-start", /\d/);
-      const timeline = await body.evaluate((root) => Array.from(root.children, (child) => ({
-        heading: /^H[2-6]$/.test(child.tagName),
-        start: Number(child.getAttribute("data-test-motion-start")),
-      })));
-      const secondSectionStart = timeline.findIndex((child, index) => index > 0 && child.heading);
-      expect(secondSectionStart).toBeGreaterThan(1);
-      const lastIntroStart = await page.locator('[data-page-motion-intro]').evaluateAll((items) =>
-        Math.max(...items.map((item) => Number(item.getAttribute("data-test-motion-start")))));
-      expect(Number(timeline[0]?.start) - lastIntroStart).toBeGreaterThan(25);
-      expect(Number(timeline[0]?.start) - lastIntroStart).toBeLessThan(150);
-      for (let index = 1; index < secondSectionStart; index++) {
-        expect(Number(timeline[index]?.start) - Number(timeline[index - 1]?.start)).toBeCloseTo(75, 0);
-      }
-      const boundaryGap = Number(timeline[secondSectionStart]?.start) - Number(timeline[secondSectionStart - 1]?.start);
-      expect(boundaryGap).toBeGreaterThan(25);
-      expect(boundaryGap).toBeLessThan(150);
-      await expect(page.locator('main > article > hr')).toHaveAttribute("data-test-motion-start", /\d/);
     });
   }
 
-  test(`Slug sections keep their order across separate scroll frames on ${path}`, async ({ page }) => {
+  test(`${route.label} reveals available rows in separate scroll frames`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.addInitScript(recordMotionTimeline);
-    await page.goto(path);
-    const body = page.locator('[data-page-motion-rows="children"]').first();
-    const headings = body.locator(":scope > h2");
-    await headings.first().evaluate((heading) => {
-      window.scrollBy(0, Math.max(0, heading.getBoundingClientRect().top - innerHeight * 0.8));
+    await page.goto(route.path);
+
+    const rows = page.locator(`[data-slot="${route.rowSlot}"]`);
+    if (await rows.count() < 2) return;
+    const first = rows.first();
+    const last = rows.last();
+    await first.evaluate((row) => {
+      row.scrollIntoView({ block: "center" });
     });
-    await expect(headings.first()).toHaveAttribute("data-test-motion-start", /\d/);
-    await expect(headings.nth(1)).toHaveCSS("opacity", "0");
-    const scrollTime = await headings.nth(1).evaluate((heading) => {
-      window.scrollBy(0, heading.getBoundingClientRect().top - innerHeight * 0.8);
-      return Number(document.timeline.currentTime);
+    await expect(first).toHaveAttribute("data-test-motion-start", /\d/);
+    await last.evaluate((row) => {
+      row.scrollIntoView({ block: "center" });
     });
-    await expect(headings.nth(1)).toHaveAttribute("data-test-motion-start", /\d/);
-    const times = await headings.nth(1).evaluate((heading) => ({
-      start: Number(heading.getAttribute("data-test-motion-start")),
-      previousStart: Number(heading.previousElementSibling?.getAttribute("data-test-motion-start")),
-    }));
-    const nextSlot = Math.max(times.previousStart + 75, scrollTime);
-    expect(times.start).toBeGreaterThanOrEqual(nextSlot - 50);
-    expect(times.start).toBeLessThan(nextSlot + 150);
-    await expect(headings.nth(2)).toHaveCSS("opacity", "0");
+    await expect(last).toHaveAttribute("data-test-motion-start", /\d/);
+    expect(Number(await last.getAttribute("data-test-motion-start")))
+      .toBeGreaterThanOrEqual(Number(await first.getAttribute("data-test-motion-start")));
   });
 }

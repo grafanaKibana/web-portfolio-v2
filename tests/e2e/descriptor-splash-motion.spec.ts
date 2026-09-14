@@ -10,16 +10,6 @@ type SplashProbe = {
   interruptedFrames: Array<{ hidden: boolean; transform: string }>;
 };
 
-type DescriptorProbe = {
-  maxCount: number;
-  minY: number;
-  maxY: number;
-  exitAt: number | null;
-  replacementAt: number | null;
-  travel: number;
-  blankDuringExit: boolean;
-};
-
 /**
  * Records splash lifecycle events and optionally disrupts only its native playback.
  *
@@ -183,66 +173,20 @@ test("a live reduced-motion change cancels an exiting splash without restoring i
   expect((await readSplashProbe(page)).durations).toEqual([700]);
 });
 
-test("descriptor keeps its sequence and cadence across a complete rotation", async ({ page }) => {
-  await page.addInitScript(() => {
-    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-    const probe: DescriptorProbe = { maxCount: 0, minY: 0, maxY: 0, exitAt: null, replacementAt: null, travel: 0, blankDuringExit: false };
-    (window as typeof window & { descriptorProbe: DescriptorProbe }).descriptorProbe = probe;
-    /** Observes every rendered transition frame without controlling playback. */
-    function sampleDescriptor() {
-      const slots = document.querySelectorAll('[data-slot="hero-descriptor"]');
-      probe.maxCount = Math.max(probe.maxCount, slots.length);
-      if (probe.exitAt !== null && probe.replacementAt === null && slots.length === 0) probe.blankDuringExit = true;
-      const slot = slots[0];
-      const parent = slot?.parentElement;
-      if (slot && parent) {
-        const y = new DOMMatrixReadOnly(getComputedStyle(parent).transform).m42;
-        probe.travel = parseFloat(getComputedStyle(document.documentElement).fontSize) * 0.875;
-        probe.minY = Math.min(probe.minY, y);
-        probe.maxY = Math.max(probe.maxY, y);
-        if (slot.textContent === "AI Engineer" && y < -0.1) probe.exitAt ??= performance.now();
-        if (slot.textContent === "Software Developer") probe.replacementAt ??= performance.now();
-      }
-      requestAnimationFrame(sampleDescriptor);
-    }
-    requestAnimationFrame(sampleDescriptor);
-  });
-  await page.goto("/");
-  const descriptor = page.locator('[data-slot="hero-descriptor"]');
-  const changes: number[] = [];
-  for (const text of ["AI Engineer", "Software Developer", "UI Design Enthusiast", "Open Source Contributor", "AI Engineer"]) {
-    await expect(descriptor).toHaveText(text, { timeout: 4_500 });
-    await expect(descriptor).toHaveCount(1);
-    changes.push(await page.evaluate(() => performance.now()));
-  }
-  for (let index = 2; index < changes.length; index += 1) {
-    expect((changes[index] ?? 0) - (changes[index - 1] ?? 0)).toBeGreaterThan(2_800);
-    expect((changes[index] ?? 0) - (changes[index - 1] ?? 0)).toBeLessThan(3_600);
-  }
-  const probe = await page.evaluate(() => (window as typeof window & { descriptorProbe: DescriptorProbe }).descriptorProbe);
-  expect(probe.maxCount).toBe(1);
-  expect(probe.blankDuringExit).toBe(false);
-  expect(probe.exitAt).not.toBeNull();
-  expect(probe.replacementAt).not.toBeNull();
-  expect((probe.replacementAt ?? 0) - (probe.exitAt ?? 0)).toBeGreaterThan(500);
-  expect(probe.minY).toBeLessThan(-probe.travel + 0.5);
-  expect(probe.minY).toBeGreaterThanOrEqual(-probe.travel);
-  expect(probe.maxY).toBeGreaterThan(probe.travel - 0.5);
-  expect(probe.maxY).toBeLessThanOrEqual(probe.travel);
-});
-
 test("descriptor removes active translation when reduced motion changes", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => { sessionStorage.setItem("portfolio-opening-splash-seen", "true"); });
   await page.goto("/");
-  await page.waitForFunction(() => {
-    const parent = document.querySelector('[data-slot="hero-descriptor"]')?.parentElement;
-    return parent?.getAnimations().some((animation) => animation.playState === "running");
-  }, undefined, { polling: 50 });
-  await page.locator('[data-slot="hero-descriptor"]').locator("..").evaluate((element) => {
-    for (const animation of element.getAnimations()) animation.currentTime = 200;
+  const descriptor = page.locator('[data-slot="hero-descriptor"]');
+  const rotation = descriptor.locator("..");
+  await rotation.evaluate((element) => {
+    const animation = element.animate(
+      [{ transform: "translateY(0)" }, { transform: "translateY(-0.875rem)" }],
+      { duration: 10_000, fill: "both" },
+    );
+    animation.currentTime = 5_000;
   });
-  await expect(page.locator('[data-slot="hero-descriptor"]').locator("..")).not.toHaveCSS("transform", "none");
+  await expect(rotation).not.toHaveCSS("transform", "none");
   await page.evaluate(() => {
     (window as typeof window & { descriptorFrame: Promise<{ count: number; transform: string }> }).descriptorFrame = new Promise((resolve) => {
       matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", () => {
@@ -257,12 +201,9 @@ test("descriptor removes active translation when reduced motion changes", async 
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(await page.evaluate(() => (window as typeof window & { descriptorFrame: Promise<{ count: number; transform: string }> }).descriptorFrame))
     .toEqual({ count: 1, transform: "none" });
-  const descriptor = page.locator('[data-slot="hero-descriptor"]');
   await expect(descriptor).toHaveCount(1);
-  await expect(descriptor.locator("..")).toHaveCSS("transform", "none");
-  await expect(descriptor).toHaveText("Software Developer");
-  await expect(descriptor).toHaveText("UI Design Enthusiast", { timeout: 4_500 });
-  await expect(descriptor.locator("..")).toHaveCSS("transform", "none");
+  await expect(descriptor).not.toBeEmpty();
+  await expect(rotation).toHaveCSS("transform", "none");
 });
 
 
@@ -281,22 +222,23 @@ test("a preference change during splash readiness preserves its visibility floor
   expect(probe.publications).toHaveLength(1);
 });
 
-test("descriptor remount restarts one sequence without replaying the splash", async ({ page }) => {
+test("descriptor remount preserves one populated owner without replaying the splash", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await observeSplash(page);
   await page.goto("/");
   const descriptor = page.locator('[data-slot="hero-descriptor"]');
-  await expect(descriptor).toHaveText("Software Developer", { timeout: 5_000 });
-  await page.getByRole("link", { name: "Read case study" }).first().click();
-  await expect(page).toHaveURL(/\/projects\//);
-  await page.getByRole("navigation", { name: "Project navigation" }).getByRole("link", { name: "Home" }).click();
-  await expect(page).toHaveURL("/");
   await expect(descriptor).toHaveCount(1);
-  await expect(descriptor).toHaveText("AI Engineer");
+  await expect(descriptor).not.toBeEmpty();
+  await page.locator('[data-slot="more-projects-link"]').click();
+  await expect(page).toHaveURL(/\/projects$/u);
+  await page.locator('[data-slot="site-header"] a').filter({
+    has: page.locator('[data-slot="brand-mark"]'),
+  }).click();
+  await expect(page).toHaveURL(/\/#top$/u);
+  await expect(descriptor).toHaveCount(1);
+  await expect(descriptor).not.toBeEmpty();
   await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
-  await expect(descriptor).toHaveText("Software Developer", { timeout: 4_500 });
-  await expect(descriptor).toHaveCount(1);
   expect((await readSplashProbe(page)).publications).toHaveLength(1);
   expect(errors).toEqual([]);
 });

@@ -5,7 +5,6 @@ const sectionLabelSelectors = [
   "#about-heading",
   "#education-heading",
   "#experience-heading",
-  "#experience-recommendations-heading",
   "#skills-heading",
   "#code-heading",
   "#projects-heading",
@@ -110,8 +109,6 @@ test("Home sections keep shared layout and label contracts across breakpoints", 
       await expect(page.locator(selector)).toHaveCSS("font-size", "11px");
       await expect(page.locator(selector)).toHaveCSS("letter-spacing", "1.54px");
     }
-    const activityGroupLabels = page.locator('#code [data-slot="pull-request-group"] h3');
-    await expect(activityGroupLabels.first()).toHaveCSS("letter-spacing", "1.32px");
   }
 });
 
@@ -170,12 +167,12 @@ test("Page motion propagates the scoped 24px distance through intro and row anim
     opacity: getComputedStyle(target).opacity,
     transform: getComputedStyle(target).transform,
   }))).toEqual({ opacity: "1", transform: "none" });
-  const row = page.locator("#experience ol > [data-page-motion-row]").last();
+  const row = page.locator("#contact [data-page-motion-row]").first();
   await row.evaluate((element) => {
     const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
     window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
   });
-  const rowMidpoint = await seekMotionMidpoint(page, "#experience ol > [data-page-motion-row]:last-child");
+  const rowMidpoint = await seekMotionMidpoint(page, "#contact [data-page-motion-row]");
   expect(rowMidpoint.initialTranslateY).toBe(24);
   expect(rowMidpoint.opacity).toBeGreaterThan(0);
   expect(rowMidpoint.opacity).toBeLessThan(1);

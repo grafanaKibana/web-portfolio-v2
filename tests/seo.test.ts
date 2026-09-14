@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import robots from "../app/robots";
-import sitemap from "../app/sitemap";
 import { getSiteOrigin } from "../content/site-url";
+import { buildRobots, buildSitemap } from "../lib/metadata-routes";
 
 test("site origin accepts deployment URL conventions", () => {
   assert.equal(getSiteOrigin({ NEXT_PUBLIC_SITE_URL: "https://portfolio.example.test/" }), "https://portfolio.example.test");
@@ -17,36 +16,38 @@ test("site origin rejects values that are not HTTPS origins", () => {
   }
 });
 
-test("metadata routes include every known static content route", () => {
-  const previous = process.env.NEXT_PUBLIC_SITE_URL;
-  process.env.NEXT_PUBLIC_SITE_URL = "https://portfolio.example.test";
+test("metadata builders combine static routes with supplied content slugs", () => {
+  const origin = "https://portfolio.example.test";
+  const urls = buildSitemap(origin, {
+    articleSlugs: ["first-article", "second-article"],
+    projectSlugs: ["sample-project"],
+  }).map(({ url }) => url);
 
-  try {
-    const urls = sitemap().map(({ url }) => url);
+  assert.deepEqual(urls, [
+    origin,
+    `${origin}/accessibility`,
+    `${origin}/articles`,
+    `${origin}/for-robots`,
+    `${origin}/privacy`,
+    `${origin}/projects`,
+    `${origin}/terms`,
+    `${origin}/articles/first-article`,
+    `${origin}/articles/second-article`,
+    `${origin}/projects/sample-project`,
+  ]);
+  assert.deepEqual(buildRobots(origin), {
+    rules: { userAgent: "*", allow: "/" },
+    sitemap: `${origin}/sitemap.xml`,
+  });
+});
 
-    assert.deepEqual(urls, [
-      "https://portfolio.example.test",
-      "https://portfolio.example.test/accessibility",
-      "https://portfolio.example.test/articles",
-      "https://portfolio.example.test/for-robots",
-      "https://portfolio.example.test/privacy",
-      "https://portfolio.example.test/projects",
-      "https://portfolio.example.test/terms",
-      "https://portfolio.example.test/articles/building-an-llm-evaluation-harness",
-      "https://portfolio.example.test/articles/fixing-bugs-with-mcps",
-      "https://portfolio.example.test/articles/microsoft-agent-framework-setup",
-      "https://portfolio.example.test/projects/devbook",
-      "https://portfolio.example.test/projects/latex-cv",
-      "https://portfolio.example.test/projects/lifeos",
-      "https://portfolio.example.test/projects/obsidian-colsdown",
-      "https://portfolio.example.test/projects/obsidian-tabsdown",
-      "https://portfolio.example.test/projects/web-portfolio-v1",
-      "https://portfolio.example.test/projects/web-portfolio-v2",
-    ]);
-    assert.equal(urls.some((url) => url.endsWith("/llms.txt")), false);
-    assert.equal(robots().sitemap, "https://portfolio.example.test/sitemap.xml");
-  } finally {
-    if (previous === undefined) delete process.env.NEXT_PUBLIC_SITE_URL;
-    else process.env.NEXT_PUBLIC_SITE_URL = previous;
-  }
+test("metadata builders omit deployment URLs when no origin is configured", () => {
+  assert.deepEqual(buildSitemap(undefined, {
+    articleSlugs: ["unused-article"],
+    projectSlugs: ["unused-project"],
+  }), []);
+  assert.deepEqual(buildRobots(undefined), {
+    rules: { userAgent: "*", allow: "/" },
+    sitemap: undefined,
+  });
 });
