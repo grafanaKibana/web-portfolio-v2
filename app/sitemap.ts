@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
 
-import { getArticleSlugs } from "@/content/articles/server";
-import { getProjectSlugs } from "@/content/projects/server";
-import { getSiteOrigin } from "@/content/site-url";
-import { buildSitemap } from "@/lib/metadata-routes";
+import { getArticleSlugs } from "@/lib/content/articles/server";
+import { getProjectSlugs } from "@/lib/content/projects/server";
+import { getSiteOrigin } from "@/lib/seo/site-url";
+import { buildSitemap } from "@/lib/seo/metadata-routes";
 
 /**
  * Builds sitemap entries for every known route when an origin is configured.

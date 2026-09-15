@@ -18,11 +18,15 @@ This repository is Nikita Reshetnik's portfolio, built with Next.js App Router, 
 
 ## Ownership and boundaries
 
-Use a route-oriented vertical-slice modular monolith: organize by route and feature without speculative layers.
+Use strict nearest-owner colocation with root shared folders and route-private implementation.
 
-- Route entries own routing, metadata, page composition, static parameters, and not-found decisions. Keep feature rendering, interactions, and styles together.
-- `app/layout.tsx` owns document composition and the shared shell. Application-wide features live under `app/_shell/`; Home features live under `app/(home)/_components/`.
-- Keep route-specific implementation private to its route. Shared modules must not import route internals, and sibling routes must not import each other's private implementation.
+- Route entries own routing, metadata, page composition, static parameters, and not-found decisions. Keep route-specific rendering, interactions, helpers, styles and tests beside their owning route or component.
+- Root `components/` owns application-wide shared UI. Root `lib/` owns application-wide shared non-UI runtime code. Do not create duplicate `app/_components/` or `app/_lib/` shared scopes.
+- Route-private UI lives in the route's `_components`; route-private non-UI code lives in its `_lib`. Create either folder only for real files. A component with companions owns them in its named folder.
+- Put a file at the narrowest owner that contains every real consumer. Promote it to the nearest common route scope, then to root `components/` or `lib/` only when a consumer crosses that boundary.
+- Use relative imports within one owner and `@/` across owners. Import another component through its public entry, never through private companions. Shared modules must not import route internals, and sibling routes must not import each other's private implementation.
+- Adding a route, root component owner, or private component owner requires a reviewed import zone plus allowed and forbidden fixtures in `tests/eslint-boundaries.test.mjs`; static zones do not discover new ownership automatically.
+- TypeScript/JavaScript import zones do not inspect MDX or SCSS internals. Review those imports separately; use the production build for MDX resolution and Next.js compilation plus `server-only` guards for the execution graph.
 - Share code when it has multiple real consumers or an application-wide responsibility. Prefer small duplication over a speculative abstraction.
 - Keep rendering on the server by default. Add narrow client boundaries for state, effects, event handlers, or browser APIs; pass serializable props across them.
 - Keep server-only loaders, Node filesystem APIs, credentials, and provider code out of client modules.
@@ -30,6 +34,7 @@ Use a route-oriented vertical-slice modular monolith: organize by route and feat
 ## Shared UI and styling
 
 - Shared UI components, including shadcn source under `components/ui/`, may be edited directly. Keep them reusable; put feature-specific behavior in its owning feature and verify affected consumers when shared behavior changes.
+- Treat generated UI as a proposed diff. `components.json` records destinations, but upstream templates can still use different composition or direct `cn` imports; review output before adopting it and never overwrite local controls blindly.
 - Prefer existing component APIs, semantic tokens, and standard Tailwind utilities when they fit. Use colocated SCSS modules for feature styling; shared visual tokens belong in `app/globals.css`.
 - Review upstream component updates against local changes before replacing source.
 
@@ -60,7 +65,7 @@ Use a route-oriented vertical-slice modular monolith: organize by route and feat
 - Focus tests on core generic invariants and meaningful edge cases for the affected behavior. Prefer reusable cases that exercise the same contract across inputs; avoid implementation-mirroring assertions and redundant scenario tests.
 - Tests must be deterministic, idempotent, and independent of current portfolio records or live third-party data. Use synthetic fixtures and controlled responses for content-shaped inputs; do not assert current identities, wording, dates, counts, or inventory. Browser smoke may discover available route-shaped links only to verify generic navigation and semantic contracts, and must remain valid for empty collections.
 - Run the smallest relevant checks that establish those invariants. There is no blanket requirement to run the full test suite, production build, or all browser tests. Use additional checks only to resolve a concrete validation need.
-- Keep automated tests under `tests/` and browser specifications under `tests/e2e/`. Use existing commands from `package.json`; documentation-only changes need reference, consistency, and diff checks.
+- Keep unit and module integration tests beside their subject as `*.test.*`; tests importing `server-only` subjects use `*.server.test.*`. Keep repository-wide quality checks under `tests/` and browser specifications under `tests/e2e/`. Use existing commands from `package.json`; documentation-only changes need reference, consistency, and diff checks.
 - When browser tests are needed, build their production prerequisite first. The Playwright configuration owns its temporary server on port 3192; confirm it stops afterward without stopping unrelated listeners.
 - Finish with `git diff --check` and `git status --short`. Report what changed, the checks actually run, and any remaining gaps. Separate task failures from existing baseline failures.
 

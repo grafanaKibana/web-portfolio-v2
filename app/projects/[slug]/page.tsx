@@ -5,8 +5,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { resolvePluginLinks } from "@/content/plugin-links";
-import { getProjectSlugs, loadProject } from "@/content/projects/server";
+import { getProjectSlugs, loadProject } from "@/lib/content/projects/server";
+import { resolvePluginLinks } from "./_lib/plugin-links";
 import styles from "./project-page.module.scss";
 
 /** Restricts project detail routes to statically generated slugs. */
@@ -82,7 +82,7 @@ export default async function ProjectPage({
                   return (
                     <a
                       aria-label={link.ariaLabel}
-                      className="project-action-link"
+                      className="action-link"
                       href={link.href}
                       key={link.href}
                       rel="noreferrer"
@@ -126,7 +126,7 @@ export default async function ProjectPage({
             data-slot="next-project"
             href={`/projects/${nextProject.slug}`}
           >
-            <span className="block font-mono text-xs uppercase tracking-route-kicker text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+            <span className={clsx(styles.routeKicker, "block font-mono text-xs uppercase text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground")}>
               Next
             </span>
             <span className="mt-3 inline-flex items-center gap-3 text-2xl font-medium tracking-tight">

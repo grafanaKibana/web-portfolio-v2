@@ -2,10 +2,10 @@
 
 import { useMemo } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "./utils"
 
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { Label } from "./label"
+import { Separator } from "./separator"
 
 /**
  * Renders the shared FieldSet UI primitive.

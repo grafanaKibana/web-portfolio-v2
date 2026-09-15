@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { loadArticles } from "@/content/articles/server";
-import { home } from "@/content/structured";
+import { loadArticles } from "@/lib/content/articles/server";
+import { home } from "@/lib/content/portfolio/server";
 
 const publishedDate = new Intl.DateTimeFormat("en", {
   dateStyle: "long",

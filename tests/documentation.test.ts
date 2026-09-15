@@ -7,7 +7,7 @@ import ts from "typescript";
 
 const sourceRoots = ["app", "components", "content", "lib", "scripts", "tests"];
 const rootSources = ["mdx-components.tsx"];
-const codeActivityPath = "app/(home)/_components/home-code-activity/home-code-activity.tsx";
+const codeActivityPath = "app/(home)/_components/code-activity/code-activity.tsx";
 
 /**
  * Recursively collects TypeScript and JavaScript source files.

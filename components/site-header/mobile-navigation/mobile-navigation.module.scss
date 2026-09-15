@@ -1,0 +1,73 @@
+.trigger {
+  gap: 0.4375rem;
+  letter-spacing: -0.01em;
+}
+
+.trigger[data-visible="true"] {
+  visibility: visible;
+  opacity: 1;
+}
+
+.chevron {
+  width: 0.8125rem;
+  height: 0.8125rem;
+}
+
+@layer utilities {
+  .uiIcon {
+    width: 1.0625rem;
+    height: 1.0625rem;
+  }
+
+  .floatingMenuShadow {
+    box-shadow: 0 0.75rem 2rem oklch(0 0 0 / 24%);
+  }
+
+  @media (min-width: 80rem) {
+    .uiIcon {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+}
+
+.popup {
+  inset: var(--site-header-height) 0 auto;
+  max-height: calc(100dvh - var(--site-header-height));
+}
+
+.popup::before {
+  position: absolute;
+  inset: calc(-1 * var(--site-header-height)) 0 100%;
+  background: inherit;
+  content: "";
+}
+
+.close {
+  position: absolute;
+  top: -3.25rem;
+  right: 1.125rem;
+}
+
+@media (min-width: 48rem) {
+  .close {
+    right: 6rem;
+  }
+}
+
+.menu {
+  max-height: calc(100dvh - var(--site-header-height));
+}
+
+:global(body):has(.popup) {
+  --mobile-navigation-background: var(--popover);
+}
+
+:global(body):has(.popup) :global([data-slot="site-header"]) {
+  background: var(--mobile-navigation-background);
+  backdrop-filter: blur(1rem);
+}
+
+:global(body):has(.popup) :global([data-slot="theme-toggle"]) {
+  visibility: hidden;
+}

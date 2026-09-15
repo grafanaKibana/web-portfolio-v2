@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { loadProjects } from "@/content/projects/server";
-import { home } from "@/content/structured";
+import { loadProjects } from "@/lib/content/projects/server";
+import { home } from "@/lib/content/portfolio/server";
 
 /** Search and sharing metadata for the project collection. */
 export const metadata: Metadata = {

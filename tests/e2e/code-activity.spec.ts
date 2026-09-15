@@ -4,8 +4,8 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { compile } from "sass";
 
-import type { PullRequestGroupStyles } from "@/app/(home)/_components/home-code-activity/pull-request-group";
-import type { CodeContribution, CodeContributionStatus } from "@/content/activity";
+import type { PullRequestGroupStyles } from "@/app/(home)/_components/code-activity/pull-request-group";
+import type { CodeContribution, CodeContributionStatus } from "@/app/(home)/_components/code-activity/activity";
 
 const styles: PullRequestGroupStyles = {
   group: "group",
@@ -33,7 +33,7 @@ const statusFixtures: ReadonlyArray<{
   { status: "merged", label: "Merged" },
 ];
 const moduleCss = compile(
-  "app/(home)/_components/home-code-activity/home-code-activity.module.scss",
+  "app/(home)/_components/code-activity/code-activity.module.scss",
 ).css.replaceAll(/:global\(([^)]+)\)/g, "$1");
 
 /**
@@ -97,7 +97,7 @@ const renderer = `
   import { createElement } from "react";
   import { renderToStaticMarkup } from "react-dom/server";
   import { GitPullRequest, GitPullRequestDraft, MessageCircleMore } from "lucide-react";
-  import { PullRequestGroup } from "./app/(home)/_components/home-code-activity/pull-request-group.tsx";
+  import { PullRequestGroup } from "./app/(home)/_components/code-activity/pull-request-group.tsx";
   const chunks = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
   const { requests, styles } = JSON.parse(chunks.join(""));
@@ -161,7 +161,7 @@ async function mount(
   const documentMarkup = `<!doctype html>
     <html class="${fontClasses} ${theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <style>${productionCss}\n${moduleCss}</style></head>
-    <body><main class="home-section page-shell-gutter">${markup}<a data-slot="after-fixture" href="#after">After fixture</a></main></body></html>`;
+    <body><main class="page-shell-gutter">${markup}<a data-slot="after-fixture" href="#after">After fixture</a></main></body></html>`;
   if (loadPageAssets) {
     await page.route("**/__code-activity-fixture", (route) => route.fulfill({ contentType: "text/html", body: documentMarkup }));
     await page.goto("/__code-activity-fixture");

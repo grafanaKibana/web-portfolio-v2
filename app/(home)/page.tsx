@@ -1,12 +1,12 @@
-import { HomeAbout } from "./_components/home-about/home-about";
-import { HomeCodeActivity } from "./_components/home-code-activity/home-code-activity";
-import { HomeContact } from "./_components/contact-form/home-contact";
-import { HomeEducation } from "./_components/home-education/home-education";
-import { HomeExperience } from "./_components/home-experience/home-experience";
-import { HomeHero } from "./_components/home-hero/home-hero";
-import { HomeProjects } from "./_components/home-projects/home-projects";
-import { HomeSkills } from "./_components/home-skills/home-skills";
-import { HomeWriting } from "./_components/home-writing/home-writing";
+import { HomeAbout } from "@/app/(home)/_components/about/about";
+import { HomeCodeActivity } from "@/app/(home)/_components/code-activity/code-activity";
+import { HomeContact } from "@/app/(home)/_components/contact/contact";
+import { HomeEducation } from "@/app/(home)/_components/education/education";
+import { HomeExperience } from "@/app/(home)/_components/experience/experience";
+import { HomeHero } from "@/app/(home)/_components/hero/hero";
+import { HomeProjects } from "@/app/(home)/_components/projects/projects";
+import { HomeSkills } from "@/app/(home)/_components/skills/skills";
+import { HomeWriting } from "@/app/(home)/_components/writing/writing";
 
 /** Refresh interval for server-rendered Home content, in seconds. */
 export const revalidate = 300;

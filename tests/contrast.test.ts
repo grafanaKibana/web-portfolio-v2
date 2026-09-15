@@ -5,7 +5,7 @@ import test from "node:test"
 const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8")
 const mdxComponents = readFileSync(new URL("../mdx-components.tsx", import.meta.url), "utf8")
 const codeActivityCss = readFileSync(
-  new URL("../app/(home)/_components/home-code-activity/home-code-activity.module.scss", import.meta.url),
+  new URL("../app/(home)/_components/code-activity/code-activity.module.scss", import.meta.url),
   "utf8",
 )
 

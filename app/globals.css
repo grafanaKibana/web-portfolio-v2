@@ -68,42 +68,20 @@
     padding-inline: 1.375rem;
   }
 
-  .home-section {
-    @apply scroll-mt-1 py-14;
-  }
-
-  .text-section-label {
-    font-size: 0.6875rem;
-    letter-spacing: 0.14em;
-  }
-
   .text-ui-xs {
     font-size: 0.8125rem;
   }
 
-  .size-ui-icon {
-    width: 1.0625rem;
-    height: 1.0625rem;
-  }
-
-  .floating-menu-shadow {
-    box-shadow: 0 0.75rem 2rem oklch(0 0 0 / 24%);
-  }
-
-  .tracking-route-kicker {
-    letter-spacing: 0.18em;
-  }
-
-  .project-action-link,
-  .project-action-link:visited {
+  .action-link,
+  .action-link:visited {
     @apply inline-flex min-h-11 items-center gap-2 text-sm font-normal text-muted-foreground transition-colors;
   }
 
-  .project-action-link:is(:hover, :focus-visible) {
+  .action-link:is(:hover, :focus-visible) {
     @apply text-foreground;
   }
 
-  .project-action-link:focus-visible {
+  .action-link:focus-visible {
     @apply outline outline-2 outline-offset-2;
   }
 
@@ -118,9 +96,6 @@
       column-gap: 1.625rem;
     }
 
-    .home-section {
-      @apply -scroll-mt-11 py-26;
-    }
   }
 
   @media (min-width: 80rem) {
@@ -128,14 +103,6 @@
       padding-inline: 12.5rem;
     }
 
-    .size-ui-icon {
-      width: 1rem;
-      height: 1rem;
-    }
-
-    .home-section {
-      @apply -scroll-mt-7;
-    }
   }
 }
 

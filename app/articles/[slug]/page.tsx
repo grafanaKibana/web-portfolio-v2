@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getArticleSlugs, loadArticle } from "@/content/articles/server";
+import { getArticleSlugs, loadArticle } from "@/lib/content/articles/server";
 
 const publishedDate = new Intl.DateTimeFormat("en", {
   dateStyle: "long",

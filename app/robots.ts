@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
-import { getSiteOrigin } from "@/content/site-url";
-import { buildRobots } from "@/lib/metadata-routes";
+import { getSiteOrigin } from "@/lib/seo/site-url";
+import { buildRobots } from "@/lib/seo/metadata-routes";
 
 /**
  * Allows crawling and publishes a sitemap only when an origin exists.

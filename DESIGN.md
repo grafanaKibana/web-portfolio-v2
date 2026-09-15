@@ -6,7 +6,7 @@
 
 This document explains how portfolio should look, read, and behave. It records established design decisions, checked against the current site. Code owns exact tokens, dimensions, breakpoints, and animation timings; [AGENTS.md](AGENTS.md) owns engineering rules; [content](content/) owns portfolio facts.
 
-Evidence: [Home composition](app/(home)/page.tsx), [fonts and shell](app/layout.tsx), [theme and shared styles](app/globals.css), [navigation](app/_shell/site-header/site-header.tsx), [About](app/(home)/_components/home-about/home-about.tsx), and [Skills](app/(home)/_components/home-skills/home-skills.tsx). Repository evidence includes work in progress; implementation alone does not establish an approved design change. This refresh makes no new visual-audit claim. Unselected explorations remain outside this direction.
+Evidence: [Home composition](app/(home)/page.tsx), [fonts and site frame](app/layout.tsx), [theme and shared styles](app/globals.css), [navigation](components/site-header/site-header.tsx), [About](app/(home)/_components/about/about.tsx), and [Skills](app/(home)/_components/skills/skills.tsx). Repository evidence includes work in progress; implementation alone does not establish an approved design change. This refresh makes no new visual-audit claim. Unselected explorations remain outside this direction.
 
 ## Brand
 
@@ -93,7 +93,7 @@ Keep controls and individual icons still unless their existing behavior requires
 | Project and article pages | Strong title, secondary metadata, focused prose, clear return navigation |
 | Contact | Native validation, mail-app handoff, and direct email fallback |
 
-Reuse existing route and shell patterns and shared [UI components](components/ui/). These components are editable repository source: keep them reusable, document authored declarations, and review affected consumers when changing shared behavior. Configure controls through public props and semantic tokens. Keep feature geometry in its owning styles and avoid introducing a separate design-system layer.
+Reuse existing route and site-frame patterns and shared [UI components](components/ui/). These components are editable repository source: keep them reusable, document authored declarations, and review affected consumers when changing shared behavior. Configure controls through public props and semantic tokens. Keep feature geometry in its owning styles and avoid introducing a separate design-system layer.
 
 ## Accessibility
 

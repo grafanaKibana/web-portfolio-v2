@@ -1,10 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import { compile } from "sass";
 
-import { buildMailtoHref } from "@/app/(home)/_components/contact-form/build-mailto-href";
+import { buildMailtoHref } from "@/app/(home)/_components/contact/build-mailto-href";
 
 const homeCodeActivityCss = compile(
-  "app/(home)/_components/home-code-activity/home-code-activity.module.scss",
+  "app/(home)/_components/code-activity/code-activity.module.scss",
 ).css;
 
 /**
@@ -1758,10 +1758,36 @@ test("splash covers the first painted frames before hydration", async ({ page })
 });
 
 test("splash waits for delayed readiness and fails open on stalled fonts", async ({ page }) => {
+  type SplashRemovalTiming = { exitAt?: number; removedAt?: number };
+  type SplashTimingWindow = typeof window & {
+    markerReadinessStartedAt?: number;
+    splashRemovalTiming?: SplashRemovalTiming;
+  };
+
   await page.addInitScript(() => {
     let markerReady = false;
     let markerTimerStarted = false;
-    const timingWindow = window as typeof window & { markerReadinessStartedAt?: number };
+    const timingWindow = window as SplashTimingWindow;
+    const splashRemovalTiming: SplashRemovalTiming = {};
+    timingWindow.splashRemovalTiming = splashRemovalTiming;
+    let observedSplash: Element | null = null;
+    const observer = new MutationObserver(() => {
+      const splash = document.querySelector('[data-slot="opening-splash"]');
+      if (splash) observedSplash = splash;
+      if (splash?.getAttribute("data-state") === "exiting" && splashRemovalTiming.exitAt === undefined) {
+        splashRemovalTiming.exitAt = performance.now();
+      }
+      if (observedSplash && !observedSplash.isConnected && splashRemovalTiming.removedAt === undefined) {
+        splashRemovalTiming.removedAt = performance.now();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document, {
+      attributes: true,
+      attributeFilter: ["data-state"],
+      childList: true,
+      subtree: true,
+    });
     // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/unbound-method -- The test intentionally patches this DOM prototype method.
     const querySelector = Document.prototype.querySelector;
     // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/no-unnecessary-type-parameters -- Preserve the DOM method's generic return contract while patching it.
@@ -1784,14 +1810,24 @@ test("splash waits for delayed readiness and fails open on stalled fonts", async
   const splash = page.locator('[data-slot="opening-splash"]');
   await expect(splash).toHaveAttribute("data-state", "visible");
   const delayedVisibleAt = await page.evaluate(() =>
-    (window as typeof window & { markerReadinessStartedAt?: number }).markerReadinessStartedAt ?? performance.now());
+    (window as SplashTimingWindow).markerReadinessStartedAt ?? performance.now());
   await page.waitForTimeout(1_800);
   await expect(splash).toHaveAttribute("data-state", "visible");
   await expect(splash).toHaveAttribute("data-state", "exiting", { timeout: 500 });
   const delayedExitElapsed = await page.evaluate((startedAt) => performance.now() - startedAt, delayedVisibleAt);
   expect(delayedExitElapsed).toBeGreaterThanOrEqual(2_000);
   expect(delayedExitElapsed).toBeLessThanOrEqual(2_300);
-  await expect(splash).toHaveCount(0, { timeout: 800 });
+  await expect(splash).toHaveCount(0, { timeout: 1_500 });
+  const splashRemovalTiming = await page.evaluate(() =>
+    (window as SplashTimingWindow).splashRemovalTiming);
+  const exitAt = splashRemovalTiming?.exitAt;
+  const removedAt = splashRemovalTiming?.removedAt;
+  expect(exitAt).toBeDefined();
+  expect(removedAt).toBeDefined();
+  if (exitAt === undefined || removedAt === undefined) {
+    throw new Error("Splash observer did not record both exit and removal timestamps");
+  }
+  expect(removedAt - exitAt).toBeLessThanOrEqual(800);
 
   await page.evaluate(() => {
     sessionStorage.removeItem("portfolio-opening-splash-seen");
