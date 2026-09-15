@@ -70,7 +70,7 @@ async function seekMotionMidpoint(page: Page, selector: string) {
   });
 }
 
-test("Home sections keep shared layout and label contracts across breakpoints", async ({ page }) => {
+test("Home sections keep shared layout and label contracts across breakpoints", { tag: "@css" }, async ({ page }) => {
   for (const width of viewportWidths) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width, height: 900 });
@@ -112,7 +112,7 @@ test("Home sections keep shared layout and label contracts across breakpoints", 
   }
 });
 
-test("Writing aligns below the sticky header at desktop widths", async ({ page }) => {
+test("Writing aligns below the sticky header at desktop widths", { tag: "@css" }, async ({ page }) => {
   for (const width of [1280, 1440] as const) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width, height: 900 });
@@ -207,3 +207,53 @@ test("Reduced page motion removes the scoped entrance translation", async ({ pag
 
   await expect(page.locator("[data-page-motion-intro]").first()).toHaveCSS("transform", "none");
 });
+
+for (const theme of ["light", "dark"] as const) {
+  test(`Tailwind utilities retain spacing, weight, and semantic ink after hydration in ${theme} theme`, { tag: "@css" }, async ({ page }) => {
+    await page.addInitScript((selectedTheme) => {
+      localStorage.setItem("theme", selectedTheme);
+      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+    }, theme);
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveClass(new RegExp(`(?:^|\\s)${theme}(?:\\s|$)`));
+
+    const fixture = page.locator('[data-style-contract="tailwind-utilities"]');
+    const styles = await page.locator("body").evaluate((body) => {
+      const button = document.createElement("button");
+      button.className = "bg-primary px-3 font-medium text-primary-foreground";
+      button.dataset.styleContract = "tailwind-utilities";
+      button.textContent = "Style sample";
+      button.type = "button";
+      body.append(button);
+
+      const reference = document.createElement("span");
+      reference.style.backgroundColor = "var(--primary)";
+      reference.style.color = "var(--primary-foreground)";
+      body.append(reference);
+
+      const actual = getComputedStyle(button);
+      const expected = getComputedStyle(reference);
+      const result = {
+        backgroundColor: actual.backgroundColor,
+        color: actual.color,
+        expectedBackgroundColor: expected.backgroundColor,
+        expectedColor: expected.color,
+        fontWeight: actual.fontWeight,
+        paddingLeft: actual.paddingLeft,
+        paddingRight: actual.paddingRight,
+      };
+      reference.remove();
+      return result;
+    });
+
+    await expect(fixture).toBeVisible();
+    expect(styles).toMatchObject({
+      backgroundColor: styles.expectedBackgroundColor,
+      color: styles.expectedColor,
+      fontWeight: "500",
+      paddingLeft: "12px",
+      paddingRight: "12px",
+    });
+    expect(styles.color).not.toBe(styles.backgroundColor);
+  });
+}

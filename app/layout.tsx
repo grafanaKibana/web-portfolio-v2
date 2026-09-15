@@ -1,3 +1,5 @@
+// Establish Tailwind's layer order before component styles reopen those layers.
+import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
@@ -12,7 +14,6 @@ import { SmoothScroll } from "@/components/smooth-scroll/smooth-scroll";
 import { ThemeProvider } from "@/components/theme/theme";
 import { home, profile } from "@/lib/content/portfolio/server";
 import "lenis/dist/lenis.css";
-import "./globals.css";
 import styles from "./layout.module.scss";
 
 const geistSans = Geist({

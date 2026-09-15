@@ -66,7 +66,7 @@ Use strict nearest-owner colocation with root shared folders and route-private i
 - Tests must be deterministic, idempotent, and independent of current portfolio records or live third-party data. Use synthetic fixtures and controlled responses for content-shaped inputs; do not assert current identities, wording, dates, counts, or inventory. Browser smoke may discover available route-shaped links only to verify generic navigation and semantic contracts, and must remain valid for empty collections.
 - Run the smallest relevant checks that establish those invariants. There is no blanket requirement to run the full test suite, production build, or all browser tests. Use additional checks only to resolve a concrete validation need.
 - Keep unit and module integration tests beside their subject as `*.test.*`; tests importing `server-only` subjects use `*.server.test.*`. Keep repository-wide quality checks under `tests/` and browser specifications under `tests/e2e/`. Use existing commands from `package.json`; documentation-only changes need reference, consistency, and diff checks.
-- When browser tests are needed, build their production prerequisite first. The Playwright configuration owns its temporary server on port 3192; confirm it stops afterward without stopping unrelated listeners.
+- When browser tests are needed, build their production prerequisite first. Production Playwright owns port 3192; the development style checks own port 3193. Confirm those servers stop afterward without stopping unrelated listeners.
 - Finish with `git diff --check` and `git status --short`. Report what changed, the checks actually run, and any remaining gaps. Separate task failures from existing baseline failures.
 
 <!-- BEGIN:nextjs-agent-rules -->

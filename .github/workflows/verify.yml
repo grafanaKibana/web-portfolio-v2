@@ -44,3 +44,6 @@ jobs:
 
       - name: Run browser tests
         run: npm run test:e2e
+
+      - name: Check development CSS contracts
+        run: npm run test:e2e:dev

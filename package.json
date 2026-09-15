@@ -21,7 +21,8 @@
     "test:descriptor": "node --import tsx --test \"app/(home)/_components/hero/descriptor-rotation/descriptor-sequence.test.ts\"",
     "test:brand-assets": "node --import tsx --test scripts/generate-brand-assets.test.mjs",
     "setup:browsers": "playwright install chromium webkit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:dev": "playwright test --config=playwright.dev.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
