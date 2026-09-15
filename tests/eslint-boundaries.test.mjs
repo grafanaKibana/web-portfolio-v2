@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -78,8 +78,18 @@ function fixtureEslint(
   });
 }
 
+/**
+ * Creates a canonical temporary root so resolved imports and boundary paths share one prefix.
+ *
+ * @param prefix - Stable fixture directory prefix.
+ * @returns Canonical temporary directory path.
+ */
+async function createFixtureRoot(prefix) {
+  return realpath(await mkdtemp(join(tmpdir(), prefix)));
+}
+
 test("strict colocation zones enforce resolved aliases, relatives, exports, types, and dynamic imports", async (t) => {
-  const root = await mkdtemp(join(tmpdir(), "portfolio-eslint-boundaries-"));
+  const root = await createFixtureRoot("portfolio-eslint-boundaries-");
   t.after(() => rm(root, { force: true, recursive: true }));
 
   await writeFixture(root, "tsconfig.json", JSON.stringify({
@@ -187,7 +197,7 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
 });
 
 test("production scripts reject test imports using their actual configured restriction", async (t) => {
-  const root = await mkdtemp(join(tmpdir(), "portfolio-eslint-scripts-"));
+  const root = await createFixtureRoot("portfolio-eslint-scripts-");
   t.after(() => rm(root, { force: true, recursive: true }));
   await Promise.all([
     writeFixture(root, "scripts/generate.mjs"),
@@ -205,7 +215,7 @@ test("production scripts reject test imports using their actual configured restr
 });
 
 test("the real flat config enforces every supported production source extension", async (t) => {
-  const root = await mkdtemp(join(tmpdir(), "portfolio-eslint-extensions-"));
+  const root = await createFixtureRoot("portfolio-eslint-extensions-");
   t.after(() => rm(root, { force: true, recursive: true }));
   await Promise.all([
     writeFixture(root, "tsconfig.json", JSON.stringify({
@@ -255,7 +265,7 @@ test("the real flat config enforces every supported production source extension"
 });
 
 test("a candidate component owner requires an explicit public-entry zone before merging", async (t) => {
-  const root = await mkdtemp(join(tmpdir(), "portfolio-eslint-new-owner-"));
+  const root = await createFixtureRoot("portfolio-eslint-new-owner-");
   t.after(() => rm(root, { force: true, recursive: true }));
   await Promise.all([
     writeFixture(root, "tsconfig.json", JSON.stringify({
