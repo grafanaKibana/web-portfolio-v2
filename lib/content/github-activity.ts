@@ -39,6 +39,7 @@ interface GitHubRequestInit extends RequestInit {
 export type GitHubFetch = (input: string, init: GitHubRequestInit) => Promise<Response>;
 
 const revalidateSeconds = 300;
+const requestTimeoutMilliseconds = 4_000;
 const searchPageLimit = 10;
 const unavailablePullRequests = { merged: [], underReview: [], draft: [] } as const;
 const pullRequestQuery = `query PullRequests($query: String!, $cursor: String) {
@@ -300,6 +301,7 @@ async function fetchPullRequests(
       body,
       cache: "force-cache",
       next: { revalidate: revalidateSeconds },
+      signal: AbortSignal.timeout(requestTimeoutMilliseconds),
     });
     if (!response.ok) throw new Error(`GitHub GraphQL returned ${String(response.status)}`);
     const parsed = parsePullRequestPage(await response.json() as unknown, status);
@@ -330,6 +332,7 @@ async function fetchContributionCalendar(
   const response = await fetcher(`https://github.com/users/${encodeURIComponent(username)}/contributions`, {
     headers: { Accept: "text/html", "User-Agent": "web-portfolio-v2" },
     next: { revalidate: revalidateSeconds },
+    signal: AbortSignal.timeout(requestTimeoutMilliseconds),
   });
   if (!response.ok) throw new Error(`GitHub contributions returned ${String(response.status)}`);
   const parsed = parseContributionCalendar(await response.text());
@@ -372,8 +375,8 @@ export async function loadGitHubActivity(
   try {
     calendar = await fetchContributionCalendar(username, fetcher);
     calendarAvailable = true;
-  } catch (error) {
-    console.warn("GitHub contribution calendar unavailable", error);
+  } catch {
+    console.warn("GitHub contribution calendar unavailable");
   }
 
   return { pullRequestsAvailable, ...pullRequests, calendarAvailable, calendar };

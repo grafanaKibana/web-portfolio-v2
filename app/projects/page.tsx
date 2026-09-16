@@ -23,7 +23,12 @@ export default async function ProjectsPage() {
       <h1 className="text-4xl font-semibold tracking-tight" data-page-motion-intro>Projects</h1>
       <ul className="mt-10 [&>li:not(:last-child)>a]:border-b">
         {projects.map(({ slug, metadata: project }) => (
-          <li data-page-motion-section key={slug}>
+          <li
+            data-ask-record-kind="project"
+            data-ask-record-slug={slug}
+            data-page-motion-section
+            key={slug}
+          >
             <Link
               aria-labelledby={`${slug}-project-title`}
               className="group block rounded-sm py-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"

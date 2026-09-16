@@ -1,4 +1,5 @@
 import createMDX from "@next/mdx";
+import { resolve } from "node:path";
 import type { NextConfig } from "next";
 import type { Options as PrettyCodeOptions } from "rehype-pretty-code";
 
@@ -14,6 +15,7 @@ const prettyCodeOptions = {
 
 const withMDX = createMDX({
   options: {
+    remarkPlugins: [resolve(process.cwd(), "lib/content/ask-text-plugin.mjs")],
     rehypePlugins: [["rehype-pretty-code", prettyCodeOptions]],
   },
 });

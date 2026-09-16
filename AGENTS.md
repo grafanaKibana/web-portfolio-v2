@@ -45,6 +45,8 @@ Use strict nearest-owner colocation with root shared folders and route-private i
 - Validate normalized slugs, reject case-insensitive duplicates, and validate imported metadata as `unknown`. Invalid known content must fail with source-specific diagnostics.
 - Article and project detail routes use `generateStaticParams` and `dynamicParams = false`; unknown slugs return a static 404 with `noindex`.
 - Optional activity or plugin metadata failures must not remove curated content. Sitemap and robots URLs require a validated HTTPS deployment origin.
+- Validate incoming requests. Keep credentials server-side, without `NEXT_PUBLIC_` prefixes, and exclude secrets and visitor questions from logs.
+- Follow [the conversation API contract](app/api/ask/README.md) for request validation, cancellation, streaming, and provider integration. Changing its offline mode or adding persistent history requires an explicit feature request.
 
 ## Accessibility and interaction
 

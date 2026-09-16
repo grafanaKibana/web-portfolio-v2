@@ -23,8 +23,12 @@ export function validateMdxModule(
   if (typeof loadedModule.default !== "function") {
     throw new Error(`${source}: MDX module must export a default component`);
   }
+  if (typeof loadedModule.askText !== "string" || !loadedModule.askText.trim()) {
+    throw new Error(`${source}: MDX module must export non-empty askText`);
+  }
 
   return {
+    askText: loadedModule.askText,
     slug,
     metadata: validateContentMetadata(loadedModule.metadata, source),
     Content: loadedModule.default,

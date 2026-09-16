@@ -71,6 +71,9 @@ function fixtureEslint(
         },
       },
       rules: {
+        ...(selectedConfig.rules?.["no-restricted-imports"]
+          ? { "no-restricted-imports": selectedConfig.rules["no-restricted-imports"] }
+          : {}),
         "import/no-unresolved": "error",
         "import/no-restricted-paths": ["error", options],
       },
@@ -104,11 +107,19 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
     writeFixture(root, "components/ui/utils.ts"),
     writeFixture(root, "components/theme/theme.tsx"),
     writeFixture(root, "lib/content/load.ts"),
+    writeFixture(root, "lib/content/github-activity.ts"),
+    writeFixture(root, "lib/content/plugin-links.ts"),
+    writeFixture(root, "lib/ask.contract.ts"),
+    writeFixture(root, "components/conversation/conversation.tsx"),
+    writeFixture(root, "components/conversation/ask-stream.ts"),
+    writeFixture(root, "app/api/ask/route.ts"),
+    writeFixture(root, "app/api/ask/_lib/ask.service.ts"),
     writeFixture(root, "content/articles/fixture.mdx", "# Fixture\n"),
     writeFixture(root, "mdx-components.tsx"),
     writeFixture(root, "app/(home)/_components/hero/hero.tsx"),
     writeFixture(root, "app/(home)/_components/hero/descriptor-rotation/descriptor-sequence.ts"),
     writeFixture(root, "app/(home)/_components/about/about.tsx"),
+    writeFixture(root, "app/(home)/_components/code-activity/code-activity.tsx"),
     writeFixture(root, "app/projects/[slug]/_lib/plugin-links.ts"),
     writeFixture(root, "app/projects/[slug]/page.tsx"),
     writeFixture(root, "app/articles/page.tsx"),
@@ -119,6 +130,18 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
   ]);
 
   const cases = [
+    ["app/layout.tsx", 'import "@/components/conversation/conversation";', 0],
+    ["components/conversation/conversation.tsx", 'import "./ask-stream";', 0],
+    ["components/conversation/ask-stream.ts", 'import "@/lib/ask.contract";', 0],
+    ["app/api/ask/route.ts", 'import "./_lib/ask.service";', 0],
+    ["app/api/ask/_lib/ask.service.ts", 'import "@/lib/ask.contract";', 0],
+    ["app/api/ask/_lib/ask.service.ts", 'import "@/lib/content/github-activity";', 0],
+    ["app/api/ask/_lib/ask.service.ts", 'import "@/lib/content/plugin-links";', 0],
+    ["components/site-header/site-header.tsx", 'import "@/components/conversation/ask-stream";', 1],
+    ["components/conversation/ask-stream.ts", 'import "@/app/api/ask/_lib/ask.service";', 1],
+    ["lib/ask.contract.ts", 'import "@/app/api/ask/_lib/ask.service";', 1],
+    ["app/(home)/page.tsx", 'import "@/app/api/ask/_lib/ask.service";', 1],
+    ["app/api/ask/route.ts", 'import "@/app/(home)/_components/hero/hero";', 1],
     ["app/layout.tsx", 'import "@/components/site-header/site-header";', 0],
     ["components/site-footer/local-time.tsx", 'import type { Format } from "./format-time";', 0],
     ["components/site-header/site-header.tsx", 'import "./mobile-navigation/helper";', 0],
@@ -127,6 +150,8 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
     ["app/(home)/page.tsx", 'import "@/app/(home)/_components/hero/hero";', 0],
     ["app/(home)/page.tsx", 'import "@/lib/content/load";', 0],
     ["app/projects/[slug]/page.tsx", 'import "./_lib/plugin-links";', 0],
+    ["app/projects/[slug]/page.tsx", 'import "@/lib/content/plugin-links";', 0],
+    ["app/(home)/_components/code-activity/code-activity.tsx", 'import "@/lib/content/github-activity";', 0],
     ["tests/quality.test.ts", 'import "@/app/(home)/_components/hero/hero";', 0],
     ["components/site-footer/local-time.tsx", 'import("@/components/site-footer/format-time");', 0],
     ["lib/shared.ts", 'import "@/app/(home)/_components/hero/hero";', 1],
@@ -306,3 +331,32 @@ test("a candidate component owner requires an explicit public-entry zone before 
   assert.equal(entry.messages.some(({ ruleId }) => ruleId === "import/no-restricted-paths"), false);
   assert.equal(companion.messages.some(({ ruleId }) => ruleId === "import/no-restricted-paths"), true);
 });
+
+for (const [name, subjects] of [
+  ["the shared ask contract remains browser-safe", ["lib/ask.contract.ts"]],
+  ["conversation transport modules do not import server-only dependencies", [
+    "components/conversation/ask-stream.ts",
+    "components/conversation/conversation-history.ts",
+    "components/conversation/use-conversation.ts",
+  ]],
+]) {
+  test(name, async (t) => {
+    const root = await createFixtureRoot("portfolio-browser-boundaries-");
+    t.after(() => rm(root, { force: true, recursive: true }));
+    await writeFixture(root, "tsconfig.json", JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["./*"] } } }));
+    const actual = new ESLint({ cwd: process.cwd() });
+    for (const subject of subjects) {
+      const selected = await actual.calculateConfigForFile(subject);
+      assert.ok(selected?.rules?.["no-restricted-imports"], `${subject}: browser restriction selected`);
+      const lint = fixtureEslint(root, { ...strictColocationOptions, basePath: root }, selected);
+      for (const dependency of ["node:fs", "server-only", "langchain", "langchain/chat_models", "@langchain/core/messages", "@/app/layout", "@/app/api/ask/_lib/ask.service"]) {
+        const [result] = await lint.lintText(`import "${dependency}";`, { filePath: join(root, subject) });
+        assert.equal(result?.fatalErrorCount, 0);
+        assert.equal(result.messages.some(({ ruleId }) => ruleId === "no-restricted-imports"), true, `${subject}: ${dependency}`);
+      }
+      const [allowed] = await lint.lintText('import "react";', { filePath: join(root, subject) });
+      assert.equal(allowed?.fatalErrorCount, 0);
+      assert.equal(allowed.messages.some(({ ruleId }) => ruleId === "no-restricted-imports"), false);
+    }
+  });
+}

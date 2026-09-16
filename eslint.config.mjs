@@ -16,6 +16,7 @@ const routeScopes = [
   "./app/terms",
   "./app/accessibility",
   "./app/for-robots",
+  "./app/api/ask",
 ];
 const commonTargets = [
   "./components",
@@ -26,6 +27,7 @@ const commonTargets = [
   "./mdx-components.tsx",
 ];
 const componentOwners = [
+  ["conversation", ["./conversation.tsx"]],
   ["site-header", ["./site-header.tsx"]],
   ["site-footer", ["./site-footer.tsx"]],
   ["opening-splash", ["./opening-splash.tsx"]],
@@ -174,6 +176,19 @@ const eslintConfig = defineConfig([
           ],
         },
       ],
+    },
+  },
+  {
+    files: ["components/conversation/**/*.{js,jsx,cjs,mjs,ts,tsx,mts}", "lib/ask.contract.ts"],
+    ignores: ["**/*.test.{js,jsx,cjs,mjs,ts,tsx,mts}"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: ["server-only", "langchain"],
+        patterns: [{
+          group: ["node:*", "@langchain/*", "langchain/*", "@/app/*"],
+          message: "Keep server dependencies inside the API route; conversation code and its shared contract must stay browser-safe.",
+        }],
+      }],
     },
   },
   {

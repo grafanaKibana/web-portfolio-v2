@@ -41,6 +41,7 @@ export async function HomeWriting() {
           <ul className="m-0 list-none p-0">
             {latestArticles.map(({ slug, metadata: article }) => (
               <HomeEditorialRow
+                askRecord={{ kind: "article", slug }}
                 dataSlot="home-article"
                 key={slug}
                 actions={(

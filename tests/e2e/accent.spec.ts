@@ -13,6 +13,8 @@ for (const theme of ["light", "dark"] as const) {
       sessionStorage.setItem("portfolio-opening-splash-seen", "true");
     }, theme);
     await page.goto("/#experience");
+    const launcher = page.locator("button[data-launcher]");
+    await expect(launcher).toBeVisible();
 
     const actual = await page.evaluate(({ sources, themeName }) => {
       const names = ["--brand-accent-start", "--brand-accent", "--brand-accent-end"];
@@ -45,6 +47,9 @@ for (const theme of ["light", "dark"] as const) {
         sample.remove();
         return color;
       });
+      const launcherElement = document.querySelector("button[data-launcher]");
+      if (!launcherElement) throw new Error("Conversation launcher must exist before sampling its accent ink.");
+      const launcherInk = getComputedStyle(launcherElement).color;
       const gradientSample = document.createElement("span");
       gradientSample.style.backgroundImage = "var(--brand-accent-text-gradient)";
       document.body.append(gradientSample);
@@ -75,6 +80,7 @@ for (const theme of ["light", "dark"] as const) {
       });
       return {
         expected,
+        launcherContrast: contrast(textColors, launcherInk),
         resolved,
         surfaceContrast: contrast(resolved, background),
         textContrast: contrast(textColors, background),
@@ -83,6 +89,8 @@ for (const theme of ["light", "dark"] as const) {
     }, { sources: brandSources[theme], themeName: theme });
 
     expect(actual.resolved).toEqual(actual.expected);
+    await expect(launcher.locator("[data-entry-stroke]")).toHaveCSS("background-image", actual.textGradient);
+    expect(Math.min(...actual.launcherContrast)).toBeGreaterThanOrEqual(4.5);
     expect(actual.textContrast.every((ratio) => ratio >= 4.5)).toBe(true);
     if (theme === "dark") expect(actual.surfaceContrast.every((ratio) => ratio >= 4.5)).toBe(true);
     const descriptor = page.locator('[data-slot="hero-descriptor"]');

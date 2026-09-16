@@ -30,7 +30,12 @@ export default async function ArticlesPage() {
       {articles.length ? (
         <ul className="mt-10 [&>li:not(:last-child)>a]:border-b">
           {articles.map(({ slug, metadata: article, readingMinutes }) => (
-            <li data-page-motion-section key={slug}>
+            <li
+              data-ask-record-kind="article"
+              data-ask-record-slug={slug}
+              data-page-motion-section
+              key={slug}
+            >
               <Link
                 aria-labelledby={`${slug}-article-title`}
                 className="group block rounded-sm py-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"

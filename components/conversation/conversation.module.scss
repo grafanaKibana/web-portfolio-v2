@@ -1,0 +1,291 @@
+.shell {
+  --viewport-height: 100dvh;
+  --viewport-width: 100vw;
+  --viewport-top: 0px;
+  --viewport-left: 0px;
+  --viewport-bottom: 0px;
+  --safe-top: max(1rem, env(safe-area-inset-top, 0px));
+  --safe-right: max(1rem, env(safe-area-inset-right, 0px));
+  --safe-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  --safe-left: max(1rem, env(safe-area-inset-left, 0px));
+  --edge-gutter: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  --launcher-line-height: 0.3125rem;
+}
+
+.edgeEntry,
+.fallback {
+  position: fixed;
+  z-index: 20;
+  bottom: calc(var(--viewport-bottom) + var(--edge-gutter));
+  left: calc(var(--viewport-left) + var(--viewport-width) / 2);
+  transform: translateX(-50%);
+}
+
+.edgeEntry {
+  display: flex;
+}
+
+.shell[data-hidden="true"] :is(.edgeEntry, .fallback) {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.shell[data-hidden="true"] .noScriptFallback {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.edgeButton {
+  position: relative;
+  width: max-content;
+  min-width: 7.5rem;
+  max-width: calc(var(--viewport-width) - 2rem);
+  height: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--background);
+}
+
+.edgeButton:focus-visible {
+  outline: 0;
+  box-shadow: none;
+}
+
+.entryStroke {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 100%;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: var(--brand-accent-text-gradient);
+  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 12%);
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1), height 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.entryLabel {
+  position: relative;
+  display: flex;
+  align-self: flex-end;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 1.25rem;
+  padding: 0.125rem 0.5rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.625rem;
+  line-height: 1rem;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 120ms ease 130ms;
+}
+
+.entrySparkle {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.shell:is([data-open="true"], :has(.surface[data-closing="true"])) .entryStroke {
+  width: 7.5rem;
+  height: var(--launcher-line-height);
+  transition: none;
+}
+
+.shell:is([data-open="true"], :has(.surface[data-closing="true"])) .entryLabel {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+.shell[data-keyboard-focus="true"]:not(:has(.surface[data-closing="true"])) .entryStroke {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.surface {
+  --draft-padding: 1.25rem;
+  --composer-height: 2.75rem;
+  --surface-radius: calc(min(calc(var(--radius) * 2.2), var(--composer-height) / 2) + var(--draft-padding) + 1px);
+
+  position: fixed;
+  inset: auto;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: min(40.8rem, calc(var(--viewport-width) - var(--safe-left) - var(--safe-right)));
+  max-height: min(
+    calc(var(--viewport-height) * 2 / 3),
+    calc(var(--viewport-height) - var(--safe-top) - var(--edge-gutter) - 1rem)
+  );
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: var(--surface-radius);
+  background: transparent;
+  color: var(--popover-foreground);
+
+  // Composite the shadow after the inner shape is clipped during reveal and collapse.
+  filter: drop-shadow(0 0.75rem 1.5rem rgb(0 0 0 / 12%));
+  bottom: calc(var(--viewport-bottom) + var(--edge-gutter) + 1rem);
+  left: calc(var(--viewport-left) + var(--safe-left) + (var(--viewport-width) - var(--safe-left) - var(--safe-right)) / 2);
+  opacity: 1;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(0);
+  transform-origin: bottom center;
+}
+
+.surface[data-closing="true"] {
+  display: flex;
+  pointer-events: none;
+}
+
+.surface:not(:popover-open, [data-closing="true"]) {
+  display: none;
+}
+
+.interior {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: inherit;
+  flex-direction: column;
+  padding: var(--draft-padding);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: inherit;
+  background: var(--popover);
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.surface[data-closing="true"] .interior {
+  pointer-events: none;
+}
+
+.closeButton {
+  min-height: 2.75rem;
+}
+
+.bubble {
+  animation: bubble-enter 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.suggestions > button + button::before {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: -0.125rem;
+  width: 1px;
+  height: 0.75rem;
+  background: var(--border);
+  content: "";
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+@keyframes bubble-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fallback {
+  min-height: 2.75rem;
+  padding: 0.75rem;
+  border-radius: calc(var(--radius) * 0.6);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.fallback:is(:hover, :focus-visible) {
+  color: var(--foreground);
+}
+
+.fallback:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (min-width: 40rem) {
+  .surface {
+    --draft-padding: 1.5rem;
+    --composer-height: 2.25rem;
+  }
+
+  .closeButton {
+    min-height: 2.25rem;
+  }
+}
+
+@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+  .edgeButton {
+    width: 10rem;
+  }
+
+  .entryStroke {
+    width: 7.5rem;
+    height: var(--launcher-line-height);
+  }
+
+  .entryLabel {
+    position: absolute;
+    inset: auto 0 0;
+    align-self: stretch;
+    width: auto;
+    height: 2.25rem;
+    padding: 0;
+    font-size: 0.75rem;
+    line-height: normal;
+    opacity: 0;
+    transition-delay: 0ms;
+  }
+
+  .entrySparkle {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  .edgeEntry[data-entry-revealed="true"] .entryStroke {
+    width: 100%;
+    height: 2.25rem;
+  }
+
+  .edgeEntry[data-entry-revealed="true"] .entryLabel {
+    opacity: 1;
+    transition-delay: 130ms;
+  }
+}
+
+@media (forced-colors: active) {
+  .entryStroke {
+    background: buttontext;
+  }
+
+  .entryLabel {
+    color: buttonface;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble {
+    animation: none;
+  }
+
+  .entryLabel,
+  .entryStroke {
+    transition: none;
+  }
+}

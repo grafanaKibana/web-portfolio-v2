@@ -1,7 +1,10 @@
 import { clsx } from "clsx";
 import type { LucideIcon } from "lucide-react";
 
-import type { CodeContribution, CodeContributionStatus } from "./activity";
+import type {
+  CodeContribution,
+  CodeContributionStatus,
+} from "@/lib/content/github-activity";
 
 const pullRequestPeriod = new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" });
 const pullRequestCount = new Intl.NumberFormat("en-US");

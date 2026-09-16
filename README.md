@@ -9,6 +9,8 @@ npm run dev
 npm run typecheck
 npm run lint
 npm run test:unit
+npm run test:ask
+npm run test:conversation
 npm run test:content
 npm run test:contrast
 npm run test:documentation
@@ -33,8 +35,10 @@ Plugin links on case studies use Obsidian's official download statistics and eac
 | `app/` | Next.js route entries, metadata handlers, and route-private implementation. |
 | `app/(home)/page.tsx` | `/` route entry; `(home)` groups source without changing the URL. |
 | `app/(home)/_components/` | Home-private UI owners and their companions. |
-| `app/projects/[slug]/_lib/` | Non-UI implementation private to project detail routes. |
 | `components/` | Application-wide shared UI, including the site frame and reusable controls. |
+| `components/conversation/` | Site-wide conversation UI, streaming client and in-memory history. |
+| `app/api/ask/` | Live portfolio-scoped endpoint and its [API/provider contract](app/api/ask/README.md); the server-only `handleAsk` workflow lives in `_lib/ask.service.ts`. |
+| `lib/ask.contract.ts` | Shared request, completion, source, follow-up, and limit contracts used by conversation and endpoint. |
 | `components/ui/` | Shared UI foundation and its local generator utility adapter. |
 | `lib/` | Application-wide shared non-UI runtime code. |
 | `lib/content/` | Content discovery, loading, validation, and shared content types. |
@@ -57,8 +61,11 @@ Put a file at the narrowest owner that fully owns its behavior. Promote it only 
 
 Next.js supports multiple project organizations. This repository chooses root shared folders plus route-private colocation and applies that choice consistently.
 
+Ask uses role-explicit names: `ask.service.ts` for its request-to-response workflow and `ask.contract.ts` for shared wire types and limits. Validation, full-corpus preparation, provider generation, structured-output parsing, and SSE helpers remain private inside the service; extract a companion only for actual reuse or independent complexity. A service is an ordinary TypeScript module and does not require a class or dependency-injection container.
+
 ### Examples
 
+- The conversation is mounted by the root layout, so its UI and client helpers live in `components/conversation/`. The thin `app/api/ask/route.ts` delegates to `handleAsk` in `app/api/ask/_lib/ask.service.ts`, which owns request validation, answer generation, HTTP errors and streaming. Only the shared protocol types and limits belong in `lib/ask.contract.ts`.
 - Hero-only behavior stays under `app/(home)/_components/hero/`. Descriptor sequencing lives inside `hero/descriptor-rotation/` because no other owner consumes it.
 - Projects and Writing both use the Home editorial row, so it lives at their Home-private common owner: `app/(home)/_components/editorial-row/`.
 - Project content is consumed by Home and project routes, so its loader lives at `lib/content/projects/server.ts`, while authored project MDX remains in `content/projects/`.

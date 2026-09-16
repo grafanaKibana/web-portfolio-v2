@@ -1,0 +1,153 @@
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+
+/** Browser support state for the native conversation popover. */
+export type ConversationCapability = "unknown" | "supported" | "unsupported";
+
+interface ConversationShellOptions {
+  pathname: string;
+  popoverRef: RefObject<HTMLDivElement | null>;
+  returnFocusRef: RefObject<boolean>;
+  rootRef: RefObject<HTMLDivElement | null>;
+  stop: () => void;
+}
+
+/** Detects support only when both methods required by the popup lifecycle exist.
+ * @returns Whether the browser supplies a complete native Popover API.
+ */
+function supportsPopover() {
+  return typeof HTMLElement.prototype.showPopover === "function"
+    && typeof HTMLElement.prototype.hidePopover === "function";
+}
+
+/** Coordinates feature availability with viewport, focus, splash, route, and modal state.
+ * @param pathname - Current client route used to dismiss on navigation.
+ * @param popoverRef - Native popup controlled by the shell lifecycle.
+ * @param returnFocusRef - Explicit-dismissal focus intent cleared for shell dismissals.
+ * @param rootRef - Feature root receiving visible viewport variables.
+ * @param stop - Active-request cancellation action.
+ * @returns Capability and suppression state derived from the surrounding shell.
+ */
+export function useConversationShell({ pathname, popoverRef, returnFocusRef, rootRef, stop }: ConversationShellOptions) {
+  const initialPathnameRef = useRef(pathname);
+  const [capability, setCapability] = useState<ConversationCapability>("unknown");
+  const [compact, setCompact] = useState(false);
+  const [splashPending, setSplashPending] = useState(true);
+  const [editingPage, setEditingPage] = useState(false);
+  const [sheetMounted, setSheetMounted] = useState(false);
+
+  /** Hides the popup without focus restoration and aborts active work. */
+  const dismissForShell = useCallback(() => {
+    returnFocusRef.current = false;
+    const popover = popoverRef.current;
+    if (popover?.matches(":popover-open")) popover.hidePopover();
+    stop();
+  }, [popoverRef, returnFocusRef, stop]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => { setCapability(supportsPopover() ? "supported" : "unsupported"); });
+    return () => { window.cancelAnimationFrame(frame); };
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia("(width < 64rem), (hover: none), (pointer: coarse)");
+    /** Tracks whether responsive styling uses the compact entry treatment. */
+    function updateCompact() { setCompact(media.matches); }
+    updateCompact();
+    media.addEventListener("change", updateCompact);
+    return () => { media.removeEventListener("change", updateCompact); };
+  }, []);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const debugSplash = new URLSearchParams(window.location.search).has("debugSplash");
+    /** Mirrors the splash marker while preserving the unbounded debug review gate. */
+    function updateSplash() {
+      setSplashPending(html.dataset.splashPending === "true" && html.dataset.splashComplete !== "true");
+    }
+    updateSplash();
+    const observer = new MutationObserver(updateSplash);
+    observer.observe(html, { attributes: true, attributeFilter: ["data-splash-pending", "data-splash-complete"] });
+    window.addEventListener("opening-splash-complete", updateSplash);
+    const fallback = debugSplash ? undefined : window.setTimeout(updateSplash, 4_600);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("opening-splash-complete", updateSplash);
+      if (fallback !== undefined) window.clearTimeout(fallback);
+    };
+  }, []);
+
+  useEffect(() => {
+    let focusFrame: number | undefined;
+    /** Suppresses the entry only while focus belongs to an external editable control. */
+    function updateEditing() {
+      const active = document.activeElement;
+      setEditingPage(active instanceof HTMLElement
+        && Boolean(active.closest("input, textarea, select, [contenteditable='true']"))
+        && !popoverRef.current?.contains(active));
+    }
+    /** Defers inspection until the next focus target is active.
+     * @param _event - Focus transition leaving the current element.
+     */
+    function handleFocusOut(_event: FocusEvent) {
+      if (focusFrame !== undefined) window.cancelAnimationFrame(focusFrame);
+      focusFrame = window.requestAnimationFrame(updateEditing);
+    }
+    updateEditing();
+    document.addEventListener("focusin", updateEditing);
+    document.addEventListener("focusout", handleFocusOut);
+    return () => {
+      document.removeEventListener("focusin", updateEditing);
+      document.removeEventListener("focusout", handleFocusOut);
+      if (focusFrame !== undefined) window.cancelAnimationFrame(focusFrame);
+    };
+  }, [popoverRef]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const viewport = window.visualViewport;
+    /** Publishes visible viewport bounds as feature-local CSS variables. */
+    function updateViewport() {
+      const height = viewport?.height ?? window.innerHeight;
+      const width = viewport?.width ?? window.innerWidth;
+      const top = viewport?.offsetTop ?? 0;
+      const left = viewport?.offsetLeft ?? 0;
+      const values = { height, width, top, left, bottom: Math.max(0, window.innerHeight - height - top) };
+      for (const [name, value] of Object.entries(values)) root?.style.setProperty(`--viewport-${name}`, `${String(value)}px`);
+    }
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    viewport?.addEventListener("resize", updateViewport);
+    viewport?.addEventListener("scroll", updateViewport);
+    return () => {
+      window.removeEventListener("resize", updateViewport);
+      viewport?.removeEventListener("resize", updateViewport);
+      viewport?.removeEventListener("scroll", updateViewport);
+    };
+  }, [rootRef]);
+
+  useEffect(() => {
+    /** Tracks the mounted Base UI sheet through its exit transition. */
+    function updateSheet() {
+      const mounted = Boolean(document.querySelector("[data-portfolio-navigation-sheet]"));
+      setSheetMounted(mounted);
+      if (mounted) dismissForShell();
+    }
+    updateSheet();
+    const observer = new MutationObserver(updateSheet);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => { observer.disconnect(); };
+  }, [dismissForShell]);
+
+  useEffect(() => {
+    if (initialPathnameRef.current === pathname) return;
+    initialPathnameRef.current = pathname;
+    dismissForShell();
+  }, [dismissForShell, pathname]);
+
+  return {
+    capability,
+    compact,
+    hidden: splashPending || editingPage || sheetMounted,
+  };
+}

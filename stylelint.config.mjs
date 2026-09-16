@@ -29,7 +29,7 @@ const stylelintConfig = {
     "scss/at-rule-no-unknown": [
       true,
       {
-        ignoreAtRules: ["apply", "custom-variant", "theme"],
+        ignoreAtRules: ["apply", "custom-variant", "source", "theme"],
       },
     ],
   },

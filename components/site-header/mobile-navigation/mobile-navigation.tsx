@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { BrandMark } from "@/components/brand-mark/brand-mark";
 import { ThemeToggle } from "@/components/theme/theme";
+import { getVisibleSectionId } from "@/lib/section-context";
 import styles from "./mobile-navigation.module.scss";
 import headerStyles from "../site-header.module.scss";
 
@@ -74,9 +75,7 @@ function useSectionNavigationState(
   useEffect(() => {
     if (activeRouteHref) return;
 
-    const sections = items
-      .map((item) => document.getElementById(item.href.slice(1)))
-      .filter((section): section is HTMLElement => section !== null);
+    const sectionIds = items.map((item) => item.href.slice(1));
 
     /** Updates selector visibility and the section at the sticky-header edge. */
     const updateNavigation = () => {
@@ -84,19 +83,9 @@ function useSectionNavigationState(
       setVisible(nextVisible);
       if (!nextVisible) setOpen(false);
 
-      const headerBottom = document.querySelector<HTMLElement>('[data-slot="site-header"]')
-        ?.getBoundingClientRect().bottom ?? 0;
-      let reachedSection: HTMLElement | undefined;
-      for (const section of sections) {
-        if (section.getBoundingClientRect().top > headerBottom + 1) break;
-        reachedSection = section;
-      }
-      if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1) {
-        reachedSection = sections.at(-1);
-      }
-
-      const item = reachedSection
-        ? items.find(({ href }) => href === `#${reachedSection.id}`)
+      const sectionId = getVisibleSectionId(sectionIds);
+      const item = sectionId
+        ? items.find(({ href }) => href === `#${sectionId}`)
         : undefined;
       setObservedActiveLabel(item?.label);
     };
@@ -238,6 +227,7 @@ export function MobileNavigation({
         </SheetTrigger>
         <SheetContent
           className={clsx(styles.popup, "xl:hidden")}
+          data-portfolio-navigation-sheet
           finalFocus
           showCloseButton={false}
           side="top"

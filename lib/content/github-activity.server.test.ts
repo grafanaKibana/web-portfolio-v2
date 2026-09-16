@@ -7,7 +7,7 @@ import {
   parsePullRequestPage,
   type CodeContributionStatus,
   type GitHubFetch,
-} from "./activity"
+} from "./github-activity"
 
 const pullRequestRepositories: Record<CodeContributionStatus, string> = {
   merged: "fixture-owner/merged-repository",
@@ -254,6 +254,7 @@ test("GitHub loading uses public status queries and bounded pagination", async (
   assert.ok(searchRequests.every(({ init }) => (new Headers(init.headers).get("User-Agent")?.length ?? 0) > 0))
   assert.ok(searchRequests.every(({ init }) => new Headers(init.headers).get("X-GitHub-Api-Version") === "2022-11-28"))
   assert.ok(requests.every(({ init }) => init.next.revalidate === 300))
+  assert.ok(requests.every(({ init }) => init.signal instanceof AbortSignal))
   assert.equal(new Headers(requests[0]?.init.headers).get("Authorization"), "Bearer secret")
 })
 

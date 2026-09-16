@@ -6,7 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getProjectSlugs, loadProject } from "@/lib/content/projects/server";
-import { resolvePluginLinks } from "./_lib/plugin-links";
+import { resolvePluginLinks } from "@/lib/content/plugin-links";
 import styles from "./project-page.module.scss";
 
 /** Restricts project detail routes to statically generated slugs. */

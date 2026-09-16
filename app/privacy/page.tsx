@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 /** Search and sharing metadata for the privacy policy. */
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How this personal portfolio handles analytics, performance measurements, and information sent by email.",
+  description: "How this portfolio handles analytics, AI questions, performance measurements, and information sent by email.",
 };
 
 /**
@@ -17,7 +17,7 @@ export default function PrivacyPage() {
       <article className="max-w-3xl">
         <header>
           <h1 className="text-4xl font-semibold tracking-tight" data-page-motion-intro>Privacy Policy</h1>
-          <p className="mt-4 font-mono text-xs text-muted-foreground" data-page-motion-intro>Last updated: August 29, 2026</p>
+          <p className="mt-4 font-mono text-xs text-muted-foreground" data-page-motion-intro>Last updated: September 15, 2026</p>
           <p className="mt-6 leading-7 text-content-foreground" data-page-motion-intro>This Privacy Policy explains what information this personal portfolio uses and why.</p>
         </header>
 
@@ -46,6 +46,16 @@ export default function PrivacyPage() {
             <a className="inline-flex min-h-11 items-center text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="https://support.google.com/webmasters/answer/10268906?hl=en">
               Google Search Console information
             </a>
+          </p>
+        </section>
+
+        <section className="mt-10" data-page-motion-rows="children" data-page-motion-section>
+          <h2 className="text-2xl font-semibold tracking-tight" data-page-motion-trigger>Ask AI conversation</h2>
+          <p className="mt-4 leading-7 text-content-foreground">
+            When you submit a question through Ask AI, this site sends the question, recent completed conversation messages, and a limited hint about the portfolio page or section you are viewing to the configured AI provider. The portfolio supplies its public content so the provider can answer questions about my work and experience.
+          </p>
+          <p className="mt-4 leading-7 text-content-foreground">
+            The application keeps the draft and conversation transcript only in your browser&apos;s memory for the current tab. It does not persist the transcript on the portfolio server or send it to an application tracing service. The configured AI provider processes submitted conversation data to generate the response.
           </p>
         </section>
 

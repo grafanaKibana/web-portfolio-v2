@@ -1,10 +1,11 @@
 // Establish Tailwind's layer order before component styles reopen those layers.
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { clsx } from "clsx";
+import { Conversation } from "@/components/conversation/conversation";
 import { OpeningSplash } from "@/components/opening-splash/opening-splash";
 import { PageMotion } from "@/components/page-motion/page-motion";
 import motionStyles from "@/components/page-motion/page-motion.module.scss";
@@ -60,6 +61,11 @@ export const metadata: Metadata = {
   description: home.metadataDescription,
 };
 
+/** Application-wide viewport configuration. */
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
+
 /**
  * Composes the application shell, theme boundary, and primary navigation.
  *
@@ -90,6 +96,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SiteHeader />
           {children}
           <SiteFooter />
+          <Conversation />
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

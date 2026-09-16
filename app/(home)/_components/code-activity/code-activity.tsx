@@ -4,7 +4,10 @@ import { GitPullRequest, GitPullRequestDraft, MessageCircleMore } from "lucide-r
 
 import sectionStyles from "@/app/(home)/_components/section.module.scss";
 import { home } from "@/lib/content/portfolio/server";
-import { loadGitHubActivity, type ContributionDay } from "./activity";
+import {
+  loadGitHubActivity,
+  type ContributionDay,
+} from "@/lib/content/github-activity";
 import { CalendarDays } from "./calendar-days";
 import styles from "./code-activity.module.scss";
 import { PullRequestGroup, type PullRequestGroupStyles } from "./pull-request-group";

@@ -6,7 +6,7 @@
 
 This document explains how portfolio should look, read, and behave. It records established design decisions, checked against the current site. Code owns exact tokens, dimensions, breakpoints, and animation timings; [AGENTS.md](AGENTS.md) owns engineering rules; [content](content/) owns portfolio facts.
 
-Evidence: [Home composition](app/(home)/page.tsx), [fonts and site frame](app/layout.tsx), [theme and shared styles](app/globals.css), [navigation](components/site-header/site-header.tsx), [About](app/(home)/_components/about/about.tsx), and [Skills](app/(home)/_components/skills/skills.tsx). Repository evidence includes work in progress; implementation alone does not establish an approved design change. This refresh makes no new visual-audit claim. Unselected explorations remain outside this direction.
+Evidence: [Home composition](app/(home)/page.tsx), [fonts and site frame](app/layout.tsx), [theme and shared styles](app/globals.css), [navigation](components/site-header/site-header.tsx), [About](app/(home)/_components/about/about.tsx), [Skills](app/(home)/_components/skills/skills.tsx), and the [conversation contract](app/api/ask/README.md). Repository evidence includes work in progress; implementation alone does not establish an approved design change. This refresh makes no new visual-audit claim. Unselected explorations remain outside this direction.
 
 ## Brand
 
@@ -20,7 +20,7 @@ Avoid promotional slogans, decorative dashboards, bento layouts, glass effects, 
 
 Help visitors understand the work, inspect the evidence that interests them, and find a straightforward way to make contact. Support both a quick overview and deeper reading without forcing an interaction.
 
-Curated content remains useful when optional data or enhancements are unavailable.
+Curated content remains useful when optional data or enhancements are unavailable. Conversation is a supplementary entry point for questions that require connecting portfolio evidence, such as role fit or where Nikita applied a skill.
 
 A useful qualitative check is whether a visitor can identify relevant experience, reach supporting work, and find contact details. This is a design criterion, not a measured conversion result.
 
@@ -62,7 +62,7 @@ When expression competes with legibility or reliable interaction, preserve readi
 
 Use neutral light and dark foundations with three text roles: foreground for titles and controls, content foreground for prose, and muted foreground for dates and supporting labels. Keep neutral text readable through semantic colors rather than opacity.
 
-Jade marks selected identity and state moments: the hero descriptor, availability, current experience, contribution activity, and focus. Preserve distinct success and destructive semantics. Fields stay neutral through `--input`; focus uses `--ring`. Standard primary buttons retain their semantic treatment.
+Jade marks selected identity and state moments: the hero descriptor, availability, current experience, contribution activity, focus, and conversation entry. Preserve distinct success and destructive semantics. Fields stay neutral through `--input`; focus uses `--ring`. Standard primary buttons retain their semantic treatment.
 
 Inline prose links stay underlined. Hover and focus may strengthen the text of an actual link or interactive row; static content must not react to an unrelated hovered container.
 
@@ -92,6 +92,9 @@ Keep controls and individual icons still unless their existing behavior requires
 | Skills | Centered semantic groups, recognizable marks, and restrained group reveals |
 | Project and article pages | Strong title, secondary metadata, focused prose, clear return navigation |
 | Contact | Native validation, mail-app handoff, and direct email fallback |
+| Conversation | Nonmodal surface above one gradient launcher, restrained Markdown replies, sources, follow-ups, clear progress and recovery |
+
+The conversation launcher is an intentional accent exception: on desktop it rests as a line, expands around its label on intent, and returns to a line while open. Preserve its responsive treatment and keep the composer visually consistent with standard controls.
 
 Reuse existing route and site-frame patterns and shared [UI components](components/ui/). These components are editable repository source: keep them reusable, document authored declarations, and review affected consumers when changing shared behavior. Configure controls through public props and semantic tokens. Keep feature geometry in its owning styles and avoid introducing a separate design-system layer.
 
@@ -101,7 +104,7 @@ WCAG 2.2 AA remains the working design target; this document does not certify co
 
 Preserve semantic landmarks and heading order, the skip link, accessible names, visible focus, keyboard actions, and text selection. Color and motion must not be the only indicators of state. Hover cannot be the only way to reach information.
 
-Compact navigation is modal: contain focus, close with Escape, and restore focus to its trigger. Keep native disclosure behavior, no-JavaScript fallbacks, and a decorative, non-focusable splash that cannot block content.
+Compact navigation is modal: contain focus, close with Escape, and restore focus to its trigger. Conversation is nonmodal and leaves the page usable. Keep native disclosure behavior, no-JavaScript fallbacks, and a decorative, non-focusable splash that cannot block content.
 
 Support readable contrast in both themes, text zoom, and reflow without page-level horizontal scrolling. Code and intentional horizontal tracks may scroll locally. Keep targets usable by touch and honor reduced motion.
 
@@ -109,7 +112,7 @@ Support readable contrast in both themes, text zoom, and reflow without page-lev
 
 Desktop has generous outer space, inline navigation, split editorial compositions, and a distinct experience date rail. Narrow layouts move toward a single reading column with metadata and actions in normal flow. About stacks its biography, chapters, and facts as space tightens.
 
-Let social links and skill groups wrap naturally. Keep reading order intact and use split layouts only while both columns remain comfortable. Compact navigation fits the available viewport, including the on-screen keyboard. Touch actions remain available without hover.
+Let social links and skill groups wrap naturally. Keep reading order intact and use split layouts only while both columns remain comfortable. Compact navigation and conversation fit the available viewport, including the on-screen keyboard. Touch actions remain available without hover.
 
 Breakpoints belong in code. Evaluate both representative screen sizes and the widths where a layout changes.
 
@@ -118,6 +121,7 @@ Breakpoints belong in code. Evaluate both representative screen sizes and the wi
 | Situation | Visitor-facing behavior |
 | --- | --- |
 | Opening and reveals | Decorative, once-only enhancement; content remains available when setup fails or JavaScript is absent |
+| Loading or streaming | Clear progress without treating partial output as complete; stable reading space |
 | Empty or missing data | Quiet empty-index explanation; omit absent optional fields and retain useful source/profile links |
 | Unknown content | A clear not-found page with a route back |
 | Error or interruption | Readable explanation and an appropriate retry, edit, or fallback action |
@@ -125,6 +129,10 @@ Breakpoints belong in code. Evaluate both representative screen sizes and the wi
 | Unavailable action | Recognizable control with accessible state and an available alternative where applicable |
 
 Contact opens the visitor’s email app; it does not confirm delivery. Optional activity must never substitute fabricated events for unavailable data.
+
+Conversation distinguishes pending, completed, stopped, and failed replies, and announces completion or failure without reading every chunk. Generated follow-ups prefill their full, self-contained question into the composer, replacing the current draft and focusing it for editing before explicit submission. Exchange pairs have no additional inter-pair gap or trailing padding. The panel grows with its content up to two-thirds of the visible viewport height, then scrolls its message history. Panel resizing, bubble growth, and scrolling share a 280ms transition and easing curve; bubble entry follows the same rhythm. Reduced motion keeps geometry immediate. Thinking uses the default Marker treatment. Reply actions stay compact and attached to their exchange; follow-ups share one connected pill, wrap naturally, and scale into view together with the same brief motion as reply actions. Application-owned numbered citations use the text accent color and link to validated sources inline with the answer. Preserve accessible error details and clipboard feedback.
+
+Answer text reveals across each rendered line with a soft left-to-right sweep lasting about 480ms. New chunks continue from the current reveal edge; earlier lines remain visible. Follow-ups enter after the 280ms growth phase, finishing alongside the text reveal. Completion does not cut the sweep short or delay response actions. Reduced motion keeps arriving text static. Drafts and transcript stay in memory across dismissal and client navigation. Active generation stops when dismissed or on route changes. Contact remains the fallback when conversation cannot open. Detailed provider, cancellation, and history rules stay in the [conversation contract](app/api/ask/README.md).
 
 ## Content voice
 
@@ -134,7 +142,7 @@ Use concrete verbs and specific work. Let experience and outcomes establish comp
 
 Prefer short, specific headings, ordinary language, natural contractions, and sentence case. Keep summaries selective instead of listing every tool. Avoid hype, bureaucratic phrasing, slogans, forced jokes, emoji, and clever contrasts.
 
-Use validated records and local MDX for biography, credentials, dates, projects, and links. Label actions honestly: opening an email app is a handoff. Preserve original link labels when optional metadata is unavailable.
+Use validated records and local MDX for biography, credentials, dates, projects, and links. Live answers stay honest and supportive: distinguish direct evidence from transferable ability and keep the assistant scoped to Nikita rather than generic technical discussion. Opening an email app remains a handoff. Preserve original link labels when optional metadata is unavailable.
 
 ## Implementation constraints
 
@@ -150,3 +158,4 @@ For visual changes, verify rendered light/dark and mobile/desktop states, includ
 
 - Audience priorities and success measures have not been validated; they should inform future emphasis rather than be presented as established research.
 - The supported browser matrix and scope of a formal accessibility audit remain to be defined.
+- Live conversation usefulness and role-fit judgment require human evaluation beyond structural and browser verification.

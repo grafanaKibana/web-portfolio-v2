@@ -12,6 +12,7 @@ test("MDX modules require a component and valid metadata", () => {
   const Content = () => null
   const loaded = validateMdxModule(
     {
+      askText: "Synthetic project body.",
       default: Content,
       metadata: {
         kind: "project",
@@ -24,11 +25,16 @@ test("MDX modules require a component and valid metadata", () => {
   )
 
   assert.equal(loaded.slug, "fixture-project")
+  assert.equal(loaded.askText, "Synthetic project body.")
   assert.equal(loaded.Content, Content)
   assert.equal(loaded.metadata.kind, "project")
   assert.throws(() => validateMdxModule(null, "broken", "null.mdx"), /null\.mdx.*object/i)
   assert.throws(
     () => validateMdxModule({ metadata: loaded.metadata }, "broken", "componentless.mdx"),
     /componentless\.mdx.*default component/i,
+  )
+  assert.throws(
+    () => validateMdxModule({ default: Content, metadata: loaded.metadata }, "broken", "textless.mdx"),
+    /textless\.mdx.*askText/i,
   )
 })

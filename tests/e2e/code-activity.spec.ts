@@ -5,7 +5,10 @@ import { join } from "node:path";
 import { compile } from "sass";
 
 import type { PullRequestGroupStyles } from "@/app/(home)/_components/code-activity/pull-request-group";
-import type { CodeContribution, CodeContributionStatus } from "@/app/(home)/_components/code-activity/activity";
+import type {
+  CodeContribution,
+  CodeContributionStatus,
+} from "@/lib/content/github-activity";
 
 const styles: PullRequestGroupStyles = {
   group: "group",

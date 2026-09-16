@@ -33,6 +33,7 @@ export type ContentMetadata = ArticleMetadata | ProjectMetadata;
 
 /** Runtime shape required from an imported MDX module. */
 export interface MdxModule {
+  askText: unknown;
   default: ComponentType;
   metadata: unknown;
 }
@@ -43,6 +44,7 @@ export interface MdxModule {
  * @typeParam TMetadata - Metadata family carried by the loaded content.
  */
 export interface LoadedContent<TMetadata extends ContentMetadata = ContentMetadata> {
+  askText: string;
   slug: string;
   metadata: TMetadata;
   Content: ComponentType;

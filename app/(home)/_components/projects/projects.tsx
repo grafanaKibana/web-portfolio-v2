@@ -40,6 +40,7 @@ export async function HomeProjects() {
       <ul className="m-0 list-none p-0">
         {featuredProjects.map(({ slug, metadata: project }) => (
           <HomeEditorialRow
+            askRecord={{ kind: "project", slug }}
             dataSlot="home-project"
             key={slug}
             actions={(
