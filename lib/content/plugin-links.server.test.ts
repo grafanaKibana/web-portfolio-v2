@@ -1,7 +1,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolvePluginLinks } from "./plugin-links";
+import { createRequire } from "node:module";
+import type { ProjectLink } from "./types";
+
+const require = createRequire(import.meta.url);
+const cache = require("next/cache") as typeof import("next/cache");
+const originalCache = cache.unstable_cache;
+// Keep transport-validation fixtures deterministic without a Next request context.
+cache.unstable_cache = ((operation: (...args: unknown[]) => Promise<unknown>) => operation) as typeof cache.unstable_cache;
+const { PluginLinksService } = require("./plugin-links") as typeof import("./plugin-links");
+cache.unstable_cache = originalCache;
+
+/**
+ * Exercises production remote validation with controlled fetch and an uncached boundary.
+ * @param links - Synthetic project links.
+ * @param fetcher - Controlled transport, never the network.
+ * @returns Resolved fixture links.
+ */
+async function resolvePluginLinks(
+  links: readonly ProjectLink[] | undefined,
+  fetcher: (input: string, init: RequestInit) => Promise<Response> = () => Promise.reject(new Error("Unexpected fetch")),
+) {
+  const original = globalThis.fetch;
+  globalThis.fetch = fetcher as typeof fetch;
+  try {
+    return await new PluginLinksService().resolve(links);
+  } finally {
+    globalThis.fetch = original;
+  }
+}
 
 const storeHref = "https://obsidian.md/plugins?id=fixture-plugin";
 const primarySourceHref = "https://github.com/fixture-owner/plugin-repository";
@@ -231,4 +259,57 @@ test("requires exact plugin and repository URLs", async () => {
 
   assert.equal(resolved, links);
   assert.equal(requests, 0);
+});
+
+test("injected operations deduplicate repository fills per resolve call", async () => {
+  let downloads = 0;
+  let releases = 0;
+  const service = new PluginLinksService({
+    /**
+     * Supplies fixture counts.
+     * @returns Synthetic plugin counts.
+     */
+    loadDownloadCounts: () => { downloads += 1; return Promise.resolve({ "fixture-plugin": 0 }); },
+    /**
+     * Supplies a fixture release.
+     * @returns Synthetic version.
+     */
+    loadRepositoryVersion: () => { releases += 1; return Promise.resolve("v1.0.0"); },
+  });
+  const links = await service.resolve([
+    { label: "Store page", href: storeHref },
+    { label: "Source", href: primarySourceHref },
+    { label: "Quartz source", href: primarySourceHref },
+  ]);
+  assert.equal(downloads, 1);
+  assert.equal(releases, 1);
+  assert.equal(links[1]?.label, "v1.0.0");
+});
+
+test("overlapping injected operations retain independent request results", async () => {
+  let releaseCalls = 0;
+  const releaseResolves: Array<(value: string) => void> = [];
+  const service = new PluginLinksService({
+    /**
+     * Supplies fixture counts.
+     * @returns Synthetic plugin counts.
+     */
+    loadDownloadCounts: () => Promise.resolve({ "fixture-plugin": 1 }),
+    /**
+     * Supplies a fixture release.
+     * @returns Synthetic version.
+     */
+    loadRepositoryVersion: () => {
+      releaseCalls += 1;
+      return new Promise((resolve) => { releaseResolves.push(resolve); });
+    },
+  });
+  const input = [{ label: "Store page", href: storeHref }, { label: "Source", href: primarySourceHref }];
+  const first = service.resolve(input);
+  const second = service.resolve(input);
+  assert.equal(releaseCalls, 2);
+  releaseResolves[1]?.("v2.0.0");
+  releaseResolves[0]?.("v1.0.0");
+  assert.equal((await first)[1]?.label, "v1.0.0");
+  assert.equal((await second)[1]?.label, "v2.0.0");
 });

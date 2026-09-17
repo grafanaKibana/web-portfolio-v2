@@ -48,6 +48,11 @@ const homeOwners = [
   ["writing", ["./writing.tsx"]],
   ["editorial-row", ["./editorial-row.tsx"]],
 ];
+const browserSafeRestrictedPaths = ["server-only", "langchain"];
+const browserSafeRestrictedPatterns = [{
+  group: ["node:*", "@langchain/*", "langchain/*", "@/app/*"],
+  message: "Keep server dependencies inside the API route; conversation code and shared Ask modules must stay browser-safe.",
+}];
 
 /** Import zones that enforce the repository's nearest-owner colocation contract. */
 export const strictColocationZones = [
@@ -123,6 +128,28 @@ export const strictColocationZones = [
     message: "Import a Home component through its public entry.",
   })),
   {
+    target: "./components/conversation/conversation.service.ts",
+    from: "./components/conversation",
+    except: [
+      "./conversation.models.ts",
+      "./conversation.config.ts",
+      "./conversation.errors.ts",
+      "./ask-stream-parsing.ts",
+    ],
+    message: "ConversationService may depend only on its non-UI companions.",
+  },
+  {
+    target: "./components/conversation/conversation.service.ts",
+    from: "./components/ui",
+    message: "ConversationService cannot depend on shared UI.",
+  },
+  {
+    target: "./components/conversation/conversation.service.ts",
+    from: "./lib",
+    except: ["./ask.contract.ts", "./ask.config.ts"],
+    message: "ConversationService may import only the shared Ask contract and limits from lib.",
+  },
+  {
     target: ["./app/**", "./components/**", "./lib/**", "./mdx-components.tsx"],
     from: "./tests/**",
     message: "Production modules cannot import tests.",
@@ -179,15 +206,31 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ["components/conversation/**/*.{js,jsx,cjs,mjs,ts,tsx,mts}", "lib/ask.contract.ts"],
+    files: [
+      "components/conversation/**/*.{js,jsx,cjs,mjs,ts,tsx,mts}",
+      "lib/ask.contract.ts",
+      "lib/ask.config.ts",
+    ],
     ignores: ["**/*.test.{js,jsx,cjs,mjs,ts,tsx,mts}"],
     rules: {
       "no-restricted-imports": ["error", {
-        paths: ["server-only", "langchain"],
-        patterns: [{
-          group: ["node:*", "@langchain/*", "langchain/*", "@/app/*"],
-          message: "Keep server dependencies inside the API route; conversation code and its shared contract must stay browser-safe.",
-        }],
+        paths: browserSafeRestrictedPaths,
+        patterns: browserSafeRestrictedPatterns,
+      }],
+    },
+  },
+  {
+    files: ["components/conversation/conversation.service.ts"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: browserSafeRestrictedPaths,
+        patterns: [
+          ...browserSafeRestrictedPatterns,
+          {
+            group: ["react", "react/*", "react-dom", "react-dom/*"],
+            message: "ConversationService must remain independent of React runtime and UI lifecycle.",
+          },
+        ],
       }],
     },
   },

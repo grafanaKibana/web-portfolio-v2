@@ -1,13 +1,28 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import {
-  loadGitHubActivity,
-  parseContributionCalendar,
-  parsePullRequestPage,
-  type CodeContributionStatus,
-  type GitHubFetch,
-} from "./github-activity"
+import { GitHubActivityService } from "./github-activity"
+import { parseContributionCalendar, parsePullRequestPage } from "./github-activity-parsing"
+import type { CodeContributionStatus, GitHubFetch } from "./github-activity.models"
+
+/**
+ * Constructs a loader with controlled fetch and token dependencies.
+ * @param username - Fixture GitHub account.
+ * @param fetcher - Controlled remote transport.
+ * @param token - Fixture token, never an ambient credential.
+ * @returns Independently available activity.
+ */
+function loadGitHubActivity(username: string, fetcher: GitHubFetch, token?: string) {
+  return new GitHubActivityService({
+    fetcher,
+    /**
+     * Supplies only the fixture credential.
+     * @returns Fixture token.
+     */
+    resolveToken: () => token,
+  }).load(username)
+}
+
 
 const pullRequestRepositories: Record<CodeContributionStatus, string> = {
   merged: "fixture-owner/merged-repository",
@@ -195,7 +210,13 @@ test("GitHub GraphQL parsing rejects malformed, private, or status-inconsistent 
   }
 })
 
-test("GitHub loading uses public status queries and bounded pagination", async () => {
+test("GitHub loading uses public status queries and bounded pagination", async (t) => {
+  const timeoutValues: number[] = []
+  const timeout = AbortSignal.timeout.bind(AbortSignal)
+  t.mock.method(AbortSignal, "timeout", (milliseconds: number) => {
+    timeoutValues.push(milliseconds)
+    return timeout(milliseconds)
+  })
   const requests: Array<{ input: string; init: Parameters<GitHubFetch>[1] }> = []
   /**
    * Returns deterministic GitHub responses while recording request options.
@@ -231,6 +252,7 @@ test("GitHub loading uses public status queries and bounded pagination", async (
   assert.equal(activity.calendarAvailable, true)
   assert.equal(activity.calendar.length, 350)
   assert.equal(requests.length, 5)
+  assert.deepEqual(timeoutValues, [4_000, 4_000, 4_000, 4_000, 4_000])
   const searchRequests = requests.filter(({ input }) => input === "https://api.github.com/graphql")
   assert.deepEqual(searchRequests.map(({ init }) => requestVariables(init).query), [
     "author:fixture-user is:pr is:merged is:public -user:fixture-user sort:updated-desc",
@@ -370,4 +392,70 @@ test("missing tokens skip GraphQL while malformed responses suppress all PR grou
     assert.equal(activity.calendarAvailable, true)
     assert.ok(requestCount >= 1)
   }
+})
+
+test("GitHub loading snapshots the current environment token independently per overlapping load", async (t) => {
+  const originalToken = process.env.GITHUB_TOKEN
+  t.after(() => {
+    if (originalToken === undefined) delete process.env.GITHUB_TOKEN
+    else process.env.GITHUB_TOKEN = originalToken
+  })
+  const requests: Array<{ query: string; authorization: string | null }> = []
+  let releaseFirst!: () => void
+  const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve })
+  /**
+   * Records credentials while holding the first caller across a token change.
+   * @param input - Requested URL.
+   * @param init - Request options.
+   * @returns A controlled response.
+   */
+  const fetcher: GitHubFetch = async (input, init) => {
+    if (input.includes("/contributions")) return new Response(contributionCalendar())
+    const { query } = requestVariables(init)
+    requests.push({ query, authorization: new Headers(init.headers).get("Authorization") })
+    if (query.includes("author:first-user") && query.includes("is:merged")) await firstGate
+    return Response.json(pullRequestPage(pullRequestStatus(query)))
+  }
+  const service = new GitHubActivityService({ fetcher })
+  process.env.GITHUB_TOKEN = "first-token"
+  const first = service.load("first-user")
+  process.env.GITHUB_TOKEN = "second-token"
+  const second = await service.load("second-user")
+  releaseFirst()
+  assert.equal((await first).pullRequestsAvailable, true)
+  assert.equal(second.pullRequestsAvailable, true)
+  for (const [username, token] of [["first-user", "first-token"], ["second-user", "second-token"]] as const) {
+    const own = requests.filter(({ query }) => query.includes(`author:${username}`))
+    assert.equal(own.length, 3)
+    assert.ok(own.every(({ authorization }) => authorization === `Bearer ${token}`))
+  }
+})
+
+
+test("GitHub token resolver runs exactly once for each load on one service", async () => {
+  let resolutions = 0
+  const authorizations: Array<string | null> = []
+  const service = new GitHubActivityService({
+    /**
+     * Counts token snapshots.
+     * @returns Current fixture token.
+     */
+    resolveToken: () => `token-${String(++resolutions)}`,
+    /**
+     * Records authentication across each load.
+     * @param input - Requested URL.
+     * @param init - Request options.
+     * @returns Controlled remote response.
+     */
+    fetcher: (input, init) => {
+      if (input.includes("/contributions")) return Promise.resolve(new Response(contributionCalendar()))
+      authorizations.push(new Headers(init.headers).get("Authorization"))
+      return Promise.resolve(Response.json(pullRequestPage(pullRequestStatus(requestVariables(init).query))))
+    },
+  })
+  await service.load("fixture-user")
+  await service.load("fixture-user")
+  assert.equal(resolutions, 2)
+  assert.deepEqual(authorizations, ["Bearer token-1", "Bearer token-1", "Bearer token-1",
+    "Bearer token-2", "Bearer token-2", "Bearer token-2"])
 })

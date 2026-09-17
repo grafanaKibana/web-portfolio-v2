@@ -6,8 +6,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getProjectSlugs, loadProject } from "@/lib/content/projects/server";
-import { resolvePluginLinks } from "@/lib/content/plugin-links";
+import { PluginLinksService } from "@/lib/content/plugin-links";
 import styles from "./project-page.module.scss";
+
+const pluginLinks = new PluginLinksService();
 
 /** Restricts project detail routes to statically generated slugs. */
 export const dynamicParams = false;
@@ -59,7 +61,7 @@ export default async function ProjectPage({
   const project = await loadProject(slug);
   if (!project) notFound();
   const projectSlugs = getProjectSlugs();
-  const links = await resolvePluginLinks(project.metadata.links);
+  const links = await pluginLinks.resolve(project.metadata.links);
   const nextSlug = projectSlugs[projectSlugs.indexOf(slug) + 1];
   const nextProject = nextSlug ? await loadProject(nextSlug) : undefined;
 

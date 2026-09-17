@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 
-import { askServerTimeoutMs } from "@/lib/ask.contract";
+import { askServerConfig } from "./ask.config";
+import { AskService } from "./ask.service";
+import { AskAnswerService } from "./ask-answer.service";
+import { AskCorpusService } from "./ask-corpus.service";
+import { AskConfiguration } from "./ask.config";
+import type { AskCorpusDependencies, AskCorpus } from "./ask.models";
 
-import { handleAsk } from "./ask.service";
+const { askServerTimeoutMs } = askServerConfig;
 
 interface CapturedProviderRequest {
   body: Record<string, unknown>;
@@ -213,7 +218,7 @@ function messageText(content: unknown): string {
   }).join("");
 }
 
-test("handleAsk sends every synthetic corpus family to the provider", async (t) => {
+test("AskService sends every synthetic corpus family to the provider", async (t) => {
   configureProvider(t);
   const captured: CapturedProviderRequest[] = [];
   t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -235,11 +240,11 @@ test("handleAsk sends every synthetic corpus family to the provider", async (t) 
     { id: "article:beta", title: "Beta", href: "/articles/beta", text: "ARTICLE_BODY_MARKER" },
     { id: "home:code", title: "Code", href: "/#code", text: "OPTIONAL_PUBLIC_DATA_MARKER" },
   ];
-  const response = await handleAsk(createJsonRequest({
-    messages: [{ role: "user", content: "What experience does Nikita have?" }],
-  }), {
+  const response = await installedService({
     buildCorpus: syntheticCorpus(sources),
-  });
+  }).handle(createJsonRequest({
+    messages: [{ role: "user", content: "What experience does Nikita have?" }],
+  }));
 
   const events = parseServerSentEvents(await response.text());
   assert.equal(captured.length, 1);
@@ -257,7 +262,7 @@ test("handleAsk sends every synthetic corpus family to the provider", async (t) 
   });
 });
 
-test("handleAsk keeps one explicit OpenAI cache prefix across dynamic request changes", async (t) => {
+test("AskService keeps one explicit OpenAI cache prefix across dynamic request changes", async (t) => {
   configureProvider(t, {
     baseUrl: "https://api.openai.com/v1",
     model: "gpt-5.6-luna",
@@ -321,12 +326,12 @@ test("handleAsk keeps one explicit OpenAI cache prefix across dynamic request ch
   ];
 
   for (const requestCase of cases) {
-    const response = await handleAsk(createJsonRequest({
+    const response = await installedService({
+      buildCorpus: syntheticCorpus(requestCase.sources),
+    }).handle(createJsonRequest({
       context: requestCase.context,
       messages: requestCase.messages,
-    }), {
-      buildCorpus: syntheticCorpus(requestCase.sources),
-    });
+    }));
     assert.deepEqual(parseServerSentEvents(await response.text()).at(-1), {
       event: "done",
       data: {
@@ -378,7 +383,7 @@ test("handleAsk keeps one explicit OpenAI cache prefix across dynamic request ch
   }
 });
 
-test("handleAsk omits OpenAI cache extensions for custom providers and older models", async (t) => {
+test("AskService omits OpenAI cache extensions for custom providers and older models", async (t) => {
   configureProvider(t, {
     baseUrl: "https://provider.fixture/v1",
     model: "gpt-5.6-luna",
@@ -397,16 +402,16 @@ test("handleAsk omits OpenAI cache extensions for custom providers and older mod
     liveText: "LIVE_EVIDENCE",
   }];
 
-  const customResponse = await handleAsk(createJsonRequest({
+  const customResponse = await installedService({ buildCorpus: syntheticCorpus(sources) }).handle(createJsonRequest({
     messages: [{ role: "user", content: "Custom provider question" }],
-  }), { buildCorpus: syntheticCorpus(sources) });
+  }));
   assert.equal(parseServerSentEvents(await customResponse.text()).at(-1)?.event, "done");
 
   process.env.ASK_API_BASE_URL = "https://api.openai.com/v1";
   process.env.ASK_MODEL = "gpt-4o";
-  const olderModelResponse = await handleAsk(createJsonRequest({
+  const olderModelResponse = await installedService({ buildCorpus: syntheticCorpus(sources) }).handle(createJsonRequest({
     messages: [{ role: "user", content: "Older model question" }],
-  }), { buildCorpus: syntheticCorpus(sources) });
+  }));
   assert.equal(parseServerSentEvents(await olderModelResponse.text()).at(-1)?.event, "done");
 
   assert.equal(capturedBodies.length, 2);
@@ -429,7 +434,7 @@ test("handleAsk omits OpenAI cache extensions for custom providers and older mod
   }
 });
 
-test("handleAsk replaces conflicting record hints with canonical route context", async (t) => {
+test("AskService replaces conflicting record hints with canonical route context", async (t) => {
   configureProvider(t);
   let capturedBody: Record<string, unknown> | undefined;
   t.mock.method(globalThis, "fetch", async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -437,25 +442,25 @@ test("handleAsk replaces conflicting record hints with canonical route context",
     await Promise.resolve();
     return providerResponse([JSON.stringify({ answer: "Alpha is the visible project.", sourceIds: [], followUps: [] })]);
   });
-  const response = await handleAsk(createJsonRequest({
+  const response = await installedService({
+    buildCorpus: syntheticCorpus([
+      { id: "project:alpha", title: "Alpha", href: "/projects/alpha", text: "Alpha project" },
+      { id: "article:beta", title: "Beta", href: "/articles/beta", text: "Beta article" },
+    ]),
+  }).handle(createJsonRequest({
     context: {
       pathname: "/projects/alpha",
       sectionId: "writing",
       record: { kind: "article", slug: "beta" },
     },
     messages: [{ role: "user", content: "What is this project about?" }],
-  }), {
-    buildCorpus: syntheticCorpus([
-      { id: "project:alpha", title: "Alpha", href: "/projects/alpha", text: "Alpha project" },
-      { id: "article:beta", title: "Beta", href: "/articles/beta", text: "Beta article" },
-    ]),
-  });
+  }));
 
   assert.equal(parseServerSentEvents(await response.text()).at(-1)?.event, "done");
   assert.match(systemPrompt(capturedBody ?? {}), /VIEW_CONTEXT:\n\{"pathname":"\/projects\/alpha","record":\{"kind":"project","slug":"alpha"\}\}/u);
 });
 
-test("handleAsk removes unknown view context before provider generation", async (t) => {
+test("AskService removes unknown view context before provider generation", async (t) => {
   configureProvider(t);
   let capturedBody: Record<string, unknown> | undefined;
   t.mock.method(globalThis, "fetch", async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -463,20 +468,20 @@ test("handleAsk removes unknown view context before provider generation", async 
     await Promise.resolve();
     return providerResponse([JSON.stringify({ answer: "Clarify the reference.", sourceIds: [], followUps: [] })]);
   });
-  const response = await handleAsk(createJsonRequest({
-    context: { pathname: "/missing", sectionId: "projects", record: { kind: "project", slug: "missing" } },
-    messages: [{ role: "user", content: "What is this about?" }],
-  }), {
+  const response = await installedService({
     buildCorpus: syntheticCorpus([
       { id: "project:known", title: "Known", href: "/projects/known", text: "Known project" },
     ]),
-  });
+  }).handle(createJsonRequest({
+    context: { pathname: "/missing", sectionId: "projects", record: { kind: "project", slug: "missing" } },
+    messages: [{ role: "user", content: "What is this about?" }],
+  }));
 
   assert.equal(parseServerSentEvents(await response.text()).at(-1)?.event, "done");
   assert.match(systemPrompt(capturedBody ?? {}), /VIEW_CONTEXT:\nnull\n/u);
 });
 
-test("handleAsk retains matching record hints on collection routes", async (t) => {
+test("AskService retains matching record hints on collection routes", async (t) => {
   configureProvider(t);
   const capturedBodies: Record<string, unknown>[] = [];
   t.mock.method(globalThis, "fetch", async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -493,10 +498,10 @@ test("handleAsk retains matching record hints on collection routes", async (t) =
     { pathname: "/articles", record: { kind: "article" as const, slug: "beta" } },
   ];
   for (const context of contexts) {
-    const response = await handleAsk(createJsonRequest({
+    const response = await installedService({ buildCorpus: syntheticCorpus(sources) }).handle(createJsonRequest({
       context,
       messages: [{ role: "user", content: "What is this about?" }],
-    }), { buildCorpus: syntheticCorpus(sources) });
+    }));
     assert.equal(parseServerSentEvents(await response.text()).at(-1)?.event, "done");
   }
 
@@ -506,7 +511,7 @@ test("handleAsk retains matching record hints on collection routes", async (t) =
   }
 });
 
-test("handleAsk removes wrong-family record hints from collection routes", async (t) => {
+test("AskService removes wrong-family record hints from collection routes", async (t) => {
   configureProvider(t);
   const capturedBodies: Record<string, unknown>[] = [];
   t.mock.method(globalThis, "fetch", async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -523,10 +528,10 @@ test("handleAsk removes wrong-family record hints from collection routes", async
     { pathname: "/articles", record: { kind: "project" as const, slug: "alpha" } },
   ];
   for (const context of contexts) {
-    const response = await handleAsk(createJsonRequest({
+    const response = await installedService({ buildCorpus: syntheticCorpus(sources) }).handle(createJsonRequest({
       context,
       messages: [{ role: "user", content: "What is this about?" }],
-    }), { buildCorpus: syntheticCorpus(sources) });
+    }));
     assert.equal(parseServerSentEvents(await response.text()).at(-1)?.event, "done");
   }
 
@@ -538,20 +543,20 @@ test("handleAsk removes wrong-family record hints from collection routes", async
   }
 });
 
-test("handleAsk makes no retry after a provider HTTP failure", async (t) => {
+test("AskService makes no retry after a provider HTTP failure", async (t) => {
   configureProvider(t);
   const errorLog = t.mock.method(console, "error", () => undefined);
   const fetchMock = t.mock.method(globalThis, "fetch", async () => {
     await Promise.resolve();
     return Response.json({ error: { message: "sensitive provider detail" } }, { status: 429 });
   });
-  const response = await handleAsk(createJsonRequest({
-    messages: [{ role: "user", content: "Question" }],
-  }), {
+  const response = await installedService({
     buildCorpus: syntheticCorpus([
       { id: "home:about", title: "About", href: "/#about", text: "Evidence" },
     ]),
-  });
+  }).handle(createJsonRequest({
+    messages: [{ role: "user", content: "Question" }],
+  }));
 
   const events = parseServerSentEvents(await response.text());
   assert.equal(fetchMock.mock.callCount(), 1);
@@ -560,7 +565,7 @@ test("handleAsk makes no retry after a provider HTTP failure", async (t) => {
   assert.deepEqual(errorLog.mock.calls[0]?.arguments, ["Portfolio Q&A generation failed."]);
 });
 
-test("handleAsk keeps provider partial text but ends with error after a broken HTTP stream", async (t) => {
+test("AskService keeps provider partial text but ends with error after a broken HTTP stream", async (t) => {
   configureProvider(t);
   const errorLog = t.mock.method(console, "error", () => undefined);
   t.mock.method(globalThis, "fetch", async () => {
@@ -591,13 +596,13 @@ test("handleAsk keeps provider partial text but ends with error after a broken H
     await Promise.resolve();
     return new Response(body, { headers: { "content-type": "text/event-stream" } });
   });
-  const response = await handleAsk(createJsonRequest({
-    messages: [{ role: "user", content: "Question" }],
-  }), {
+  const response = await installedService({
     buildCorpus: syntheticCorpus([
       { id: "home:about", title: "About", href: "/#about", text: "Evidence" },
     ]),
-  });
+  }).handle(createJsonRequest({
+    messages: [{ role: "user", content: "Question" }],
+  }));
 
   const events = parseServerSentEvents(await response.text());
   assert.equal(events.filter(({ event }) => event === "delta")
@@ -607,7 +612,7 @@ test("handleAsk keeps provider partial text but ends with error after a broken H
   assert.deepEqual(errorLog.mock.calls[0]?.arguments, ["Portfolio Q&A generation failed."]);
 });
 
-test("handleAsk aborts the installed provider client when the browser cancels midstream", { timeout: 2_000 }, async (t) => {
+test("AskService aborts the installed provider client when the browser cancels midstream", { timeout: 2_000 }, async (t) => {
   configureProvider(t);
   let providerSignal: AbortSignal | null | undefined;
   let providerBodyCancelled = false;
@@ -640,11 +645,11 @@ test("handleAsk aborts the installed provider client when the browser cancels mi
     await Promise.resolve();
     return new Response(body, { headers: { "content-type": "text/event-stream" } });
   });
-  const response = await handleAsk(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }), {
+  const response = await installedService({
     buildCorpus: syntheticCorpus([
       { id: "home:about", title: "About", href: "/#about", text: "Evidence" },
     ]),
-  });
+  }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
   assert.ok(response.body);
   const reader = response.body.getReader();
   await reader.read();
@@ -656,7 +661,7 @@ test("handleAsk aborts the installed provider client when the browser cancels mi
   assert.equal(providerBodyCancelled, true);
 });
 
-test("handleAsk aborts a stalled installed provider stream at the server deadline", async (t) => {
+test("AskService aborts a stalled installed provider stream at the server deadline", async (t) => {
   configureProvider(t);
   t.mock.timers.enable({ apis: ["setTimeout"] });
   t.mock.method(console, "error", () => undefined);
@@ -682,11 +687,11 @@ test("handleAsk aborts a stalled installed provider stream at the server deadlin
     });
     return Promise.resolve(new Response(body, { headers: { "content-type": "text/event-stream" } }));
   });
-  const response = await handleAsk(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }), {
+  const response = await installedService({
     buildCorpus: syntheticCorpus([
       { id: "home:about", title: "About", href: "/#about", text: "Evidence" },
     ]),
-  });
+  }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
   const pendingBody = response.text();
   await providerStarted;
 
@@ -698,7 +703,7 @@ test("handleAsk aborts a stalled installed provider stream at the server deadlin
   assert.equal(events.some(({ event }) => event === "done"), false);
 });
 
-test("handleAsk stops stalled corpus preparation at the server deadline before inference", async (t) => {
+test("AskService stops stalled corpus preparation at the server deadline before inference", async (t) => {
   configureProvider(t);
   t.mock.timers.enable({ apis: ["setTimeout"] });
   t.mock.method(console, "error", () => undefined);
@@ -726,9 +731,9 @@ test("handleAsk stops stalled corpus preparation at the server deadline before i
       }, { once: true });
     });
   }
-  const response = await handleAsk(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }), {
+  const response = await installedService({
     buildCorpus: buildStalledCorpus,
-  });
+  }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
   const pendingBody = response.text();
   await corpusStarted;
 
@@ -741,7 +746,7 @@ test("handleAsk stops stalled corpus preparation at the server deadline before i
   assert.equal(events.some(({ event }) => event === "done"), false);
 });
 
-test("handleAsk keeps a provider refusal sticky when later chunks clear the field", async (t) => {
+test("AskService keeps a provider refusal sticky when later chunks clear the field", async (t) => {
   configureProvider(t);
   t.mock.method(console, "error", () => undefined);
   t.mock.method(globalThis, "fetch", async () => {
@@ -753,18 +758,18 @@ test("handleAsk keeps a provider refusal sticky when later chunks clear the fiel
       { id: "chatcmpl-fixture", object: "chat.completion.chunk", created: 1, model: "fixture-model", choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
     ]);
   });
-  const response = await handleAsk(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }), {
+  const response = await installedService({
     buildCorpus: syntheticCorpus([
       { id: "home:about", title: "About", href: "/#about", text: "Evidence" },
     ]),
-  });
+  }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
 
   const events = parseServerSentEvents(await response.text());
   assert.equal(events.at(-1)?.event, "error");
   assert.equal(events.some(({ event }) => event === "done"), false);
 });
 
-test("handleAsk rejects a non-normal finish reason even when a later chunk reports stop", async (t) => {
+test("AskService rejects a non-normal finish reason even when a later chunk reports stop", async (t) => {
   configureProvider(t);
   t.mock.method(console, "error", () => undefined);
   t.mock.method(globalThis, "fetch", async () => {
@@ -776,18 +781,18 @@ test("handleAsk rejects a non-normal finish reason even when a later chunk repor
       { id: "chatcmpl-fixture", object: "chat.completion.chunk", created: 1, model: "fixture-model", choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
     ]);
   });
-  const response = await handleAsk(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }), {
+  const response = await installedService({
     buildCorpus: syntheticCorpus([
       { id: "home:about", title: "About", href: "/#about", text: "Evidence" },
     ]),
-  });
+  }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
 
   const events = parseServerSentEvents(await response.text());
   assert.equal(events.at(-1)?.event, "error");
   assert.equal(events.some(({ event }) => event === "done"), false);
 });
 
-test("handleAsk rejects provider content emitted after terminal finish metadata", async (t) => {
+test("AskService rejects provider content emitted after terminal finish metadata", async (t) => {
   configureProvider(t);
   t.mock.method(console, "error", () => undefined);
   t.mock.method(globalThis, "fetch", async () => {
@@ -799,13 +804,29 @@ test("handleAsk rejects provider content emitted after terminal finish metadata"
       { id: "chatcmpl-fixture", object: "chat.completion.chunk", created: 1, model: "fixture-model", choices: [{ index: 0, delta: { content: answer.slice(15) }, finish_reason: null }] },
     ]);
   });
-  const response = await handleAsk(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }), {
+  const response = await installedService({
     buildCorpus: syntheticCorpus([
       { id: "home:about", title: "About", href: "/#about", text: "Evidence" },
     ]),
-  });
+  }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
 
   const events = parseServerSentEvents(await response.text());
   assert.equal(events.at(-1)?.event, "error");
   assert.equal(events.some(({ event }) => event === "done"), false);
 });
+
+/**
+ * Composes the installed provider path with controlled content operations.
+ * @param dependencies - Corpus builder or synthetic content operations.
+ * @returns The request owner with mandatory environment validation.
+ */
+function installedService(dependencies: AskCorpusDependencies & { buildCorpus?: AskCorpus["build"] } = {}): AskService {
+  return new AskService({
+    /** Resolves the provider snapshot at the request validation boundary.
+     * @returns The controlled operation result.
+     */ resolveConfiguration: () => AskConfiguration.fromEnvironment(),
+    answerService: new AskAnswerService({
+      corpusService: dependencies.buildCorpus ? { build: dependencies.buildCorpus } : new AskCorpusService(dependencies),
+    }),
+  });
+}

@@ -1,8 +1,16 @@
 # Portfolio conversation API
 
-`POST /api/ask` runs a live, portfolio-scoped model request. The thin Route Handler delegates the complete request lifecycle to `app/api/ask/_lib/ask.service.ts`; `handleAsk` is the service's only exported operation.
+`POST /api/ask` runs a live, portfolio-scoped model request. The thin Route Handler delegates the complete request lifecycle to `app/api/ask/_lib/ask.service.ts`; `AskService.handle(request)` is its public request operation.
 
 The service validates the request, loads the complete validated public portfolio corpus, captures bounded optional public activity/plugin data, makes one strict-schema model call, validates its terminal result, resolves source IDs to local routes, and streams the response. It stores no transcript and has no browsing tools. A submitted job URL is never fetched; visitors must paste the job description.
+
+## Service ownership
+
+Each POST constructs an `AskService` with a mandatory configuration resolver and an answer-stream dependency. It validates the body before resolving configuration exactly once; controlled provider fixtures use the same resolver stage.
+
+A shared stateless `AskAnswerService` owns provider requests, structured-output validation and terminal source/follow-up mapping. Its `AskCorpusService` builds complete evidence and bounded optional snapshots. `AskPrompt` separates stable instructions and curated evidence from view context and live evidence; generic JSON and abort helpers have no provider policy. Models and errors live in companions. Shared wire limits remain browser-safe; `AskConfiguration` and server defaults stay private and server-only.
+
+Controllers, deadlines, corpus snapshots, parser buffers and byte counts belong to each invocation. Canceling one optional snapshot stops its wait without canceling shared plugin cache fills.
 
 ## Local configuration
 

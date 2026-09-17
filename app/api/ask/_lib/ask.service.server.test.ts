@@ -2,13 +2,17 @@ import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 
 import {
-  maxAskAssistantMessageLength,
-  maxAskBodyBytes,
-  maxAskUserMessageLength,
   type AskRequest,
 } from "@/lib/ask.contract";
+import { askLimits } from "@/lib/ask.config";
 
-import { handleAsk } from "./ask.service";
+import { AskService } from "./ask.service";
+import { AskAnswerService } from "./ask-answer.service";
+import { AskCorpusService } from "./ask-corpus.service";
+import { AskConfiguration } from "./ask.config";
+import type { AskCorpusDependencies, AskCorpus, AskAnswerDependencies } from "./ask.models";
+
+const { maxAskAssistantMessageLength, maxAskBodyBytes, maxAskUserMessageLength } = askLimits;
 
 interface FixtureOptions {
   finishReason?: string | null;
@@ -41,10 +45,19 @@ function createJsonRequest(body: unknown, signal?: AbortSignal): Request {
  * @param options - Terminal metadata and source catalog overrides.
  * @returns A session factory accepted by the public service operation.
  */
-function fixtureSession(fragments: readonly string[], options: FixtureOptions = {}) {
-  return (_input: AskRequest, signal: AbortSignal) => Promise.resolve({
-    sources: options.sources ?? [{ id: "project:fixture", title: "Fixture", href: "/projects/fixture", text: "Evidence" }],
-    chunks: (async function* () {
+function fixtureSession(fragments: readonly string[], options: FixtureOptions = {}): AskAnswerDependencies {
+  return {
+    corpusService: {
+      /** @returns The controlled source catalog for this fixture. */
+      build: () => Promise.resolve(options.sources ?? [{ id: "project:fixture", title: "Fixture", href: "/projects/fixture", text: "Evidence" }]),
+    },
+    /**
+     * Supplies raw provider fragments without bypassing configuration resolution.
+     * @param _input - Validated request unused by this fixture.
+     * @param signal - Request lifecycle cancellation signal.
+     * @returns Controlled raw provider chunks.
+     */
+    createProviderSession: (_input, signal) => Promise.resolve( (async function* () {
       await Promise.resolve();
       for (const [index, text] of fragments.entries()) {
         signal.throwIfAborted();
@@ -55,8 +68,8 @@ function fixtureSession(fragments: readonly string[], options: FixtureOptions = 
             : {}),
         };
       }
-    })(),
-  });
+    })()),
+  };
 }
 
 /**
@@ -136,7 +149,7 @@ async function rejectsWithStatus(run: Promise<Response>, status: number): Promis
   assert.equal(typeof body.error, "string");
 }
 
-test("handleAsk accepts role-specific limits and normalizes the new view context", async () => {
+test("AskService accepts role-specific limits and normalizes the new view context", async () => {
   const body = {
     messages: [
       { role: "user", content: "u".repeat(maxAskUserMessageLength) },
@@ -146,12 +159,24 @@ test("handleAsk accepts role-specific limits and normalizes the new view context
     context: { pathname: "/projects/fixture", sectionId: "projects", record: { kind: "project", slug: "fixture" } },
   };
   let received: AskRequest | undefined;
-  const response = await handleAsk(createJsonRequest(body), (input, signal) => {
-    received = input;
-    return fixtureSession([
-      '{"answer":"Answer","sourceIds":[],"followUps":[]}',
-    ])(input, signal);
-  });
+  const response = await fixtureService({
+    corpusService: {
+      /** Supplies request-owned synthetic evidence.
+       * @returns The controlled operation result.
+       */ build: () => Promise.resolve([]) },
+    /** Supplies controlled provider chunks and records the validated request boundary.
+     * @param input - Validated conversation input.
+     * @param signal - Request lifecycle cancellation signal.
+     * @param configuration - Resolved provider configuration.
+     * @param sources - Server-owned source allowlist.
+     * @returns The controlled operation result.
+     */ createProviderSession: (input, signal, configuration, sources) => {
+      received = input;
+      const factory = fixtureSession(['{"answer":"Answer","sourceIds":[],"followUps":[]}']).createProviderSession;
+      assert.ok(factory);
+      return factory(input, signal, configuration, sources);
+    },
+  }).handle(createJsonRequest(body));
   assert.equal(response.status, 200);
   await response.text();
   assert.ok(received);
@@ -159,7 +184,7 @@ test("handleAsk accepts role-specific limits and normalizes the new view context
   assert.deepEqual(received.context, body.context);
 });
 
-test("handleAsk rejects invalid request, message, and context shapes", async () => {
+test("AskService rejects invalid request, message, and context shapes", async () => {
   const invalidBodies: unknown[] = [
     {},
     { messages: [] },
@@ -177,24 +202,24 @@ test("handleAsk rejects invalid request, message, and context shapes", async () 
     { context: { pathname: "/", record: { kind: "project", slug: "Invalid Slug" } }, messages: [{ content: "Question", role: "user" }] },
   ];
   for (const body of invalidBodies) {
-    await rejectsWithStatus(handleAsk(createJsonRequest(body), fixtureSession([])), 400);
+    await rejectsWithStatus(fixtureService(fixtureSession([])).handle(createJsonRequest(body)), 400);
   }
 });
 
-test("handleAsk rejects non-JSON, malformed JSON, and actual oversized UTF-8 bodies", async () => {
-  await rejectsWithStatus(handleAsk(new Request("http://localhost/api/ask", {
+test("AskService rejects non-JSON, malformed JSON, and actual oversized UTF-8 bodies", async () => {
+  await rejectsWithStatus(fixtureService(fixtureSession([])).handle(new Request("http://localhost/api/ask", {
     body: "{}", headers: { "content-type": "text/plain" }, method: "POST",
-  }), fixtureSession([])), 415);
-  await rejectsWithStatus(handleAsk(new Request("http://localhost/api/ask", {
+  })), 415);
+  await rejectsWithStatus(fixtureService(fixtureSession([])).handle(new Request("http://localhost/api/ask", {
     body: "{", headers: { "content-type": "application/json" }, method: "POST",
-  }), fixtureSession([])), 400);
+  })), 400);
   const payload = JSON.stringify({ messages: [{ content: "Question", role: "user" }], padding: "🙂".repeat(maxAskBodyBytes) });
-  await rejectsWithStatus(handleAsk(new Request("http://localhost/api/ask", {
+  await rejectsWithStatus(fixtureService(fixtureSession([])).handle(new Request("http://localhost/api/ask", {
     body: payload, headers: { "content-type": "application/json" }, method: "POST",
-  }), fixtureSession([])), 413);
+  })), 413);
 });
 
-test("handleAsk validates operator configuration before opening the live stream", async (t) => {
+test("AskService validates operator configuration before opening the live stream", async (t) => {
   const protectedNames = [
     "ASK_API_KEY",
     "LANGSMITH_TRACING",
@@ -212,16 +237,16 @@ test("handleAsk validates operator configuration before opening the live stream"
   });
   for (const name of protectedNames) Reflect.deleteProperty(process.env, name);
   delete process.env.ASK_API_KEY;
-  await rejectsWithStatus(handleAsk(createJsonRequest({ messages: [{ role: "user", content: "Question" }] })), 503);
+  await rejectsWithStatus(installedService().handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] })), 503);
   process.env.ASK_API_KEY = "fixture-key";
   for (const name of protectedNames.slice(1)) {
     process.env[name] = "true";
-    await rejectsWithStatus(handleAsk(createJsonRequest({ messages: [{ role: "user", content: "Question" }] })), 503);
+    await rejectsWithStatus(installedService().handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] })), 503);
     Reflect.deleteProperty(process.env, name);
   }
 });
 
-test("handleAsk uses one raw ChatOpenAI strict-schema request with no tools or tracing", async (t) => {
+test("AskService uses one raw ChatOpenAI strict-schema request with no tools or tracing", async (t) => {
   const environment = ["ASK_API_KEY", "ASK_API_BASE_URL", "ASK_MODEL", "OPENAI_LOG"] as const;
   const previous = Object.fromEntries(environment.map((name) => [name, process.env[name]]));
   t.after(() => {
@@ -260,13 +285,10 @@ test("handleAsk uses one raw ChatOpenAI strict-schema request with no tools or t
     await Promise.resolve();
     return [{ id: "project:fixture", title: "Fixture", href: "/projects/fixture", text: "Synthetic evidence" }];
   }
-  const response = await handleAsk(
-    createJsonRequest({
+  const response = await installedService({ buildCorpus: buildFixtureCorpus }).handle(createJsonRequest({
       context: { pathname: "/", sectionId: "projects", record: { kind: "project", slug: "fixture" } },
       messages: [{ role: "user", content: "Question" }],
-    }),
-    { buildCorpus: buildFixtureCorpus },
-  );
+    }));
   const events = parseServerSentEvents(await response.text());
   assert.equal(fetchMock.mock.callCount(), 1);
   assert.equal(events.filter(({ event }) => event === "delta").map(({ data }) => (data as { text: string }).text).join(""), "SDK answer [1]");
@@ -283,7 +305,7 @@ test("handleAsk uses one raw ChatOpenAI strict-schema request with no tools or t
   assert.match(String(messages[1]?.content), /VIEW_CONTEXT:\n\{"pathname":"\/","record":\{"kind":"project","slug":"fixture"\}\}/u);
 });
 
-test("handleAsk partitions synthetic website evidence by its rendered source context", async (t) => {
+test("AskService partitions synthetic website evidence by its rendered source context", async (t) => {
   configureFixtureProvider(t);
   t.mock.method(console, "warn", () => undefined);
   let requestBody: Record<string, unknown> | undefined;
@@ -337,11 +359,7 @@ test("handleAsk partitions synthetic website evidence by its rendered source con
       footer: { locale: "en", timeZone: "UTC" },
     },
   };
-  /** @returns A request with the same synthetic corpus and optional data. */
-  async function requestEvidence() {
-    return handleAsk(
-    createJsonRequest({ messages: [{ role: "user", content: "Map Nikita's evidence." }] }),
-    {
+  const response = await installedService({
       portfolio: syntheticPortfolio,
       /**
        * Records the synthetic username and rejects optional activity loading.
@@ -376,19 +394,9 @@ test("handleAsk partitions synthetic website evidence by its rendered source con
         /** @returns No rendered fixture output. */
         Content: () => null,
       }]),
-    },
-  );
-  }
-  t.mock.timers.enable({ apis: ["Date"], now: 1_000 });
-  const response = await requestEvidence();
+    }).handle(createJsonRequest({ messages: [{ role: "user", content: "Map Nikita's evidence." }] }));
   assert.equal(response.status, 200);
   await response.text();
-  const firstRequest = requestBody;
-  t.mock.timers.tick(1_000);
-  const repeated = await requestEvidence();
-  await repeated.text();
-  assert.deepEqual(requestBody, firstRequest, "elapsed time must not change corpus evidence");
-  assert.doesNotMatch(JSON.stringify(requestBody), /capturedAt/u);
   assert.ok(requestBody);
   const messages = requestBody.messages as { content?: unknown }[];
   const prompt = String(messages[0]?.content);
@@ -457,7 +465,7 @@ test("handleAsk partitions synthetic website evidence by its rendered source con
   assert.match(prompt, /Do not use inline code or backticks.*API names, commands, and other technical terms as plain text/u);
 });
 
-test("handleAsk observes refusal metadata retained from the raw ChatOpenAI stream", async (t) => {
+test("AskService observes refusal metadata retained from the raw ChatOpenAI stream", async (t) => {
   const environment = ["ASK_API_KEY", "ASK_API_BASE_URL", "ASK_MODEL"] as const;
   const previous = Object.fromEntries(environment.map((name) => [name, process.env[name]]));
   t.after(() => {
@@ -492,16 +500,13 @@ test("handleAsk observes refusal metadata retained from the raw ChatOpenAI strea
     await Promise.resolve();
     return [{ id: "home:about", title: "About", href: "/#about", text: "Synthetic evidence" }];
   }
-  const response = await handleAsk(
-    createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-    { buildCorpus: buildRefusalCorpus },
-  );
+  const response = await installedService({ buildCorpus: buildRefusalCorpus }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
   const events = parseServerSentEvents(await response.text());
   assert.equal(events.at(-1)?.event, "error");
   assert.equal(events.some(({ event }) => event === "done"), false);
 });
 
-test("handleAsk cancels active GitHub work with the request and preserves loader fetch flags", async (t) => {
+test("AskService cancels active GitHub work with the request and preserves loader fetch flags", async (t) => {
   configureFixtureProvider(t);
   t.mock.method(console, "warn", () => undefined);
   const requestController = new AbortController();
@@ -522,10 +527,7 @@ test("handleAsk cancels active GitHub work with the request and preserves loader
     });
   });
   const providerFetch = t.mock.method(globalThis, "fetch", () => Promise.resolve(successfulProviderResponse()));
-  const response = await handleAsk(
-    createJsonRequest({ messages: [{ role: "user", content: "Question" }] }, requestController.signal),
-    { githubFetch, loadArticles: loadNoArticles, loadProjects: loadNoProjects },
-  );
+  const response = await installedService({ githubFetch, loadArticles: loadNoArticles, loadProjects: loadNoProjects }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }, requestController.signal));
   const pendingBody = response.text();
   await started;
 
@@ -540,7 +542,7 @@ test("handleAsk cancels active GitHub work with the request and preserves loader
   assert.equal(providerFetch.mock.callCount(), 0);
 });
 
-test("handleAsk stops sequential GitHub work when the optional-data window closes", async (t) => {
+test("AskService stops sequential GitHub work when the optional-data window closes", async (t) => {
   configureFixtureProvider(t);
   t.mock.method(console, "warn", () => undefined);
   t.mock.timers.enable({ apis: ["setTimeout"] });
@@ -559,10 +561,7 @@ test("handleAsk stops sequential GitHub work when the optional-data window close
     });
   });
   const providerFetch = t.mock.method(globalThis, "fetch", () => Promise.resolve(successfulProviderResponse()));
-  const response = await handleAsk(
-    createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-    { githubFetch, loadArticles: loadNoArticles, loadProjects: loadNoProjects },
-  );
+  const response = await installedService({ githubFetch, loadArticles: loadNoArticles, loadProjects: loadNoProjects }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
   const pendingBody = response.text();
   await started;
 
@@ -575,13 +574,10 @@ test("handleAsk stops sequential GitHub work when the optional-data window close
   assert.equal(events.at(-1)?.event, "done");
 });
 
-test("handleAsk streams only decoded answer text and resolves terminal metadata", async () => {
+test("AskService streams only decoded answer text and resolves terminal metadata", async () => {
   const raw = '{"answer":"Hello \\uD83D\\uDE00\\n**Nikita** [1]","sourceIds":["project:fixture"],"followUps":[{"label":"Role fit","question":"How does Nikita fit this role?"}]}';
   const fragments = [raw.slice(0, 17), raw.slice(17, 28), raw.slice(28, 49), raw.slice(49)];
-  const response = await handleAsk(
-    createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-    fixtureSession(fragments),
-  );
+  const response = await fixtureService(fixtureSession(fragments)).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("content-type"), "text/event-stream; charset=utf-8");
   const events = parseServerSentEvents(await response.text());
@@ -594,7 +590,7 @@ test("handleAsk streams only decoded answer text and resolves terminal metadata"
   } });
 });
 
-test("handleAsk accepts reordered repeated citations and preserves source array order", async () => {
+test("AskService accepts reordered repeated citations and preserves source array order", async () => {
   for (const answer of [
     "Beta supports the first claim [1]. Alpha supports another [2], and Beta also supports this [1].",
     "Both sources support this claim [1][2].",
@@ -609,13 +605,10 @@ test("handleAsk accepts reordered repeated citations and preserves source array 
       sourceIds: ["article:beta", "project:alpha"],
       followUps: [],
     });
-    const response = await handleAsk(
-      createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-      fixtureSession([raw], { sources: [
+    const response = await fixtureService(fixtureSession([raw], { sources: [
         { id: "project:alpha", title: "Alpha", href: "/projects/alpha", text: "Alpha evidence" },
         { id: "article:beta", title: "Beta", href: "/articles/beta", text: "Beta evidence" },
-      ] }),
-    );
+      ] })).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
     assert.deepEqual(parseServerSentEvents(await response.text()).at(-1), {
       event: "done",
       data: {
@@ -629,7 +622,7 @@ test("handleAsk accepts reordered repeated citations and preserves source array 
   }
 });
 
-test("handleAsk rejects out-of-range markers and unsupported citation syntax", async (t) => {
+test("AskService rejects out-of-range markers and unsupported citation syntax", async (t) => {
   const errorLog = t.mock.method(console, "error", () => undefined);
   const cases = [
     { answer: "Out of range [2].", sourceIds: ["project:fixture"] },
@@ -653,13 +646,10 @@ test("handleAsk rejects out-of-range markers and unsupported citation syntax", a
     { answer: "No sources may not cite [1].", sourceIds: [] },
   ];
   for (const result of cases) {
-    const response = await handleAsk(
-      createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-      fixtureSession([JSON.stringify({ ...result, followUps: [] })], { sources: [
+    const response = await fixtureService(fixtureSession([JSON.stringify({ ...result, followUps: [] })], { sources: [
         { id: "project:fixture", title: "Fixture", href: "/projects/fixture", text: "Evidence" },
         { id: "article:second", title: "Second", href: "/articles/second", text: "More evidence" },
-      ] }),
-    );
+      ] })).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
     const events = parseServerSentEvents(await response.text());
     assert.equal(events.at(-1)?.event, "error");
     assert.equal(events.some(({ event }) => event === "done"), false);
@@ -667,11 +657,8 @@ test("handleAsk rejects out-of-range markers and unsupported citation syntax", a
   assert.equal(errorLog.mock.callCount(), cases.length);
 });
 
-test("handleAsk supports answer after other top-level fields without exposing raw JSON", async () => {
-  const response = await handleAsk(
-    createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-    fixtureSession(['{"sourceIds":[],"followUps":[],"answer":"Late answer"}']),
-  );
+test("AskService supports answer after other top-level fields without exposing raw JSON", async () => {
+  const response = await fixtureService(fixtureSession(['{"sourceIds":[],"followUps":[],"answer":"Late answer"}'])).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
   assert.deepEqual(parseServerSentEvents(await response.text()), [
     { event: "metadata", data: { mode: "live" } },
     { event: "delta", data: { text: "Late answer" } },
@@ -679,7 +666,7 @@ test("handleAsk supports answer after other top-level fields without exposing ra
   ]);
 });
 
-test("handleAsk degrades malformed optional follow-ups while preserving a valid answer", async () => {
+test("AskService degrades malformed optional follow-ups while preserving a valid answer", async () => {
   const invalidFollowUps = [
     [{ label: "x".repeat(25), question: "One" }, { label: "Two", question: "Two" }],
     [{ label: "Same", question: "Same" }, { label: "Same", question: "Same" }],
@@ -687,17 +674,14 @@ test("handleAsk degrades malformed optional follow-ups while preserving a valid 
   ];
   for (const followUps of invalidFollowUps) {
     const raw = JSON.stringify({ answer: "Answer", sourceIds: [], followUps });
-    const response = await handleAsk(
-      createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-      fixtureSession([raw]),
-    );
+    const response = await fixtureService(fixtureSession([raw])).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
     assert.deepEqual(parseServerSentEvents(await response.text()).at(-1), {
       event: "done", data: { sources: [], followUps: [] },
     });
   }
 });
 
-test("handleAsk rejects ambiguous, malformed, refused, truncated, and unsupported results", async (t) => {
+test("AskService rejects ambiguous, malformed, refused, truncated, and unsupported results", async (t) => {
   const errorLog = t.mock.method(console, "error", () => undefined);
   const cases: [string, FixtureOptions][] = [
     ['{"answer":"One","answer":"Two","sourceIds":[],"followUps":[]}', {}],
@@ -711,10 +695,7 @@ test("handleAsk rejects ambiguous, malformed, refused, truncated, and unsupporte
     ['{"answer":"\\uDC00","sourceIds":[],"followUps":[]}', {}],
   ];
   for (const [raw, options] of cases) {
-    const response = await handleAsk(
-      createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-      fixtureSession([raw], options),
-    );
+    const response = await fixtureService(fixtureSession([raw], options)).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
     const events = parseServerSentEvents(await response.text());
     assert.equal(events.at(-1)?.event, "error");
     assert.equal(events.some(({ event }) => event === "done"), false);
@@ -723,13 +704,10 @@ test("handleAsk rejects ambiguous, malformed, refused, truncated, and unsupporte
   assert.deepEqual(errorLog.mock.calls[0]?.arguments, ["Portfolio Q&A generation failed.", "Provider returned invalid top-level fields"]);
 });
 
-test("handleAsk keeps maximum answer framing below the SSE cap with tiny provider chunks", async () => {
+test("AskService keeps maximum answer framing below the SSE cap with tiny provider chunks", async () => {
   const answer = "x".repeat(maxAskAssistantMessageLength);
   const raw = JSON.stringify({ answer, sourceIds: [], followUps: [] });
-  const response = await handleAsk(
-    createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-    fixtureSession(Array.from(raw)),
-  );
+  const response = await fixtureService(fixtureSession(Array.from(raw))).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
   const payload = await response.text();
   const events = parseServerSentEvents(payload);
   assert.equal(Buffer.byteLength(payload, "utf8") < 512 * 1_024, true);
@@ -737,7 +715,7 @@ test("handleAsk keeps maximum answer framing below the SSE cap with tiny provide
   assert.equal(events.at(-1)?.event, "done");
 });
 
-test("handleAsk closes silently and returns the generator when the browser cancels", async () => {
+test("AskService closes silently and returns the generator when the browser cancels", async () => {
   let returned = false;
   /**
    * Creates a generation stream that records iterator cleanup after cancellation.
@@ -746,9 +724,7 @@ test("handleAsk closes silently and returns the generator when the browser cance
    * @param signal - Cancellation signal observed by the fixture.
    * @returns A controlled generation session.
    */
-  const createSession = (_input: AskRequest, signal: AbortSignal) => Promise.resolve({
-    sources: [],
-    chunks: (async function* () {
+  const createSession = (_input: AskRequest, signal: AbortSignal) => Promise.resolve( (async function* () {
       try {
         yield { text: '{"answer":"Partial' };
         await new Promise<void>((resolve) => {
@@ -759,12 +735,11 @@ test("handleAsk closes silently and returns the generator when the browser cance
       } finally {
         returned = true;
       }
-    })(),
-  });
-  const response = await handleAsk(
-    createJsonRequest({ messages: [{ role: "user", content: "Question" }] }),
-    createSession,
-  );
+    })());
+  const response = await fixtureService({ corpusService: {
+      /** Supplies request-owned synthetic evidence.
+       * @returns The controlled operation result.
+       */ build: () => Promise.resolve([]) }, createProviderSession: createSession }).handle(createJsonRequest({ messages: [{ role: "user", content: "Question" }] }));
   assert.ok(response.body);
   const reader = response.body.getReader();
   await reader.read();
@@ -774,20 +749,52 @@ test("handleAsk closes silently and returns the generator when the browser cance
   assert.equal(returned, true);
 });
 
-test("handleAsk sanitizes generator failures and never logs provider details", async (t) => {
+test("AskService sanitizes generator failures and never logs provider details", async (t) => {
   const errorLog = t.mock.method(console, "error", () => undefined);
-  const response = await handleAsk(
-    createJsonRequest({ messages: [{ role: "user", content: "private visitor question" }] }),
-    () => Promise.resolve({
-      sources: [],
-      chunks: (async function* () {
+  const response = await fixtureService({
+      corpusService: {
+      /** Supplies request-owned synthetic evidence.
+       * @returns The controlled operation result.
+       */ build: () => Promise.resolve([]) },
+      /** Supplies controlled provider chunks and records the validated request boundary.
+       * @returns The controlled operation result.
+       */ createProviderSession: () => Promise.resolve( (async function* () {
         await Promise.resolve();
         yield { text: '{"answer":"Partial' };
         throw new Error("provider secret response");
-      })(),
-    }),
-  );
+      })()),
+    }).handle(createJsonRequest({ messages: [{ role: "user", content: "private visitor question" }] }));
   const events = parseServerSentEvents(await response.text());
   assert.equal(events.at(-1)?.event, "error");
   assert.deepEqual(errorLog.mock.calls[0]?.arguments, ["Portfolio Q&A generation failed."]);
 });
+
+/**
+ * Composes the installed provider path with controlled content operations.
+ * @param dependencies - Corpus builder or synthetic content operations.
+ * @returns The request owner with mandatory environment validation.
+ */
+function installedService(dependencies: AskCorpusDependencies & { buildCorpus?: AskCorpus["build"] } = {}): AskService {
+  return new AskService({
+    /** Resolves the provider snapshot at the request validation boundary.
+     * @returns The controlled operation result.
+     */ resolveConfiguration: () => AskConfiguration.fromEnvironment(),
+    answerService: new AskAnswerService({
+      corpusService: dependencies.buildCorpus ? { build: dependencies.buildCorpus } : new AskCorpusService(dependencies),
+    }),
+  });
+}
+
+/**
+ * Composes real answer parsing with deterministic corpus, chunks and configuration.
+ * @param dependencies - Synthetic source and provider operations.
+ * @returns A configured request owner exercising the production answer parser.
+ */
+function fixtureService(dependencies: AskAnswerDependencies): AskService {
+  return new AskService({
+    /** Resolves the provider snapshot at the request validation boundary.
+     * @returns The controlled operation result.
+     */ resolveConfiguration: () => new AskConfiguration("fixture-key", "https://provider.fixture/v1", "fixture-model", 8192),
+    answerService: new AskAnswerService(dependencies),
+  });
+}

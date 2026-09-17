@@ -4,14 +4,13 @@ import { GitPullRequest, GitPullRequestDraft, MessageCircleMore } from "lucide-r
 
 import sectionStyles from "@/app/(home)/_components/section.module.scss";
 import { home } from "@/lib/content/portfolio/server";
-import {
-  loadGitHubActivity,
-  type ContributionDay,
-} from "@/lib/content/github-activity";
+import { GitHubActivityService } from "@/lib/content/github-activity";
+import type { ContributionDay } from "@/lib/content/github-activity.models";
 import { CalendarDays } from "./calendar-days";
 import styles from "./code-activity.module.scss";
 import { PullRequestGroup, type PullRequestGroupStyles } from "./pull-request-group";
 
+const githubActivity = new GitHubActivityService();
 const activityMonth = new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" });
 const activityDate = new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const pullRequestGroupStyles = {
@@ -62,7 +61,7 @@ function calendarMonthLabels(days: readonly ContributionDay[]): readonly string[
  */
 export async function HomeCodeActivity() {
   const { codeActivity } = home;
-  const activity = await loadGitHubActivity(codeActivity.username);
+  const activity = await githubActivity.load(codeActivity.username);
   const profileHref = `https://github.com/${codeActivity.username}`;
   const profileLabel = `github.com/${codeActivity.username}`;
   const groups = [

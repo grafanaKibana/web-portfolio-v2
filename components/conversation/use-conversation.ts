@@ -5,70 +5,22 @@ import {
   useRef,
   useState,
   type Dispatch,
-  type RefObject,
   type SetStateAction,
 } from "react";
-import {
-  maxAskUserMessageLength,
-  type AskContext,
-  type AskFollowUp,
-  type AskSource,
-} from "@/lib/ask.contract";
 import { askSectionIds, captureAskContext } from "@/lib/section-context";
-import { AskStreamError, streamAsk } from "./ask-stream";
-import { buildAskRequest } from "./conversation-history";
+import { ConversationService } from "./conversation.service";
+import { AskStreamError } from "./conversation.errors";
+import { conversationConfig } from "./conversation.config";
+import type { ActiveRequest, ConversationTurn, UseConversationResult } from "./conversation.models";
 
-/** Answer source reported by the conversation endpoint. */
-export type ConversationMode = "live";
-/** Lifecycle state of one conversation turn. */
-export type ConversationTurnStatus = "pending" | "complete" | "stopped" | "error";
-/** Maximum visitor-question length accepted by the composer. */
-export const maxConversationInputLength = maxAskUserMessageLength;
-
-/** One visitor question and its current answer state. */
-export interface ConversationTurn {
-  id: string;
-  question: string;
-  text: string;
-  status: ConversationTurnStatus;
-  mode?: ConversationMode;
-  error?: string;
-  errorDetail?: string;
-  context?: AskContext;
-  sources?: AskSource[];
-  followUps?: AskFollowUp[];
-}
-
-/** State and actions exposed by the conversation controller. */
-export interface UseConversationResult {
-  inputRef: RefObject<HTMLTextAreaElement | null>;
-  inputId: string;
-  turns: ConversationTurn[];
-  draft: string;
-  setDraft: Dispatch<SetStateAction<string>>;
-  pending: boolean;
-  expanded: boolean;
-  submit: () => void;
-  submitQuestion: (question: string) => void;
-  stop: () => void;
-  retry: (turnId: string) => void;
-  reset: () => void;
-  statusAnnouncement: string;
-}
-
-interface ActiveRequest {
-  id: number;
-  turnId: string;
-  controller: AbortController;
-}
-
-const genericError = "Unable to finish the answer. Please try again.";
+const { genericError, maxConversationInputLength } = conversationConfig;
 
 /** Owns in-memory conversation state and guards every stream update by request identity.
  * @param pathname - Current portfolio route pathname.
  * @returns Persistent transcript state and request actions for the conversation view.
  */
 export function useConversation(pathname: string): UseConversationResult {
+  const [service] = useState(() => new ConversationService());
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const inputId = useId();
   const nextTurnId = useRef(1);
@@ -123,7 +75,7 @@ export function useConversation(pathname: string): UseConversationResult {
     const current = () => activeRequest.current?.id === requestId
       && activeRequest.current.turnId === turnId;
 
-    void Promise.resolve().then(() => streamAsk(buildAskRequest(snapshot, turnId), controller.signal, {
+    void Promise.resolve().then(() => service.stream(service.buildRequest(snapshot, turnId), controller.signal, {
       /** Stores accepted stream mode on the active turn.
        * @param mode - Validated mock or live response mode.
        */
@@ -159,7 +111,7 @@ export function useConversation(pathname: string): UseConversationResult {
         : turn));
       setStatusAnnouncement(message);
     });
-  }, [updateTurns]);
+  }, [service, updateTurns]);
 
   /** Keeps the controlled draft synchronized and clears stale native validity.
    * @param next - Draft value or state updater.

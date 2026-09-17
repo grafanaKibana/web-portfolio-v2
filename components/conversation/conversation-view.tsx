@@ -19,13 +19,16 @@ import {
 } from "@/components/ui/message-scroller";
 import { Message, MessageContent } from "@/components/ui/message";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
-import { maxConversationInputLength, type ConversationTurn, type UseConversationResult } from "./use-conversation";
+import type { ConversationTurn, UseConversationResult } from "./conversation.models";
+import { conversationConfig } from "./conversation.config";
 import { chatGrowthDuration, chatMotionEase, useConversationLineReveal } from "./conversation-motion";
 import styles from "./conversation.module.scss";
 
 const MotionBubble = motion.create(Bubble);
 const MotionBubbleReactions = motion.create(BubbleReactions);
 const noSources: readonly AskSource[] = [];
+const { maxConversationInputLength } = conversationConfig;
+
 /** Resolves the mandatory sanitizer from the installed Streamdown release.
  * @returns The bundled sanitize plugin.
  * @throws When the installed renderer lacks its documented sanitizer.
@@ -647,7 +650,7 @@ function ConversationPanel({ active, model, surfaceRef }: { active: boolean; mod
   }
 
   return (
-    <div className="flex min-h-0 flex-[0_1_auto] flex-col" data-conversation data-expanded={expanded}>
+    <div className="flex min-h-0 flex-[0_1_auto] flex-col gap-5" data-conversation data-expanded={expanded}>
       {expanded
         ? (
             <MessageScroller className="h-auto min-h-0 flex-[0_1_auto]">

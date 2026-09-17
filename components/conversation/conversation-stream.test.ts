@@ -1,14 +1,17 @@
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 
-import {
-  AskStreamError,
-  streamAsk,
-  type AskStreamCallbacks,
-} from "./ask-stream";
-import { askBrowserTimeoutMs, maxAskStreamBytes, type AskSource } from "@/lib/ask.contract";
-import type { ConversationMode } from "./use-conversation";
+import { ConversationService } from "./conversation.service";
+import { AskStreamError } from "./conversation.errors";
+import type { AskStreamCallbacks } from "./conversation.models";
+import type { AskSource } from "@/lib/ask.contract";
+import { askLimits } from "@/lib/ask.config";
+import { conversationConfig } from "./conversation.config";
+import type { ConversationMode } from "./conversation.models";
 
+const { maxAskStreamBytes } = askLimits;
+const { askBrowserTimeoutMs } = conversationConfig;
+const service = new ConversationService();
 const encoder = new TextEncoder();
 
 /**
@@ -117,7 +120,7 @@ async function readStream(t: TestContext, payload: string): Promise<{
   mockFetch(t, sseResponse(payload));
   const deltas: string[] = [];
   const modes: ConversationMode[] = [];
-  const result = await streamAsk(
+  const result = await service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     recordingCallbacks(deltas, modes),
@@ -159,7 +162,7 @@ async function rejectsWithDetail(
   });
 }
 
-test("streamAsk posts the JSON request to the ask endpoint", async (t) => {
+test("ConversationService.stream posts the JSON request to the ask endpoint", async (t) => {
   let capturedInput: RequestInfo | URL | undefined;
   let capturedInit: RequestInit | undefined;
   t.mock.method(globalThis, "fetch", (input: RequestInfo | URL, init?: RequestInit) => {
@@ -173,7 +176,7 @@ test("streamAsk posts the JSON request to the ask endpoint", async (t) => {
   });
   const request = { messages: [{ content: "Question", role: "user" as const }] };
 
-  await streamAsk(request, new AbortController().signal, noopCallbacks);
+  await service.stream(request, new AbortController().signal, noopCallbacks);
 
   assert.equal(capturedInput, "/api/ask");
   assert.ok(capturedInit);
@@ -182,7 +185,7 @@ test("streamAsk posts the JSON request to the ask endpoint", async (t) => {
   assert.match(new Headers(capturedInit.headers).get("content-type") ?? "", /^application\/json\b/);
 });
 
-test("streamAsk decodes a non-ASCII response split at every UTF-8 byte", async (t) => {
+test("ConversationService.stream decodes a non-ASCII response split at every UTF-8 byte", async (t) => {
   const payload =
     "event: metadata\r\ndata: {\"mode\":\"live\"}\r\n\r\n" +
     "event: delta\r\ndata: {\"text\":\"Привіт 世界 🙂\"}\r\n\r\n" +
@@ -192,7 +195,7 @@ test("streamAsk decodes a non-ASCII response split at every UTF-8 byte", async (
   const deltas: string[] = [];
   const modes: ConversationMode[] = [];
 
-  const result = await streamAsk(
+  const result = await service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     recordingCallbacks(deltas, modes),
@@ -203,7 +206,7 @@ test("streamAsk decodes a non-ASCII response split at every UTF-8 byte", async (
   assert.deepEqual(result, { sources: [], followUps: [] });
 });
 
-test("streamAsk accepts comments, multiline data, LF frames, and coalesced frames", async (t) => {
+test("ConversationService.stream accepts comments, multiline data, LF frames, and coalesced frames", async (t) => {
   const result = await readStream(t,
     ": heartbeat\n" +
     "event: metadata\ndata: {\"mode\":\ndata: \"live\"}\n\n" +
@@ -214,7 +217,7 @@ test("streamAsk accepts comments, multiline data, LF frames, and coalesced frame
   assert.deepEqual(result, { deltas: ["One", "Two"], modes: ["live"], sources: [] });
 });
 
-test("streamAsk resolves at done without waiting for response EOF", async (t) => {
+test("ConversationService.stream resolves at done without waiting for response EOF", async (t) => {
   let cancelled = false;
   const payload = encoder.encode(
     "event: metadata\ndata: {\"mode\":\"live\"}\n\n" +
@@ -237,7 +240,7 @@ test("streamAsk resolves at done without waiting for response EOF", async (t) =>
   });
   mockFetch(t, new Response(body, { headers: { "content-type": "text/event-stream" } }));
 
-  const result = await streamAsk(
+  const result = await service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
@@ -247,14 +250,14 @@ test("streamAsk resolves at done without waiting for response EOF", async (t) =>
   assert.equal(cancelled, true);
 });
 
-test("streamAsk returns validated same-site sources and follow-ups", async (t) => {
+test("ConversationService.stream returns validated same-site sources and follow-ups", async (t) => {
   mockFetch(t, sseResponse(
     "event: metadata\ndata: {\"mode\":\"live\"}\n\n" +
     "event: delta\ndata: {\"text\":\"Answer\"}\n\n" +
     "event: done\ndata: {\"sources\":[{\"id\":\"project:fixture\",\"title\":\"Fixture\",\"href\":\"/projects/fixture\"}],\"followUps\":[{\"label\":\"Show evidence\",\"question\":\"Where did Nikita use this skill?\"}]}\n\n",
   ));
 
-  const result = await streamAsk(
+  const result = await service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
@@ -266,7 +269,7 @@ test("streamAsk returns validated same-site sources and follow-ups", async (t) =
   });
 });
 
-test("streamAsk rejects unsafe source links and invalid two-label combinations", async (t) => {
+test("ConversationService.stream rejects unsafe source links and invalid two-label combinations", async (t) => {
   await rejectsSafely(readStream(t,
     "event: metadata\ndata: {\"mode\":\"live\"}\n\n" +
     "event: delta\ndata: {\"text\":\"Answer\"}\n\n" +
@@ -283,75 +286,75 @@ test("streamAsk rejects unsafe source links and invalid two-label combinations",
     })}\n\n`));
 });
 
-test("streamAsk rejects an unknown metadata mode", async (t) => {
+test("ConversationService.stream rejects an unknown metadata mode", async (t) => {
   await rejectsSafely(readStream(t,
     "event: metadata\ndata: {\"mode\":\"preview\"}\n\n" +
     "event: delta\ndata: {\"text\":\"Answer\"}\n\n" +
     "event: done\ndata: {\"sources\":[]}\n\n"));
 });
 
-test("streamAsk rejects duplicate metadata", async (t) => {
+test("ConversationService.stream rejects duplicate metadata", async (t) => {
   await rejectsSafely(readStream(t,
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n" +
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n"));
 });
 
-test("streamAsk rejects malformed event JSON", async (t) => {
+test("ConversationService.stream rejects malformed event JSON", async (t) => {
   await rejectsWithDetail(
     readStream(t, "event: metadata\ndata: {\n\n"),
     /response.*could not read/i,
   );
 });
 
-test("streamAsk rejects invalid event data shapes", async (t) => {
+test("ConversationService.stream rejects invalid event data shapes", async (t) => {
   await rejectsSafely(readStream(t,
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n" +
     "event: delta\ndata: {\"text\":42}\n\n"));
 });
 
-test("streamAsk rejects events received out of protocol order", async (t) => {
+test("ConversationService.stream rejects events received out of protocol order", async (t) => {
   await rejectsSafely(readStream(t,
     "event: delta\ndata: {\"text\":\"Early\"}\n\n" +
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n"));
 });
 
-test("streamAsk rejects unsupported event names", async (t) => {
+test("ConversationService.stream rejects unsupported event names", async (t) => {
   await rejectsSafely(readStream(t,
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n" +
     "event: progress\ndata: {\"value\":1}\n\n"));
 });
 
-test("streamAsk rejects non-empty terminal sources", async (t) => {
+test("ConversationService.stream rejects non-empty terminal sources", async (t) => {
   await rejectsSafely(readStream(t,
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n" +
     "event: delta\ndata: {\"text\":\"Answer\"}\n\n" +
     "event: done\ndata: {\"sources\":[{\"url\":\"https://example.com\"}]}\n\n"));
 });
 
-test("streamAsk rejects a successful response with the wrong content type", async (t) => {
+test("ConversationService.stream rejects a successful response with the wrong content type", async (t) => {
   mockFetch(t, new Response("plain text", { headers: { "content-type": "text/plain" } }));
 
-  await rejectsWithDetail(streamAsk(
+  await rejectsWithDetail(service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
   ), /response.*could not read/i);
 });
 
-test("streamAsk rejects a successful response without a body", async (t) => {
+test("ConversationService.stream rejects a successful response without a body", async (t) => {
   mockFetch(t, new Response(null, { headers: { "content-type": "text/event-stream" } }));
 
-  await rejectsSafely(streamAsk(
+  await rejectsSafely(service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
   ));
 });
 
-test("streamAsk exposes a safe useful message for a 400 input error", async (t) => {
+test("ConversationService.stream exposes a safe useful message for a 400 input error", async (t) => {
   mockFetch(t, Response.json({ error: "Question must be 400 characters or fewer." }, { status: 400 }));
 
-  const pending = streamAsk(
+  const pending = service.stream(
     { messages: [{ content: "x".repeat(401), role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
@@ -360,62 +363,62 @@ test("streamAsk exposes a safe useful message for a 400 input error", async (t) 
   await rejectsWithDetail(pending, /HTTP 400.*invalid/i, /question.*try again/i);
 });
 
-test("streamAsk hides raw markup from server failures", async (t) => {
+test("ConversationService.stream hides raw markup from server failures", async (t) => {
   mockFetch(t, new Response("<html>SECRET stack trace</html>", {
     headers: { "content-type": "text/html" },
     status: 500,
   }));
 
-  await rejectsWithDetail(streamAsk(
+  await rejectsWithDetail(service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
   ), /HTTP 500/i);
 });
 
-test("streamAsk maps network failures to a display-safe retryable error", async (t) => {
+test("ConversationService.stream maps network failures to a display-safe retryable error", async (t) => {
   t.mock.method(globalThis, "fetch", () => Promise.reject(new TypeError("Failed to fetch")));
 
-  await rejectsWithDetail(streamAsk(
+  await rejectsWithDetail(service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
   ), /connection.*failed/i);
 });
 
-test("streamAsk rejects a server error event without exposing its raw message", async (t) => {
+test("ConversationService.stream rejects a server error event without exposing its raw message", async (t) => {
   mockFetch(t, sseResponse(
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n" +
     "event: error\ndata: {\"message\":\"SECRET provider detail\"}\n\n",
   ));
 
-  await rejectsWithDetail(streamAsk(
+  await rejectsWithDetail(service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
   ), /service reported a failure.*reply/i);
 });
 
-test("streamAsk rejects a done event when the answer is empty", async (t) => {
+test("ConversationService.stream rejects a done event when the answer is empty", async (t) => {
   await rejectsSafely(readStream(t,
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n" +
     "event: done\ndata: {\"sources\":[]}\n\n"));
 });
 
-test("streamAsk rejects a done event when the answer contains only whitespace", async (t) => {
+test("ConversationService.stream rejects a done event when the answer contains only whitespace", async (t) => {
   await rejectsSafely(readStream(t,
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n" +
     "event: delta\ndata: {\"text\":\" \\n\\t\"}\n\n" +
     "event: done\ndata: {\"sources\":[]}\n\n"));
 });
 
-test("streamAsk rejects EOF before a done event", async (t) => {
+test("ConversationService.stream rejects EOF before a done event", async (t) => {
   await rejectsSafely(readStream(t,
     "event: metadata\ndata: {\"mode\":\"mock\"}\n\n" +
     "event: delta\ndata: {\"text\":\"Partial\"}\n\n"));
 });
 
-test("streamAsk enforces the cumulative byte cap across many small frames", async (t) => {
+test("ConversationService.stream enforces the cumulative byte cap across many small frames", async (t) => {
   const frames = ["event: metadata\ndata: {\"mode\":\"live\"}\n\n"];
   const paddingFrame = `: ${"x".repeat(500)}\n\n`;
   let bytes = encoder.encode(frames[0] ?? "").byteLength;
@@ -425,14 +428,14 @@ test("streamAsk enforces the cumulative byte cap across many small frames", asyn
   }
   mockFetch(t, eventStreamResponse(frames.map((frame) => encoder.encode(frame))));
 
-  await rejectsSafely(streamAsk(
+  await rejectsSafely(service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
   ));
 });
 
-test("streamAsk enforces the pending-frame byte cap independently", async (t) => {
+test("ConversationService.stream enforces the pending-frame byte cap independently", async (t) => {
   const body = new ReadableStream<Uint8Array>({
     /**
      * Enqueues an oversized frame without closing the response.
@@ -445,7 +448,7 @@ test("streamAsk enforces the pending-frame byte cap independently", async (t) =>
   });
   mockFetch(t, new Response(body, { headers: { "content-type": "text/event-stream" } }));
   let settled = false;
-  const pending = streamAsk(
+  const pending = service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
@@ -461,7 +464,7 @@ test("streamAsk enforces the pending-frame byte cap independently", async (t) =>
   await rejectsSafely(pending);
 });
 
-test("streamAsk aborts an active response when its caller aborts", async (t) => {
+test("ConversationService.stream aborts an active response when its caller aborts", async (t) => {
   const caller = new AbortController();
   let fetchSignal: AbortSignal | undefined;
   t.mock.method(globalThis, "fetch", (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -480,7 +483,7 @@ test("streamAsk aborts an active response when its caller aborts", async (t) => 
     });
     return Promise.resolve(new Response(body, { headers: { "content-type": "text/event-stream" } }));
   });
-  const pending = streamAsk(
+  const pending = service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     caller.signal,
     noopCallbacks,
@@ -493,7 +496,7 @@ test("streamAsk aborts an active response when its caller aborts", async (t) => 
   assert.equal(fetchSignal?.aborted, true);
 });
 
-test("streamAsk aborts a stalled response after the browser deadline", async (t) => {
+test("ConversationService.stream aborts a stalled response after the browser deadline", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   let fetchSignal: AbortSignal | undefined;
   t.mock.method(globalThis, "fetch", (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -512,7 +515,7 @@ test("streamAsk aborts a stalled response after the browser deadline", async (t)
     });
     return Promise.resolve(new Response(body, { headers: { "content-type": "text/event-stream" } }));
   });
-  const pending = streamAsk(
+  const pending = service.stream(
     { messages: [{ content: "Question", role: "user" }] },
     new AbortController().signal,
     noopCallbacks,
@@ -524,4 +527,95 @@ test("streamAsk aborts a stalled response after the browser deadline", async (t)
 
   await rejectsWithDetail(pending, /did not respond within 65 seconds/i);
   assert.equal(fetchSignal?.aborted, true);
+});
+
+test("ConversationService.stream isolates overlapping buffers, callbacks, deadlines and caller cancellation", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const bodies: ReadableStream<Uint8Array>[] = [];
+  const writers: ReadableStreamDefaultController<Uint8Array>[] = [];
+  const signals: AbortSignal[] = [];
+  const cancelled: number[] = [];
+  const service = new ConversationService({
+    /** Opens an independently controlled response for each request.
+     * @param _input - Unused destination.
+     * @param init - Request options carrying the per-call signal.
+     * @returns A controlled event-stream response.
+     */
+    fetcher: (_input, init) => {
+    const index = bodies.length;
+    assert.ok(init?.signal instanceof AbortSignal);
+    signals.push(init.signal);
+    const body = new ReadableStream<Uint8Array>({
+      /** Captures the independently controlled response writer.
+       * @param controller - Writer for this response only.
+       */
+      start(controller) { writers.push(controller); },
+      /** Records which response was disposed by the transport. */
+      cancel() { cancelled.push(index); },
+    });
+    bodies.push(body);
+    return Promise.resolve(new Response(body, { headers: { "content-type": "text/event-stream" } }));
+  } });
+  const firstCaller = new AbortController();
+  const secondCaller = new AbortController();
+  const firstDeltas: string[] = [];
+  const secondDeltas: string[] = [];
+  const firstModes: ConversationMode[] = [];
+  const secondModes: ConversationMode[] = [];
+  const first = service.stream({ messages: [{ role: "user", content: "First" }] }, firstCaller.signal,
+    recordingCallbacks(firstDeltas, firstModes));
+  t.mock.timers.tick(1_000);
+  const second = service.stream({ messages: [{ role: "user", content: "Second" }] }, secondCaller.signal,
+    recordingCallbacks(secondDeltas, secondModes));
+  const [firstWriter, secondWriter] = writers;
+  const [firstSignal, secondSignal] = signals;
+  assert.ok(firstWriter && secondWriter && firstSignal && secondSignal);
+  firstWriter.enqueue(encoder.encode('event: metadata\ndata: {"mode":"live"}\n\nevent: delta\ndata: {"text":"First"}\n\n'));
+  secondWriter.enqueue(encoder.encode('event: metadata\ndata: {"mode":"live"}\n\nevent: delta\ndata: {"text":"Sec'));
+  await new Promise<void>((resolve) => { setImmediate(resolve); });
+  const firstRejected = assert.rejects(first, { name: "AbortError" });
+  firstCaller.abort();
+  await firstRejected;
+  t.mock.timers.tick(askBrowserTimeoutMs - 1_000);
+  assert.equal(firstSignal.aborted, true);
+  assert.equal(secondSignal.aborted, false);
+  secondWriter.enqueue(encoder.encode('ond"}\n\nevent: done\ndata: {"sources":[{"id":"second","title":"Second source","href":"/projects/second"}],"followUps":[]}\n\n'));
+  assert.deepEqual(await second, {
+    sources: [{ id: "second", title: "Second source", href: "/projects/second" }], followUps: [],
+  });
+  assert.deepEqual(firstDeltas, ["First"]);
+  assert.deepEqual(secondDeltas, ["Second"]);
+  assert.deepEqual(firstModes, ["live"]);
+  assert.deepEqual(secondModes, ["live"]);
+  assert.deepEqual(cancelled.sort(), [0, 1]);
+  assert.ok(bodies.every((body) => !body.locked));
+  t.mock.timers.tick(askBrowserTimeoutMs);
+  secondCaller.abort();
+  assert.equal(secondSignal.aborted, false, "completion removes caller listeners and the deadline");
+});
+
+test("ConversationService uses its injected browser deadline", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let transportSignal: AbortSignal | undefined;
+  const service = new ConversationService({
+    configuration: { ...conversationConfig, askBrowserTimeoutMs: 25 },
+    /** Holds a controlled response open until the service cancels its reader.
+     * @param _input - Unused request destination.
+     * @param init - Request options carrying the service-owned signal.
+     * @returns A stalled event-stream response.
+     */
+    fetcher: (_input, init) => {
+      transportSignal = init?.signal ?? undefined;
+      return Promise.resolve(new Response(new ReadableStream<Uint8Array>(), { headers: { "content-type": "text/event-stream" } }));
+    },
+  });
+  const pending = service.stream({ messages: [{ role: "user", content: "Question" }] },
+    new AbortController().signal, noopCallbacks);
+  await Promise.resolve();
+  t.mock.timers.tick(24);
+  assert.ok(transportSignal);
+  assert.equal(transportSignal.aborted, false);
+  t.mock.timers.tick(1);
+  await rejectsWithDetail(pending, /did not respond within 65 seconds/i);
+  assert.equal(transportSignal.aborted, true);
 });

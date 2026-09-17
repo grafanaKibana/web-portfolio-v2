@@ -30,6 +30,8 @@ Use strict nearest-owner colocation with root shared folders and route-private i
 - Share code when it has multiple real consumers or an application-wide responsibility. Prefer small duplication over a speculative abstraction.
 - Keep rendering on the server by default. Add narrow client boundaries for state, effects, event handlers, or browser APIs; pass serializable props across them.
 - Keep server-only loaders, Node filesystem APIs, credentials, and provider code out of client modules.
+- Represent application workflows with cohesive service classes that own their readonly dependencies, configuration and behavior. Keep React components and hooks as functions; keep Next.js entry exports and other framework-required adapters in their required form.
+- Export bare functions only from cohesive generic helper collections or where a framework or library requires them. Put related data/type families and error classes in companion model/error files, and group configuration in owner-local config files with browser/server boundaries preserved.
 
 ## Shared UI and styling
 
@@ -46,7 +48,7 @@ Use strict nearest-owner colocation with root shared folders and route-private i
 - Article and project detail routes use `generateStaticParams` and `dynamicParams = false`; unknown slugs return a static 404 with `noindex`.
 - Optional activity or plugin metadata failures must not remove curated content. Sitemap and robots URLs require a validated HTTPS deployment origin.
 - Validate incoming requests. Keep credentials server-side, without `NEXT_PUBLIC_` prefixes, and exclude secrets and visitor questions from logs.
-- Follow [the conversation API contract](app/api/ask/README.md) for request validation, cancellation, streaming, and provider integration. Changing its offline mode or adding persistent history requires an explicit feature request.
+- Follow [the conversation API contract](app/api/ask/README.md) for request validation, cancellation, streaming, and provider integration. Changing provider behavior, the streaming contract, or persistent history requires an explicit feature request.
 
 ## Accessibility and interaction
 

@@ -108,10 +108,18 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
     writeFixture(root, "components/theme/theme.tsx"),
     writeFixture(root, "lib/content/load.ts"),
     writeFixture(root, "lib/content/github-activity.ts"),
+    writeFixture(root, "lib/content/github-activity.models.ts"),
     writeFixture(root, "lib/content/plugin-links.ts"),
     writeFixture(root, "lib/ask.contract.ts"),
+    writeFixture(root, "lib/ask.config.ts"),
     writeFixture(root, "components/conversation/conversation.tsx"),
-    writeFixture(root, "components/conversation/ask-stream.ts"),
+    writeFixture(root, "components/conversation/conversation.service.ts"),
+    writeFixture(root, "components/conversation/conversation.models.ts"),
+    writeFixture(root, "components/conversation/conversation.config.ts"),
+    writeFixture(root, "components/conversation/conversation.errors.ts"),
+    writeFixture(root, "components/conversation/ask-stream-parsing.ts"),
+    writeFixture(root, "components/conversation/use-conversation.ts"),
+    writeFixture(root, "components/conversation/conversation-view.tsx"),
     writeFixture(root, "app/api/ask/route.ts"),
     writeFixture(root, "app/api/ask/_lib/ask.service.ts"),
     writeFixture(root, "content/articles/fixture.mdx", "# Fixture\n"),
@@ -131,15 +139,29 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
 
   const cases = [
     ["app/layout.tsx", 'import "@/components/conversation/conversation";', 0],
-    ["components/conversation/conversation.tsx", 'import "./ask-stream";', 0],
-    ["components/conversation/ask-stream.ts", 'import "@/lib/ask.contract";', 0],
+    ["components/conversation/conversation.tsx", 'import "./conversation.service";', 0],
+    ["components/conversation/conversation.tsx", 'import "./conversation.models";', 0],
+    ["components/conversation/conversation.service.ts", 'import "./conversation.config";', 0],
+    ["components/conversation/conversation.service.ts", 'import "./conversation.models";', 0],
+    ["components/conversation/conversation.service.ts", 'import "./conversation.errors";', 0],
+    ["components/conversation/conversation.service.ts", 'import "./ask-stream-parsing";', 0],
+    ["components/conversation/conversation.service.ts", 'import "@/lib/ask.contract";', 0],
+    ["components/conversation/conversation.service.ts", 'import "@/lib/ask.config";', 0],
+    ["components/conversation/conversation.service.ts", 'import "./use-conversation";', 1],
+    ["components/conversation/conversation.service.ts", 'import "./conversation-view";', 1],
+    ["components/conversation/conversation.service.ts", 'import "@/components/ui/button";', 1],
+    ["components/conversation/conversation.service.ts", 'import "@/lib/content/load";', 1],
     ["app/api/ask/route.ts", 'import "./_lib/ask.service";', 0],
     ["app/api/ask/_lib/ask.service.ts", 'import "@/lib/ask.contract";', 0],
     ["app/api/ask/_lib/ask.service.ts", 'import "@/lib/content/github-activity";', 0],
     ["app/api/ask/_lib/ask.service.ts", 'import "@/lib/content/plugin-links";', 0],
-    ["components/site-header/site-header.tsx", 'import "@/components/conversation/ask-stream";', 1],
-    ["components/conversation/ask-stream.ts", 'import "@/app/api/ask/_lib/ask.service";', 1],
+    ["components/site-header/site-header.tsx", 'import "@/components/conversation/conversation.service";', 1],
+    ["components/site-header/site-header.tsx", 'import "@/components/conversation/conversation.models";', 1],
+    ["components/site-header/site-header.tsx", 'import "@/components/conversation/conversation.config";', 1],
+    ["components/site-header/site-header.tsx", 'import "@/components/conversation/ask-stream-parsing";', 1],
+    ["components/conversation/conversation.service.ts", 'import "@/app/api/ask/_lib/ask.service";', 1],
     ["lib/ask.contract.ts", 'import "@/app/api/ask/_lib/ask.service";', 1],
+    ["lib/ask.config.ts", 'import "@/app/api/ask/_lib/ask.service";', 1],
     ["app/(home)/page.tsx", 'import "@/app/api/ask/_lib/ask.service";', 1],
     ["app/api/ask/route.ts", 'import "@/app/(home)/_components/hero/hero";', 1],
     ["app/layout.tsx", 'import "@/components/site-header/site-header";', 0],
@@ -152,6 +174,7 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
     ["app/projects/[slug]/page.tsx", 'import "./_lib/plugin-links";', 0],
     ["app/projects/[slug]/page.tsx", 'import "@/lib/content/plugin-links";', 0],
     ["app/(home)/_components/code-activity/code-activity.tsx", 'import "@/lib/content/github-activity";', 0],
+    ["app/(home)/_components/code-activity/code-activity.tsx", 'import "@/lib/content/github-activity.models";', 0],
     ["tests/quality.test.ts", 'import "@/app/(home)/_components/hero/hero";', 0],
     ["components/site-footer/local-time.tsx", 'import("@/components/site-footer/format-time");', 0],
     ["lib/shared.ts", 'import "@/app/(home)/_components/hero/hero";', 1],
@@ -333,10 +356,12 @@ test("a candidate component owner requires an explicit public-entry zone before 
 });
 
 for (const [name, subjects] of [
-  ["the shared ask contract remains browser-safe", ["lib/ask.contract.ts"]],
+  ["the shared ask contract and limits remain browser-safe", ["lib/ask.contract.ts", "lib/ask.config.ts"]],
   ["conversation transport modules do not import server-only dependencies", [
-    "components/conversation/ask-stream.ts",
-    "components/conversation/conversation-history.ts",
+    "components/conversation/conversation.service.ts",
+    "components/conversation/conversation.models.ts",
+    "components/conversation/conversation.config.ts",
+    "components/conversation/ask-stream-parsing.ts",
     "components/conversation/use-conversation.ts",
   ]],
 ]) {
@@ -354,9 +379,15 @@ for (const [name, subjects] of [
         assert.equal(result?.fatalErrorCount, 0);
         assert.equal(result.messages.some(({ ruleId }) => ruleId === "no-restricted-imports"), true, `${subject}: ${dependency}`);
       }
-      const [allowed] = await lint.lintText('import "react";', { filePath: join(root, subject) });
-      assert.equal(allowed?.fatalErrorCount, 0);
-      assert.equal(allowed.messages.some(({ ruleId }) => ruleId === "no-restricted-imports"), false);
+      for (const dependency of ["react", "react/jsx-runtime", "react-dom"]) {
+        const [runtime] = await lint.lintText(`import "${dependency}";`, { filePath: join(root, subject) });
+        assert.equal(runtime?.fatalErrorCount, 0);
+        assert.equal(
+          runtime.messages.some(({ ruleId }) => ruleId === "no-restricted-imports"),
+          subject === "components/conversation/conversation.service.ts",
+          `${subject}: ${dependency}`,
+        );
+      }
     }
   });
 }

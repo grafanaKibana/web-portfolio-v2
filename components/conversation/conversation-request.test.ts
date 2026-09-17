@@ -2,14 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  type AskContext,
+} from "@/lib/ask.contract";
+import { askLimits } from "@/lib/ask.config";
+import { ConversationService } from "./conversation.service";
+
+import type { ConversationTurn } from "./conversation.models";
+
+const service = new ConversationService();
+
+const {
   maxAskAssistantMessageLength,
   maxAskBodyBytes,
   maxAskMessages,
   maxAskUserMessageLength,
-  type AskContext,
-} from "@/lib/ask.contract";
-import { buildAskRequest } from "./conversation-history";
-import type { ConversationTurn } from "./use-conversation";
+} = askLimits;
 
 const encoder = new TextEncoder();
 
@@ -30,7 +37,7 @@ function turn(
 }
 
 test("buildAskRequest sends only the current question when no history exists", () => {
-  assert.deepEqual(buildAskRequest([turn("current", "Current question", "", "pending")], "current"), {
+  assert.deepEqual(service.buildRequest([turn("current", "Current question", "", "pending")], "current"), {
     messages: [{ content: "Current question", role: "user" }],
   });
 });
@@ -40,7 +47,7 @@ test("buildAskRequest includes the five latest completed pairs", () => {
     turn(`turn-${String(index)}`, `Question ${String(index)}`, `Answer ${String(index)}`));
   turns.push(turn("current", "Current question", "", "pending"));
 
-  const request = buildAskRequest(turns, "current");
+  const request = service.buildRequest(turns, "current");
 
   assert.equal(request.messages.length, maxAskMessages);
   assert.deepEqual(request.messages[0], { content: "Question 0", role: "user" });
@@ -52,7 +59,7 @@ test("buildAskRequest evicts complete pairs older than the five-pair window", ()
     turn(`turn-${String(index)}`, `Question ${String(index)}`, `Answer ${String(index)}`));
   turns.push(turn("current", "Current question", "", "pending"));
 
-  const request = buildAskRequest(turns, "current");
+  const request = service.buildRequest(turns, "current");
 
   assert.equal(request.messages.length, maxAskMessages);
   assert.deepEqual(request.messages[0], { content: "Question 2", role: "user" });
@@ -68,7 +75,7 @@ test("buildAskRequest excludes stopped, failed, pending, and partial turns", () 
     turn("current", "Current", "", "pending"),
   ];
 
-  assert.deepEqual(buildAskRequest(turns, "current").messages, [
+  assert.deepEqual(service.buildRequest(turns, "current").messages, [
     { content: "Keep", role: "user" },
     { content: "Complete answer", role: "assistant" },
     { content: "Current", role: "user" },
@@ -82,7 +89,7 @@ test("buildAskRequest retrying an older turn excludes its old answer and later t
     turn("later", "Later", "Later answer"),
   ];
 
-  assert.deepEqual(buildAskRequest(turns, "retry").messages, [
+  assert.deepEqual(service.buildRequest(turns, "retry").messages, [
     { content: "First", role: "user" },
     { content: "First answer", role: "assistant" },
     { content: "Original question", role: "user" },
@@ -92,7 +99,7 @@ test("buildAskRequest retrying an older turn excludes its old answer and later t
 test("buildAskRequest retains a complete maximum-length answer", () => {
   const displayed = `${"a".repeat(maxAskAssistantMessageLength - 2)}🙂`;
   const source = turn("history", "Earlier", displayed);
-  const request = buildAskRequest([source, turn("current", "Current", "", "pending")], "current");
+  const request = service.buildRequest([source, turn("current", "Current", "", "pending")], "current");
   const replay = request.messages[1]?.content;
 
   assert.ok(replay);
@@ -108,7 +115,7 @@ test("buildAskRequest retains the selected turn's original context snapshot", ()
   };
   const selected = { ...turn("current", "Current", "", "pending"), context };
 
-  assert.deepEqual(buildAskRequest([selected], "current"), {
+  assert.deepEqual(service.buildRequest([selected], "current"), {
     context,
     messages: [{ content: "Current", role: "user" }],
   });
@@ -118,7 +125,7 @@ test("buildAskRequest accepts the maximum current question without trimming it",
   const question = "q".repeat(maxAskUserMessageLength);
 
   assert.equal(
-    buildAskRequest([turn("current", question, "", "pending")], "current").messages[0]?.content,
+    service.buildRequest([turn("current", question, "", "pending")], "current").messages[0]?.content,
     question,
   );
 });
@@ -129,7 +136,7 @@ test("buildAskRequest evicts oldest whole pairs to satisfy the UTF-8 body cap", 
     turn(`turn-${String(index)}`, `问题${String(index)}`.repeat(70), answer));
   turns.push(turn("current", "当前问题", "", "pending"));
 
-  const request = buildAskRequest(turns, "current");
+  const request = service.buildRequest(turns, "current");
   const bytes = encoder.encode(JSON.stringify(request)).byteLength;
 
   assert.ok(bytes <= maxAskBodyBytes, `${String(bytes)} exceeds ${String(maxAskBodyBytes)}`);

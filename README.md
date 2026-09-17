@@ -36,9 +36,10 @@ Plugin links on case studies use Obsidian's official download statistics and eac
 | `app/(home)/page.tsx` | `/` route entry; `(home)` groups source without changing the URL. |
 | `app/(home)/_components/` | Home-private UI owners and their companions. |
 | `components/` | Application-wide shared UI, including the site frame and reusable controls. |
-| `components/conversation/` | Site-wide conversation UI, streaming client and in-memory history. |
-| `app/api/ask/` | Live portfolio-scoped endpoint and its [API/provider contract](app/api/ask/README.md); the server-only `handleAsk` workflow lives in `_lib/ask.service.ts`. |
-| `lib/ask.contract.ts` | Shared request, completion, source, follow-up, and limit contracts used by conversation and endpoint. |
+| `components/conversation/` | Site-wide conversation UI; `ConversationService` owns browser transport/history while the hook owns React state and lifecycle. |
+| `app/api/ask/` | Portfolio-scoped endpoint and its [API/provider contract](app/api/ask/README.md); the thin route composes server-only request, answer and corpus services under `_lib/`. |
+| `lib/ask.contract.ts` | Shared request, completion, source and follow-up DTOs used by conversation and endpoint. |
+| `lib/ask.config.ts` | Shared browser/server Ask wire limits. |
 | `components/ui/` | Shared UI foundation and its local generator utility adapter. |
 | `lib/` | Application-wide shared non-UI runtime code. |
 | `lib/content/` | Content discovery, loading, validation, and shared content types. |
@@ -61,11 +62,12 @@ Put a file at the narrowest owner that fully owns its behavior. Promote it only 
 
 Next.js supports multiple project organizations. This repository chooses root shared folders plus route-private colocation and applies that choice consistently.
 
-Ask uses role-explicit names: `ask.service.ts` for its request-to-response workflow and `ask.contract.ts` for shared wire types and limits. Validation, full-corpus preparation, provider generation, structured-output parsing, and SSE helpers remain private inside the service; extract a companion only for actual reuse or independent complexity. A service is an ordinary TypeScript module and does not require a class or dependency-injection container.
+Application workflows use cohesive service classes with readonly injected dependencies. React components and hooks remain functions, as do Next.js entry exports and other framework-required adapters. Bare function exports belong only in cohesive generic helper collections or required adapters. Keep related data/type families, error classes and grouped configuration in owner-local companion files; separate browser-safe configuration from server-only provider or credential concerns.
 
 ### Examples
 
-- The conversation is mounted by the root layout, so its UI and client helpers live in `components/conversation/`. The thin `app/api/ask/route.ts` delegates to `handleAsk` in `app/api/ask/_lib/ask.service.ts`, which owns request validation, answer generation, HTTP errors and streaming. Only the shared protocol types and limits belong in `lib/ask.contract.ts`.
+- The conversation is mounted by the root layout, so its UI, hook and `ConversationService` live in `components/conversation/`. The hook owns React state and request identity; the service owns request history and streaming transport.
+- The thin `app/api/ask/route.ts` composes `AskService`, which owns request validation, HTTP/SSE lifecycle and disposal. `AskAnswerService` owns provider generation and output validation; `AskCorpusService` owns corpus preparation. Shared DTOs stay in `lib/ask.contract.ts`, shared wire limits stay in `lib/ask.config.ts`, and server-only models/configuration stay beside the Ask services.
 - Hero-only behavior stays under `app/(home)/_components/hero/`. Descriptor sequencing lives inside `hero/descriptor-rotation/` because no other owner consumes it.
 - Projects and Writing both use the Home editorial row, so it lives at their Home-private common owner: `app/(home)/_components/editorial-row/`.
 - Project content is consumed by Home and project routes, so its loader lives at `lib/content/projects/server.ts`, while authored project MDX remains in `content/projects/`.
