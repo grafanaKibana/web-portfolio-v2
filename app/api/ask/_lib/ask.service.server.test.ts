@@ -280,7 +280,7 @@ test("handleAsk uses one raw ChatOpenAI strict-schema request with no tools or t
   assert.deepEqual(format.json_schema.schema.properties.sourceIds.items.enum, ["project:fixture"]);
   const messages = requestBody.messages as { content?: unknown }[];
   assert.match(String(messages[0]?.content), /Synthetic evidence/u);
-  assert.match(String(messages[0]?.content), /VIEW_CONTEXT:\n\{"pathname":"\/","record":\{"kind":"project","slug":"fixture"\}\}/u);
+  assert.match(String(messages[1]?.content), /VIEW_CONTEXT:\n\{"pathname":"\/","record":\{"kind":"project","slug":"fixture"\}\}/u);
 });
 
 test("handleAsk partitions synthetic website evidence by its rendered source context", async (t) => {
@@ -337,7 +337,9 @@ test("handleAsk partitions synthetic website evidence by its rendered source con
       footer: { locale: "en", timeZone: "UTC" },
     },
   };
-  const response = await handleAsk(
+  /** @returns A request with the same synthetic corpus and optional data. */
+  async function requestEvidence() {
+    return handleAsk(
     createJsonRequest({ messages: [{ role: "user", content: "Map Nikita's evidence." }] }),
     {
       portfolio: syntheticPortfolio,
@@ -376,8 +378,17 @@ test("handleAsk partitions synthetic website evidence by its rendered source con
       }]),
     },
   );
+  }
+  t.mock.timers.enable({ apis: ["Date"], now: 1_000 });
+  const response = await requestEvidence();
   assert.equal(response.status, 200);
   await response.text();
+  const firstRequest = requestBody;
+  t.mock.timers.tick(1_000);
+  const repeated = await requestEvidence();
+  await repeated.text();
+  assert.deepEqual(requestBody, firstRequest, "elapsed time must not change corpus evidence");
+  assert.doesNotMatch(JSON.stringify(requestBody), /capturedAt/u);
   assert.ok(requestBody);
   const messages = requestBody.messages as { content?: unknown }[];
   const prompt = String(messages[0]?.content);
@@ -388,6 +399,10 @@ test("handleAsk partitions synthetic website evidence by its rendered source con
   assert.equal(sources.length, 11);
   const sourceById = new Map(sources.map((source) => [source.id, source]));
   const byId = new Map(sources.map((source) => [source.id, JSON.parse(source.text) as Record<string, unknown>]));
+  const livePrompt = String(messages[1]?.content);
+  const liveMarker = "\nLIVE_PORTFOLIO_DATA:\n";
+  const liveSources = JSON.parse(livePrompt.slice(livePrompt.indexOf(liveMarker) + liveMarker.length)) as { id: string; text: string }[];
+  const liveById = new Map(liveSources.map((source) => [source.id, JSON.parse(source.text) as Record<string, unknown>]));
 
   assert.deepEqual(sourceById.get("home:top"), {
     id: "home:top",
@@ -415,7 +430,7 @@ test("handleAsk partitions synthetic website evidence by its rendered source con
   assert.equal(byId.get("home:skills")?.evidenceType, "self-reported skill inventory");
   assert.equal(byId.get("project:synthetic-project")?.evidenceType, "portfolio project");
   assert.equal(byId.get("article:synthetic-article")?.evidenceType, "technical writing");
-  assert.deepEqual(byId.get("project:synthetic-project")?.renderedLinks, [
+  assert.deepEqual(liveById.get("project:synthetic-project")?.renderedLinks, [
     { label: "Synthetic project link", href: "https://example.test/project" },
   ]);
   assert.equal(byId.get("home:code")?.username, syntheticPortfolio.home.codeActivity.username);

@@ -15,6 +15,12 @@ interface SyntheticCorpusEntry {
   title: string;
   href: string;
   text: string;
+  liveText?: string;
+}
+
+interface ProviderMessage {
+  content?: unknown;
+  role?: unknown;
 }
 
 type ServerSentEvent = { data: unknown; event: string };
@@ -37,8 +43,12 @@ function createJsonRequest(body: unknown): Request {
  * Configures a deterministic provider endpoint and restores prior values after the test.
  *
  * @param t - Active Node test context.
+ * @param overrides - Optional provider endpoint and model overrides.
  */
-function configureProvider(t: TestContext): void {
+function configureProvider(
+  t: TestContext,
+  overrides: { baseUrl?: string; model?: string } = {},
+): void {
   const names = ["ASK_API_KEY", "ASK_API_BASE_URL", "ASK_MODEL"] as const;
   const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
   t.after(() => {
@@ -49,8 +59,8 @@ function configureProvider(t: TestContext): void {
     }
   });
   process.env.ASK_API_KEY = "fixture-key";
-  process.env.ASK_API_BASE_URL = "https://provider.fixture/v1";
-  process.env.ASK_MODEL = "fixture-model";
+  process.env.ASK_API_BASE_URL = overrides.baseUrl ?? "https://provider.fixture/v1";
+  process.env.ASK_MODEL = overrides.model ?? "fixture-model";
 }
 
 /**
@@ -157,18 +167,50 @@ function syntheticCorpus(entries: readonly SyntheticCorpusEntry[]) {
 }
 
 /**
- * Returns the system message content from a captured provider request.
+ * Combines system and developer message content from a captured provider request.
  *
  * @param request - Parsed provider request body.
  * @returns System prompt text.
  */
 function systemPrompt(request: Record<string, unknown>): string {
-  const messages = request.messages as { content?: unknown; role?: unknown }[];
-  const first = messages.at(0);
-  assert.ok(first);
-  assert.equal(first.role, "system");
-  if (typeof first.content !== "string") throw new assert.AssertionError({ message: "expected system prompt text" });
-  return first.content;
+  return providerMessages(request)
+    .filter(({ role }) => role === "system" || role === "developer")
+    .map(({ content }) => messageText(content))
+    .join("\n");
+}
+
+/**
+ * Returns the serialized chat messages from a captured provider request.
+ *
+ * @param request - Parsed provider request body.
+ * @returns Provider message records in wire order.
+ */
+function providerMessages(request: Record<string, unknown>): ProviderMessage[] {
+  if (!Array.isArray(request.messages)) {
+    throw new assert.AssertionError({ message: "expected provider messages" });
+  }
+  return request.messages as ProviderMessage[];
+}
+
+/**
+ * Combines plain or block-based provider message content into readable text.
+ *
+ * @param content - Serialized provider message content.
+ * @returns Concatenated text from the message.
+ */
+function messageText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) {
+    throw new assert.AssertionError({ message: "expected string or text-block message content" });
+  }
+  return content.map((block) => {
+    if (!block || typeof block !== "object" || Array.isArray(block)) {
+      throw new assert.AssertionError({ message: "expected provider text block" });
+    }
+    const text = (block as { text?: unknown }).text;
+    if (typeof text !== "string") throw new assert.AssertionError({ message: "expected provider text block" });
+    return text;
+  }).join("");
 }
 
 test("handleAsk sends every synthetic corpus family to the provider", async (t) => {
@@ -213,6 +255,178 @@ test("handleAsk sends every synthetic corpus family to the provider", async (t) 
       followUps: [],
     },
   });
+});
+
+test("handleAsk keeps one explicit OpenAI cache prefix across dynamic request changes", async (t) => {
+  configureProvider(t, {
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-5.6-luna",
+  });
+  const capturedBodies: Record<string, unknown>[] = [];
+  t.mock.method(globalThis, "fetch", async (_input: RequestInfo | URL, init?: RequestInit) => {
+    capturedBodies.push(parseProviderBody(init));
+    await Promise.resolve();
+    return providerResponse([JSON.stringify({
+      answer: "Alpha provides the relevant evidence. [1]",
+      sourceIds: ["project:alpha"],
+      followUps: [],
+    })]);
+  });
+  const baseSources = [
+    {
+      id: "project:alpha",
+      title: "Alpha",
+      href: "/projects/alpha",
+      text: "CURATED_ALPHA_EVIDENCE",
+      liveText: "LIVE_ALPHA_A",
+    },
+    {
+      id: "article:beta",
+      title: "Beta",
+      href: "/articles/beta",
+      text: "CURATED_BETA_EVIDENCE",
+    },
+  ];
+  const baseContext = {
+    pathname: "/projects/alpha",
+    record: { kind: "project" as const, slug: "alpha" },
+  };
+  const baseMessages = [{ role: "user" as const, content: "Question one" }];
+  const cases = [
+    { sources: baseSources, context: baseContext, messages: baseMessages },
+    {
+      sources: baseSources,
+      context: baseContext,
+      messages: [
+        { role: "user" as const, content: "Earlier question" },
+        { role: "assistant" as const, content: "Earlier answer" },
+        { role: "user" as const, content: "Different current question" },
+      ],
+    },
+    { sources: baseSources, context: { pathname: "/" }, messages: baseMessages },
+    {
+      sources: baseSources.map((source) => source.id === "project:alpha"
+        ? { ...source, liveText: "LIVE_ALPHA_B" }
+        : source),
+      context: baseContext,
+      messages: baseMessages,
+    },
+    {
+      sources: baseSources.map((source) => source.id === "project:alpha"
+        ? { ...source, text: "CURATED_ALPHA_CHANGED" }
+        : source),
+      context: baseContext,
+      messages: baseMessages,
+    },
+  ];
+
+  for (const requestCase of cases) {
+    const response = await handleAsk(createJsonRequest({
+      context: requestCase.context,
+      messages: requestCase.messages,
+    }), {
+      buildCorpus: syntheticCorpus(requestCase.sources),
+    });
+    assert.deepEqual(parseServerSentEvents(await response.text()).at(-1), {
+      event: "done",
+      data: {
+        sources: [{ id: "project:alpha", title: "Alpha", href: "/projects/alpha" }],
+        followUps: [],
+      },
+    });
+  }
+
+  assert.equal(capturedBodies.length, cases.length);
+  const requests = capturedBodies.map(providerMessages);
+  const stableMessages = requests.map((messages) => messages.at(0));
+  const dynamicMessages = requests.map((messages) => messages.at(1));
+  const stableText = messageText(stableMessages[0]?.content);
+  assert.deepEqual(stableMessages[0], {
+    role: "developer",
+    content: [{
+      type: "text",
+      text: stableText,
+      prompt_cache_breakpoint: { mode: "explicit" },
+    }],
+  });
+  assert.match(stableText, /PORTFOLIO_DATA:\n/u);
+  assert.match(stableText, /CURATED_ALPHA_EVIDENCE/u);
+  assert.match(stableText, /CURATED_BETA_EVIDENCE/u);
+  assert.doesNotMatch(stableText, /LIVE_ALPHA_/u);
+  for (const index of [1, 2, 3]) assert.deepEqual(stableMessages[index], stableMessages[0]);
+  assert.notDeepEqual(stableMessages[4], stableMessages[0]);
+  assert.match(messageText(stableMessages[4]?.content), /CURATED_ALPHA_CHANGED/u);
+
+  assert.deepEqual(dynamicMessages[0], dynamicMessages[1]);
+  assert.notDeepEqual(dynamicMessages[2], dynamicMessages[0]);
+  assert.notDeepEqual(dynamicMessages[3], dynamicMessages[0]);
+  assert.match(messageText(dynamicMessages[0]?.content), /VIEW_CONTEXT:\n\{"pathname":"\/projects\/alpha","record":\{"kind":"project","slug":"alpha"\}\}/u);
+  assert.match(messageText(dynamicMessages[0]?.content), /LIVE_PORTFOLIO_DATA:\n\[\{"id":"project:alpha","text":"LIVE_ALPHA_A"\}\]/u);
+  assert.match(messageText(dynamicMessages[2]?.content), /VIEW_CONTEXT:\n\{"pathname":"\/"\}/u);
+  assert.match(messageText(dynamicMessages[3]?.content), /LIVE_PORTFOLIO_DATA:\n\[\{"id":"project:alpha","text":"LIVE_ALPHA_B"\}\]/u);
+  assert.doesNotMatch(messageText(dynamicMessages[0]?.content), /CURATED_ALPHA_EVIDENCE/u);
+  assert.deepEqual(requests[1]?.slice(2), [
+    { role: "user", content: "Earlier question" },
+    { role: "assistant", content: "Earlier answer" },
+    { role: "user", content: "Different current question" },
+  ]);
+
+  for (const body of capturedBodies) {
+    assert.deepEqual(body.prompt_cache_options, { mode: "explicit" });
+    assert.equal(Object.hasOwn(body, "stream_options"), false);
+    assert.deepEqual(body.response_format, capturedBodies[0]?.response_format);
+  }
+});
+
+test("handleAsk omits OpenAI cache extensions for custom providers and older models", async (t) => {
+  configureProvider(t, {
+    baseUrl: "https://provider.fixture/v1",
+    model: "gpt-5.6-luna",
+  });
+  const capturedBodies: Record<string, unknown>[] = [];
+  t.mock.method(globalThis, "fetch", async (_input: RequestInfo | URL, init?: RequestInit) => {
+    capturedBodies.push(parseProviderBody(init));
+    await Promise.resolve();
+    return providerResponse([JSON.stringify({ answer: "Evidence.", sourceIds: [], followUps: [] })]);
+  });
+  const sources = [{
+    id: "home:about",
+    title: "About",
+    href: "/#about",
+    text: "CURATED_EVIDENCE",
+    liveText: "LIVE_EVIDENCE",
+  }];
+
+  const customResponse = await handleAsk(createJsonRequest({
+    messages: [{ role: "user", content: "Custom provider question" }],
+  }), { buildCorpus: syntheticCorpus(sources) });
+  assert.equal(parseServerSentEvents(await customResponse.text()).at(-1)?.event, "done");
+
+  process.env.ASK_API_BASE_URL = "https://api.openai.com/v1";
+  process.env.ASK_MODEL = "gpt-4o";
+  const olderModelResponse = await handleAsk(createJsonRequest({
+    messages: [{ role: "user", content: "Older model question" }],
+  }), { buildCorpus: syntheticCorpus(sources) });
+  assert.equal(parseServerSentEvents(await olderModelResponse.text()).at(-1)?.event, "done");
+
+  assert.equal(capturedBodies.length, 2);
+  for (const [index, body] of capturedBodies.entries()) {
+    const messages = providerMessages(body);
+    assert.equal(messages.length, 3);
+    const expectedRole = index === 0 ? "developer" : "system";
+    assert.deepEqual(messages.slice(0, 2).map(({ role }) => role), [expectedRole, expectedRole]);
+    assert.equal(typeof messages[0]?.content, "string");
+    assert.equal(typeof messages[1]?.content, "string");
+    assert.match(messageText(messages[0]?.content), /CURATED_EVIDENCE/u);
+    assert.doesNotMatch(messageText(messages[0]?.content), /LIVE_EVIDENCE/u);
+    assert.match(messageText(messages[1]?.content), /LIVE_EVIDENCE/u);
+    assert.doesNotMatch(messageText(messages[1]?.content), /CURATED_EVIDENCE/u);
+    assert.equal(Object.hasOwn(body, "prompt_cache_options"), false);
+    assert.equal(Object.hasOwn(body, "stream_options"), false);
+    assert.doesNotMatch(JSON.stringify(body), /prompt_cache_breakpoint/u);
+    assert.match(systemPrompt(body), /CURATED_EVIDENCE/u);
+    assert.match(systemPrompt(body), /LIVE_EVIDENCE/u);
+  }
 });
 
 test("handleAsk replaces conflicting record hints with canonical route context", async (t) => {
