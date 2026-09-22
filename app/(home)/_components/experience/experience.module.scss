@@ -1,5 +1,5 @@
 .experienceHeader {
-  margin-bottom: 2.75rem;
+  margin-bottom: 2rem;
   padding-top: 0.75rem;
 }
 
@@ -25,8 +25,8 @@
 }
 
 .experiencePeriod {
-  font-size: 0.6875rem;
-  line-height: 1.5;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
 }
 
 .timelineDot {
@@ -96,8 +96,8 @@
 }
 
 .roleTitle {
-  font-size: 1rem;
-  line-height: 1.35;
+  font-size: 1.125rem;
+  line-height: 1.5rem;
   color: var(--foreground);
   letter-spacing: -0.01em;
 }
@@ -107,9 +107,9 @@
 }
 
 .roleSummary {
-  max-width: 78ch;
+  max-width: 68ch;
   font-size: 0.875rem;
-  line-height: 1.7;
+  line-height: 1.5rem;
   transition: color 150ms;
 }
 
@@ -127,8 +127,9 @@
 }
 
 .roleDetails summary {
-  font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  letter-spacing: 0.08em;
   transition: color 150ms;
 }
 
@@ -183,7 +184,7 @@
 }
 
 .highlights {
-  max-width: 78ch;
+  max-width: 68ch;
   color: var(--content-foreground);
 }
 
@@ -191,7 +192,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   font-size: 0.875rem;
-  line-height: 1.65;
+  line-height: 1.5rem;
 }
 
 .highlights li::before {
@@ -237,10 +238,6 @@
     grid-template-columns: 8.75rem minmax(0, 1fr);
   }
 
-  .experiencePeriod {
-    font-size: 0.8125rem;
-  }
-
   .timelineDot {
     top: 19.5px;
     left: calc(100% - 0.25rem);
@@ -250,23 +247,15 @@
     left: 8.5rem;
   }
 
-  .roleTitle {
-    font-size: 1.125rem;
-  }
-
   .organization {
     font-size: 0.8125rem;
-  }
-
-  .roleSummary {
-    font-size: 0.9375rem;
   }
 
 }
 
 @media (min-width: 64rem) {
   .experienceHeader {
-    margin-bottom: 5rem;
+    margin-bottom: 2.5rem;
     padding-top: 0.875rem;
   }
 }

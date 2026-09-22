@@ -22,9 +22,12 @@
 }
 
 .heading {
-  font-size: clamp(1.25rem, 6.4vw, 2.125rem);
-  line-height: 1.14;
+  overflow-wrap: anywhere;
+  /* stylelint-disable-next-line number-max-precision -- Preserve the approved responsive type curve. */
+  font-size: clamp(1.75rem, 3.90625vw, 2.5rem);
+  line-height: 1.12;
   letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 
 .descriptorSlot {
@@ -37,12 +40,6 @@
 
 .socialLinks {
   margin-top: 1.375rem;
-}
-
-@media (max-width: 20rem) {
-  .heading span {
-    white-space: normal;
-  }
 }
 
 @media (min-width: 64rem) {
@@ -63,9 +60,8 @@
 
   .heading {
     max-width: 56.25rem;
-    font-size: 3.75rem;
-    line-height: 1.08;
-    letter-spacing: -0.035em;
+    /* stylelint-disable-next-line number-max-precision -- Preserve the approved responsive type curve. */
+    font-size: clamp(2.5rem, -0.576923rem + 4.807692vw, 3.75rem);
   }
 
   .descriptorSlot {

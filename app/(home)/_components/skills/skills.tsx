@@ -139,7 +139,7 @@ export function HomeSkills() {
         data-page-motion-row
         data-page-motion-trigger
         id="skills-heading"
-        className={clsx(styles.sectionLabel, sectionStyles.label, "border-t font-mono font-normal uppercase text-muted-foreground")}
+        className={clsx(styles.sectionLabel, sectionStyles.label, sectionStyles.topLevelLabel, "border-t font-mono uppercase text-muted-foreground")}
       >
         Skills
       </h2>

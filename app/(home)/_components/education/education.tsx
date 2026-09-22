@@ -56,7 +56,7 @@ export function HomeEducation() {
         data-page-motion-row
         data-page-motion-trigger
         id="education-heading"
-        className={clsx(styles.sectionLabel, sectionStyles.label, "border-t font-mono font-normal uppercase text-muted-foreground")}
+        className={clsx(styles.sectionLabel, sectionStyles.label, sectionStyles.topLevelLabel, "border-t font-mono uppercase text-muted-foreground")}
       >
         Education
       </h2>

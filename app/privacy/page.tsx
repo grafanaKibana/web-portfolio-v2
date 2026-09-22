@@ -13,16 +13,16 @@ export const metadata: Metadata = {
  */
 export default function PrivacyPage() {
   return (
-    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
-      <article className="max-w-3xl">
+    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 [overflow-wrap:anywhere] focus:outline-none lg:py-20">
+      <article className="mx-auto max-w-[68ch] text-base leading-7">
         <header>
           <h1 className="text-4xl font-semibold tracking-tight" data-page-motion-intro>Privacy Policy</h1>
-          <p className="mt-4 font-mono text-xs text-muted-foreground" data-page-motion-intro>Last updated: September 15, 2026</p>
+          <p className="mt-4 font-mono text-xs leading-[1.125rem] text-muted-foreground" data-page-motion-intro>Last updated: September 15, 2026</p>
           <p className="mt-6 leading-7 text-content-foreground" data-page-motion-intro>This Privacy Policy explains what information this personal portfolio uses and why.</p>
         </header>
 
         <section className="mt-10" data-page-motion-rows="children" data-page-motion-section>
-          <h2 className="text-2xl font-semibold tracking-tight" data-page-motion-trigger>Analytics and performance</h2>
+          <h2 className="text-2xl leading-[1.875rem] font-semibold tracking-tight" data-page-motion-trigger>Analytics and performance</h2>
           <p className="mt-4 leading-7 text-content-foreground">
             This site uses Vercel Web Analytics to understand aggregated page traffic. Vercel documents Web Analytics as cookie-free and says it may process the visited page, filtered query parameters, referrer, approximate location, browser, operating system, device type, and event time. Vercel also says its visitor identifier changes daily and is not used to track people across days or websites.
           </p>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mt-10" data-page-motion-rows="children" data-page-motion-section>
-          <h2 className="text-2xl font-semibold tracking-tight" data-page-motion-trigger>Ask AI conversation</h2>
+          <h2 className="text-2xl leading-[1.875rem] font-semibold tracking-tight" data-page-motion-trigger>Ask AI conversation</h2>
           <p className="mt-4 leading-7 text-content-foreground">
             When you submit a question through Ask AI, this site sends the question, recent completed conversation messages, and a limited hint about the portfolio page or section you are viewing to the configured AI provider. The portfolio supplies its public content so the provider can answer questions about my work and experience.
           </p>
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mt-10" data-page-motion-rows="children" data-page-motion-section>
-          <h2 className="text-2xl font-semibold tracking-tight" data-page-motion-trigger>Contact by email</h2>
+          <h2 className="text-2xl leading-[1.875rem] font-semibold tracking-tight" data-page-motion-trigger>Contact by email</h2>
           <p className="mt-4 leading-7 text-content-foreground">The contact form does not submit information to a portfolio server. Its fields stay in your browser until you choose to open your email application. If you then send the message, your email provider and mine handle the information you include as ordinary email.</p>
           <p className="mt-4 leading-7 text-content-foreground">
             You can also email me directly at{" "}
@@ -69,12 +69,12 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mt-10" data-page-motion-rows="children" data-page-motion-section>
-          <h2 className="text-2xl font-semibold tracking-tight" data-page-motion-trigger>External links</h2>
+          <h2 className="text-2xl leading-[1.875rem] font-semibold tracking-tight" data-page-motion-trigger>External links</h2>
           <p className="mt-4 leading-7 text-content-foreground">This portfolio links to third-party websites and services. Their own privacy notices apply when you visit them.</p>
         </section>
 
         <section className="mt-10" data-page-motion-rows="children" data-page-motion-section>
-          <h2 className="text-2xl font-semibold tracking-tight" data-page-motion-trigger>Questions and changes</h2>
+          <h2 className="text-2xl leading-[1.875rem] font-semibold tracking-tight" data-page-motion-trigger>Questions and changes</h2>
           <p className="mt-4 leading-7 text-content-foreground">
             Questions about this policy can be sent to{" "}
             <a className="rounded-sm font-medium text-content-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="mailto:reshetnik.nikita@gmail.com">reshetnik.nikita@gmail.com</a>. Material changes will be published on this page with a revised last-updated date.

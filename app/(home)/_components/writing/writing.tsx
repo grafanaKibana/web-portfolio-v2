@@ -32,7 +32,7 @@ export async function HomeWriting() {
         data-page-motion-row
         data-page-motion-trigger
         id="writing-heading"
-        className={clsx(sectionStyles.label, "mb-8 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:mb-16 lg:pt-3.5")}
+        className={clsx(sectionStyles.label, sectionStyles.topLevelLabel, "mb-8 border-t pt-3 font-mono uppercase text-muted-foreground lg:mb-10 lg:pt-3.5")}
       >
         Writing
       </h2>

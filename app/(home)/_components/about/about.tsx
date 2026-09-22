@@ -15,11 +15,11 @@ export function HomeAbout() {
         data-page-motion-row
         data-page-motion-trigger
         id="about-heading"
-        className={clsx(styles.sectionLabel, sectionStyles.label, "border-t font-mono font-normal uppercase text-muted-foreground")}
+        className={clsx(styles.sectionLabel, sectionStyles.label, sectionStyles.topLevelLabel, "border-t font-mono uppercase text-muted-foreground")}
       >
         About
       </h2>
-      <div className="flex flex-col gap-12 lg:grid lg:grid-cols-2 lg:gap-0" data-page-motion-row>
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-0" data-page-motion-row>
         <div className={clsx(styles.summary, "flex flex-col text-content-foreground")}>
           {profile.summary.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </div>

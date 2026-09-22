@@ -133,7 +133,7 @@ test("Hero reserves the in-flow header height at compact and desktop widths", as
   }
 });
 
-test("compact header and intro remain aligned without wrapping on narrow phones", async ({ page }) => {
+test("compact header stays aligned while the intro wraps without overflow", async ({ page }) => {
   for (const width of [344, 360, 390]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/");
@@ -148,7 +148,7 @@ test("compact header and intro remain aligned without wrapping on narrow phones"
     await expect(page.getByRole("button", { name: "Jump to section" })).toHaveCount(0);
 
     expect(await page.locator("#intro-heading > span").evaluateAll((spans) =>
-      spans.every((span) => span.scrollWidth <= span.clientWidth && getComputedStyle(span).whiteSpace === "nowrap"),
+      spans.every((span) => span.scrollWidth <= span.clientWidth && getComputedStyle(span).whiteSpace !== "nowrap"),
     )).toBe(true);
   }
 });
@@ -334,7 +334,7 @@ test("the home page preserves its functional section structure", async ({ page }
   });
   expect(footerPadding).toEqual(["28px", "28px"]);
   const about = page.locator("#about");
-  await expect(about).toHaveCSS("scroll-margin-top", "4px");
+  await expect(about).toHaveCSS("scroll-margin-top", "12px");
   await expect(about.getByRole("heading", { level: 2, name: "About" })).toBeVisible();
   const experience = page.locator("#experience");
   await expect(experience.getByRole("heading", { level: 2, name: "Experience" })).toBeVisible();
@@ -426,7 +426,7 @@ test("About clears the sticky header through direct, desktop, and modal navigati
   await expect(page.locator("#about")).toHaveAttribute("data-page-motion-revealed", "true");
   await waitForAnimationsToSettle(page, "#about [data-page-motion-row]");
   await expect(page.locator("#about")).toHaveCSS("transform", "none");
-  await expect(page.locator("#about")).toHaveCSS("scroll-margin-top", "-44px");
+  await expect(page.locator("#about")).toHaveCSS("scroll-margin-top", "-20px");
   const directBox = await desktopHeading.boundingBox();
   const directHeader = await page.locator('[data-slot="site-header"]').boundingBox();
   if (!directBox || !directHeader) throw new Error("About heading must be measurable");
@@ -656,7 +656,7 @@ test("compact pull-request rows preserve geometry and wrapping through productio
     expect(geometry.diff.aligned).toBe(true);
     expect(geometry.diff.whiteSpace).toBe("nowrap");
     expect(geometry.date.fontSize).toBe(geometry.diff.fontSize);
-    expect(geometry.date.fontSize).toBe(width === 390 ? "11px" : "12px");
+    expect(geometry.date.fontSize).toBe("12px");
     expect(geometry.diff.gap).toBe("8px");
     expect(geometry.diff.fontVariantNumeric).toContain("tabular-nums");
     expect(geometry.repository.clipped).toBe(false);
@@ -819,7 +819,7 @@ test("Contact placeholders use the reading level in both themes", async ({ page 
   }
 });
 
-test("Contact balances its desktop columns with a usable message field", async ({ page }) => {
+test("Contact keeps its form content-sized beside the link grid", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/#contact");
   const contact = page.locator("#contact");
@@ -838,8 +838,11 @@ test("Contact balances its desktop columns with a usable message field", async (
   ]);
   if (!leftBox || !formBox || !messageBox) throw new Error("Contact columns must be measurable");
 
-  expect(Math.abs(leftBox.y + leftBox.height - formBox.y - formBox.height)).toBeLessThanOrEqual(1);
-  expect(messageBox.height).toBeGreaterThan(112);
+  expect(Math.abs(leftBox.y - formBox.y)).toBeLessThanOrEqual(1);
+  expect(messageBox.height).toBeGreaterThanOrEqual(128);
+  const initialHeight = messageBox.height;
+  await leftColumn.evaluate((column) => { column.style.minHeight = "900px"; });
+  expect((await message.boundingBox())?.height).toBeCloseTo(initialHeight, 1);
 });
 
 test("Contact native validation focuses an invalid email", async ({ page }) => {

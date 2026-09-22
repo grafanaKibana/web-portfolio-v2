@@ -79,8 +79,8 @@ test("Home sections keep shared layout and label contracts across breakpoints", 
     const desktop = width >= 1280;
     const spacious = width >= 1024;
     const expectedHeaderHeight = desktop ? 76 : 60;
-    const expectedScrollMargin = desktop ? -28 : spacious ? -44 : 4;
-    const expectedPadding = spacious ? 104 : 56;
+    const expectedScrollMargin = desktop ? -4 : spacious ? -20 : 12;
+    const expectedPadding = spacious ? 80 : 48;
     const sectionStyles = await Promise.all(sectionIds.map(async (id) => ({
       id,
       ...await page.locator(`#${id}`).evaluate((element) => {
@@ -99,15 +99,25 @@ test("Home sections keep shared layout and label contracts across breakpoints", 
     for (const style of sectionStyles) {
       expect(style.paddingTop, `${style.id} padding-top`).toBe(expectedPadding);
       expect(style.paddingBottom, `${style.id} padding-bottom`).toBe(
-        style.id === "contact" ? (spacious ? 120 : 72) : expectedPadding,
+        expectedPadding,
       );
       if (style.id !== "writing" || !desktop) {
         expect(style.scrollMarginTop, `${style.id} scroll margin`).toBe(expectedScrollMargin);
       }
     }
     for (const selector of sectionLabelSelectors) {
-      await expect(page.locator(selector)).toHaveCSS("font-size", "11px");
-      await expect(page.locator(selector)).toHaveCSS("letter-spacing", "1.54px");
+      await expect(page.locator(selector)).toHaveCSS("font-size", "12px");
+      await expect(page.locator(selector)).toHaveCSS("line-height", "18px");
+      await expect(page.locator(selector)).toHaveCSS("font-weight", "600");
+      await expect(page.locator(selector)).toHaveCSS("letter-spacing", "0.96px");
+      const openingGap = await page.locator(selector).evaluate((label) => {
+        const section = label.closest("section[data-page-motion-section]");
+        if (!section) throw new Error("Section marker must belong to a Home section");
+        let opening = label;
+        while (opening.parentElement && opening.parentElement !== section) opening = opening.parentElement;
+        return Number.parseFloat(getComputedStyle(opening).marginBottom);
+      });
+      expect(openingGap).toBe(spacious ? 40 : 32);
     }
   }
 });
@@ -257,3 +267,89 @@ for (const theme of ["light", "dark"] as const) {
     expect(styles.color).not.toBe(styles.backgroundColor);
   });
 }
+
+for (const width of [390, 768, 1024, 1440]) {
+  test(`approved overview roles and subsection rules at ${String(width)}px`, { tag: "@css" }, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    for (const paragraph of await page.locator('#about > div > div:first-child > p, #experience article > p, #contact h2 + p, [data-slot="home-editorial-row"] > p').all()) {
+      await expect(paragraph).toHaveCSS("font-size", "14px");
+      await expect(paragraph).toHaveCSS("line-height", "24px");
+    }
+    const hero = page.locator("main > section").first().getByRole("heading", { level: 1 });
+    expect(await hero.evaluate((heading) => Number.parseFloat(getComputedStyle(heading).fontSize)))
+      .toBeCloseTo(width === 390 ? 28 : width === 768 ? 30 : width === 1024 ? 40 : 60, 1);
+    const labels = page.locator('#skills [data-slot="skill-group"] h3, #experience-recommendations-heading');
+    for (const label of await labels.all()) {
+      await expect(label).toHaveCSS("font-size", "12px");
+      await expect(label).toHaveCSS("font-weight", "400");
+    }
+    for (const marker of await page.locator('#skills h3[data-variant="separator"]').all()) {
+      const lines = await marker.evaluate((element) => ["::before", "::after"].map((pseudo) => {
+        const style = getComputedStyle(element, pseudo);
+        return { height: style.height, display: style.display, content: style.content };
+      }));
+      expect(lines.every((line) => line.height === "1px" && line.display !== "none" && line.content !== "none")).toBe(true);
+    }
+    for (const link of await page.locator('footer a').all()) {
+      await expect(link).toHaveCSS("font-size", "12px");
+      await expect(link).toHaveCSS("line-height", "18px");
+      expect((await link.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+}
+
+test("Contact pairs links in source order and reflows enlarged text", { tag: "@css" }, async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [320, 390, 768, 900, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#contact");
+    await page.locator("html").evaluate((root) => { root.style.removeProperty("font-size"); });
+    const email = page.locator('#contact a[href^="mailto:"]').first();
+    await expect(email).toHaveText(/E-Mail/);
+    const recipient = (await email.getAttribute("href"))?.slice(7);
+    expect(recipient).toBeTruthy();
+    expect(await email.getAttribute("aria-label")).toContain(recipient);
+    const links = email.locator("..");
+    const geometry = await links.locator(":scope > *").evaluateAll((items) => items.map((item) => {
+      const box = item.getBoundingClientRect();
+      return { x: box.x, y: box.y, height: box.height };
+    }));
+    for (const [index, box] of geometry.entries()) {
+      expect(box.height).toBeGreaterThanOrEqual(48);
+      if (index % 2 === 1) {
+        const previous = geometry[index - 1];
+        if (!previous) throw new Error("Paired link must follow its first column");
+        expect(box.y).toBeCloseTo(previous.y, 1);
+        expect(box.x).toBeGreaterThan(previous.x);
+      }
+    }
+    await expect(page.locator('#contact [aria-disabled="true"]')).toHaveAttribute("aria-disabled", "true");
+    await expect(page.locator('#contact form [data-slot="field"]').first()).toHaveCSS("gap", "8px");
+    await expect(page.locator('#contact input').first()).toHaveCSS("font-size", width < 768 ? "16px" : "14px");
+    if (width === 390) {
+      await page.locator("html").evaluate((root) => { root.style.fontSize = "200%"; });
+      expect(await links.evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length)).toBe(1);
+      expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+    }
+  }
+});
+
+test("editorial padding and featured title apply only to their intended row", { tag: "@css" }, async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [390, 1024]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    for (const section of ["projects", "writing"]) {
+      const rows = page.locator(`#${section} [data-slot="home-project"], #${section} [data-slot="home-article"]`);
+      for (const [index, row] of (await rows.all()).entries()) {
+        await expect(row).toHaveCSS("padding-top", index === 0 ? "0px" : width >= 1024 ? "32px" : "24px");
+        const title = row.locator("h3");
+        await expect(title).toHaveCSS("font-size", width >= 1024 && index === 0 ? "24px" : "22px");
+        await expect(title).toHaveCSS("padding-top", "0px");
+        await expect(row.locator('[data-slot="row-metadata"]')).toHaveCSS("font-size", "12px");
+      }
+    }
+  }
+});

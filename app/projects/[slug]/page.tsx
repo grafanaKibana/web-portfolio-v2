@@ -67,10 +67,10 @@ export default async function ProjectPage({
 
   return (
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
-      <article>
-        <header className="mx-auto max-w-3xl pb-10" data-slot="project-hero">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" data-page-motion-intro data-slot="project-title-row">
-            <h1 className="min-w-0 text-4xl font-semibold tracking-tight">{project.metadata.title}</h1>
+      <article className="mx-auto max-w-[68ch]">
+        <header className="pb-12" data-slot="project-hero">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between" data-page-motion-intro data-slot="project-title-row">
+            <h1 className="min-w-0 flex-1 [overflow-wrap:anywhere] text-4xl leading-[1.15] font-semibold tracking-[-0.025em] md:text-5xl">{project.metadata.title}</h1>
             {links.length ? (
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-6" data-slot="project-actions">
                 {links.map((link) => {
@@ -99,18 +99,18 @@ export default async function ProjectPage({
               </div>
             ) : null}
           </div>
-          <p className="mt-5 text-lg leading-8 text-content-foreground" data-page-motion-intro>
+          <p className="mt-5 text-lg leading-[1.875rem] text-content-foreground" data-page-motion-intro>
             {project.metadata.description}
           </p>
           {project.metadata.tags?.length ? (
-            <p className="mt-6 font-mono text-xs text-muted-foreground" data-page-motion-intro>
+            <p className="mt-6 font-mono text-xs leading-[1.125rem] text-muted-foreground" data-page-motion-intro>
               {project.metadata.tags.join(" · ")}
             </p>
           ) : null}
         </header>
-        <hr aria-hidden="true" className="mx-auto my-0 max-w-3xl border-0 border-b" data-page-motion-intro />
+        <hr aria-hidden="true" className="my-0 border-0 border-b" data-page-motion-intro />
 
-        <div className={clsx(styles.content, "mx-auto max-w-3xl pt-6")} data-page-motion-rows="children" data-page-motion-section data-page-motion-trigger>
+        <div className={clsx(styles.content, "pt-6 text-base leading-7 [overflow-wrap:anywhere] [&>*:first-child]:mt-0")} data-page-motion-rows="children" data-page-motion-section data-page-motion-trigger>
           <project.Content />
         </div>
       </article>
@@ -128,7 +128,7 @@ export default async function ProjectPage({
             data-slot="next-project"
             href={`/projects/${nextProject.slug}`}
           >
-            <span className={clsx(styles.routeKicker, "block font-mono text-xs uppercase text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground")}>
+            <span className={clsx(styles.routeKicker, "block font-mono text-xs leading-[1.125rem] uppercase text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground")}>
               Next
             </span>
             <span className="mt-3 inline-flex items-center gap-3 text-2xl font-medium tracking-tight">

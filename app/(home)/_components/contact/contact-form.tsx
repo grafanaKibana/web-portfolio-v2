@@ -67,8 +67,8 @@ export function ContactForm(props: ContactFormProps) {
   }
 
   return (
-    <form className="flex h-full min-w-0 flex-col gap-4" data-page-motion-row onSubmit={sendEmail}>
-      <Field>
+    <form className="flex min-w-0 flex-col gap-6 self-start" data-page-motion-row onSubmit={sendEmail}>
+      <Field className="flex-none gap-2">
         <FieldLabel htmlFor="contact-name">{labels.name}</FieldLabel>
         <Input
           id="contact-name"
@@ -83,7 +83,7 @@ export function ContactForm(props: ContactFormProps) {
           autoComplete="name"
         />
       </Field>
-      <Field data-invalid={isEmailInvalid}>
+      <Field className="flex-none gap-2" data-invalid={isEmailInvalid}>
         <FieldLabel htmlFor="contact-email">{labels.email}</FieldLabel>
         <Input
           aria-invalid={isEmailInvalid}
@@ -100,10 +100,10 @@ export function ContactForm(props: ContactFormProps) {
           autoComplete="email"
         />
       </Field>
-      <Field className="min-h-0 flex-1">
+      <Field className="min-h-0 flex-none gap-2">
         <FieldLabel htmlFor="contact-message">{labels.message}</FieldLabel>
         <Textarea
-          className="min-h-28 flex-1 resize-y"
+          className="min-h-32 flex-none resize-y"
           id="contact-message"
           name="message"
           onChange={(event) => {
@@ -115,7 +115,7 @@ export function ContactForm(props: ContactFormProps) {
           value={message}
         />
       </Field>
-      <div className="flex flex-col gap-3 pt-3 sm:flex-row sm:items-center sm:gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
         <Button className="w-full sm:w-auto" disabled={!isReady} type="submit">
           {labels.send}
         </Button>

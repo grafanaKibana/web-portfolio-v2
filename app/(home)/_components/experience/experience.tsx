@@ -14,7 +14,7 @@ import styles from "./experience.module.scss";
 export function HomeExperience() {
   return (
     <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, sectionStyles.section, "page-shell-gutter w-full")} data-page-motion-section>
-      <div className={clsx(styles.experienceHeader, sectionStyles.label, "border-t font-mono uppercase text-muted-foreground")} data-page-motion-row>
+      <div className={clsx(styles.experienceHeader, sectionStyles.label, sectionStyles.topLevelLabel, "border-t font-mono uppercase text-muted-foreground")} data-page-motion-row>
         <h2 data-page-motion-trigger id="experience-heading">Experience</h2>
       </div>
       <ol className={clsx(styles.timeline, "relative m-0 list-none p-0 pl-5.5 md:pl-0")}>
@@ -28,7 +28,7 @@ export function HomeExperience() {
                   <Navigation2 className="absolute top-1/2 left-1/2 size-5 -translate-1/2 fill-background" data-slot="timeline-icon" />
                 </span>
               )}
-              <p className={clsx(styles.experiencePeriod, "relative mb-2.5 flex self-start items-center gap-x-2 font-mono text-muted-foreground md:m-0 md:min-h-12 md:flex-col md:items-end md:justify-center md:gap-0 md:pr-8 md:text-right")} data-slot="experience-period" data-page-motion-item={index === 0 ? "" : undefined}>
+              <p className={clsx(styles.experiencePeriod, "relative mb-2.5 flex flex-wrap self-start items-center gap-x-2 gap-y-1 font-mono text-muted-foreground md:m-0 md:min-h-12 md:flex-col md:items-end md:justify-center md:gap-x-0 md:pr-8 md:text-right")} data-slot="experience-period" data-page-motion-item={index === 0 ? "" : undefined}>
                 {index !== 0 && <span
                   aria-hidden="true"
                   className={styles.timelineDot}

@@ -44,7 +44,7 @@ export default async function ProjectsPage() {
                   {project.description}
                 </p>
                 {project.tags?.length ? (
-                  <p className="mt-3 font-mono text-xs text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground" data-slot="project-technologies">
+                  <p className="mt-3 font-mono text-xs leading-[1.125rem] text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground" data-slot="project-technologies">
                     {project.tags.join(" · ")}
                   </p>
                 ) : null}

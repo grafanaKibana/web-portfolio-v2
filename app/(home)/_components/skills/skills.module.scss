@@ -3,7 +3,7 @@
 }
 
 .sectionLabel {
-  margin: 0 0 1.5rem;
+  margin: 0 0 2rem;
   padding-top: 0.75rem;
 }
 
@@ -18,8 +18,9 @@
 .groupLabel {
   --page-motion-distance: 5px;
 
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  letter-spacing: 0.08em;
 }
 
 .skillList {
@@ -177,7 +178,7 @@
 
 @media (min-width: 64rem) {
   .sectionLabel {
-    margin-bottom: 3rem;
+    margin-bottom: 2.5rem;
     padding-top: 0.875rem;
   }
 

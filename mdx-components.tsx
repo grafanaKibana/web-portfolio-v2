@@ -20,7 +20,10 @@ const components = {
    * @returns The styled heading.
    */
   h2: (props: ComponentProps<"h2">) => (
-    <h2 {...props} className="mt-12 text-2xl font-semibold tracking-tight" />
+    <h2
+      {...props}
+      className="mt-12 text-2xl leading-[1.875rem] font-semibold tracking-tight"
+    />
   ),
   /**
    * Applies subsection spacing and hierarchy to an MDX level-three heading.
@@ -29,7 +32,10 @@ const components = {
    * @returns The styled heading.
    */
   h3: (props: ComponentProps<"h3">) => (
-    <h3 {...props} className="mt-10 text-xl font-semibold tracking-tight" />
+    <h3
+      {...props}
+      className="mt-8 text-xl leading-[1.625rem] font-semibold tracking-tight"
+    />
   ),
   /**
    * Applies readable measure and color to an MDX paragraph.
@@ -38,7 +44,7 @@ const components = {
    * @returns The styled paragraph.
    */
   p: (props: ComponentProps<"p">) => (
-    <p {...props} className="mt-6 leading-8 text-content-foreground" />
+    <p {...props} className="mt-4 text-base leading-7 text-content-foreground" />
   ),
   /**
    * Applies spacing and markers to an MDX unordered list.
@@ -47,7 +53,10 @@ const components = {
    * @returns The styled unordered list.
    */
   ul: (props: ComponentProps<"ul">) => (
-    <ul {...props} className="mt-6 list-disc space-y-2 pl-6 text-content-foreground" />
+    <ul
+      {...props}
+      className="mt-4 list-disc space-y-2 pl-6 text-base leading-7 text-content-foreground"
+    />
   ),
   /**
    * Applies spacing and markers to an MDX ordered list.
@@ -56,7 +65,10 @@ const components = {
    * @returns The styled ordered list.
    */
   ol: (props: ComponentProps<"ol">) => (
-    <ol {...props} className="mt-6 list-decimal space-y-2 pl-6 text-content-foreground" />
+    <ol
+      {...props}
+      className="mt-4 list-decimal space-y-2 pl-6 text-base leading-7 text-content-foreground"
+    />
   ),
   /**
    * Applies the editorial accent rule to an MDX quotation.

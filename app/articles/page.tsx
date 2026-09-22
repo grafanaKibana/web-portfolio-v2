@@ -44,7 +44,7 @@ export default async function ArticlesPage() {
                 href={`/articles/${slug}`}
               >
                 <article>
-                  <p className="font-mono text-xs text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
+                  <p className="font-mono text-xs leading-[1.125rem] text-muted-foreground transition-colors group-hover:text-foreground group-focus-visible:text-foreground">
                     <time dateTime={article.published}>
                       {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
                     </time>

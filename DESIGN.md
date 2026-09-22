@@ -68,9 +68,9 @@ Inline prose links stay underlined. Hover and focus may strengthen the text of a
 
 ### Typography, layout, and shape
 
-Use Geist Sans for headings and reading, and Geist Mono for dates, labels, counts, and code. Balance an expressive hero with quiet section labels, clear headings, and comfortable prose.
+Use Geist Sans for headings and reading, and Geist Mono for dates, labels, counts, and code. Keep overview prose compact and long-form reading more spacious, with metadata and footer links sharing a quiet secondary scale. Let the hero scale down naturally on tablet and phone. Distinguish top-level section markers from subsections through weight while retaining their shared uppercase Mono treatment and divider lines, including the centered Skills rules.
 
-Give the page generous gutters and clear pauses between sections. Keep related material close, metadata secondary, and long-form reading narrower than the overall canvas. Thin dividers and open rows provide structure. Reserve rounded surfaces and shadows for controls and overlays that need separation.
+Give the page generous gutters and consistent pauses between sections, with smaller gaps inside related groups. Keep metadata secondary and long-form reading at a centered, comfortable measure within the page shell. Headings separate reading sections more strongly than paragraphs; the first content block sits close to its header divider. Thin dividers and open rows provide structure. Reserve rounded surfaces and shadows for controls and overlays that need separation.
 
 ### Icons and imagery
 
@@ -91,7 +91,7 @@ Keep controls and individual icons still unless their existing behavior requires
 | Experience | In-flow native disclosures; accent on the current role, neutral historical markers |
 | Skills | Centered semantic groups, recognizable marks, and restrained group reveals |
 | Project and article pages | Strong title, secondary metadata, focused prose, clear return navigation |
-| Contact | Native validation, mail-app handoff, and direct email fallback |
+| Contact | Paired direct links in source order, a compact form with consistent label and field gaps, native validation, and mail-app handoff |
 | Conversation | Direct page composer, nonmodal desktop panel and full-screen modal phone thread, validated inline sources and clear recovery |
 
 The conversation entry is an intentional accent exception: desktop rests as a jade line and reveals the standard composer on hover, click or keyboard intent. The first question is entered on the page, with a left star, the shared “Ask about my work…” placeholder, an opaque field, a standard shadcn Send button on desktop and arrow on phone, and a subtle form-local page-colored radial fade without blur. Phone entry unfolds at the page top or upward scroll and folds on downward scroll, never while editing or holding a draft. Focusing another page field folds the AI composer without hiding its gradient line or moving focus. Only an accepted send opens the thread; retained history reveals a field-shaped reopen control on phone downward scroll, while the desktop gradient line reveals the reopen field on hover and reopens it on click or keyboard activation. Mobile and touch reopening keeps the keyboard closed; desktop mouse, pen and keyboard intent retains composer focus after reveal without overriding a later focus choice.
@@ -114,7 +114,7 @@ Phone conversation prioritizes reading: user bubbles precede full-width assistan
 
 Desktop has generous outer space, inline navigation, split editorial compositions, and a distinct experience date rail. Narrow layouts move toward a single reading column with metadata and actions in normal flow. About stacks its biography, chapters, and facts as space tightens.
 
-Let social links and skill groups wrap naturally. Keep reading order intact and use split layouts only while both columns remain comfortable. Compact navigation and conversation fit the available viewport, including the on-screen keyboard. Touch actions remain available without hover.
+Contact links use two equal columns in source order, with E-Mail as the visible email label and the address retained in its accessible name. Enlarged text may reduce that grid to one column. Keep the Contact form sized to its fields rather than stretching its message field to the adjacent links. Let other social links and skill groups wrap naturally. Keep reading order intact and use split layouts only while both columns remain comfortable. Compact navigation and conversation fit the available viewport, including the on-screen keyboard. Touch actions remain available without hover.
 
 Breakpoints belong in code. Evaluate both representative screen sizes and the widths where a layout changes.
 

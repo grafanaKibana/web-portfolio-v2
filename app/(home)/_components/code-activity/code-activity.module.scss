@@ -4,8 +4,9 @@ $chart-column-count: 53;
 $chart-gap: 0.1875rem;
 
 .groupLabel {
-  font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  letter-spacing: 0.08em;
 }
 
 .group + .group {
@@ -59,7 +60,8 @@ $chart-gap: 0.1875rem;
 
 .repository {
   overflow-wrap: anywhere;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
   color: var(--muted-foreground);
 }
 
@@ -69,7 +71,8 @@ $chart-gap: 0.1875rem;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.25rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
   white-space: nowrap;
 }
 
@@ -125,8 +128,9 @@ $chart-gap: 0.1875rem;
   list-style: none;
   align-items: center;
   border-radius: 0.125rem;
-  font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  letter-spacing: 0.08em;
   transition: color 150ms;
 }
 
@@ -282,11 +286,6 @@ $chart-gap: 0.1875rem;
 @media (min-width: 64rem) {
   .group + .group {
     margin-top: 3.5rem;
-  }
-
-  .repository,
-  .meta {
-    font-size: 0.75rem;
   }
 
   .title {
