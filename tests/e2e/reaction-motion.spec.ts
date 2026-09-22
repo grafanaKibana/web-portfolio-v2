@@ -1,5 +1,18 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+/** Reveals and focuses the on-page first composer without opening an empty host.
+ * @param page - Active portfolio page.
+ */
+async function revealComposer(page: Page): Promise<void> {
+  await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
+  await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
+  const input = page.getByRole("textbox", { name: "Your question" });
+  if (!await input.isVisible()) await page.getByRole("button", { name: "Ask about my work" }).focus();
+  await expect(input).toBeVisible();
+  await input.focus();
+  await expect(page.getByRole("dialog", { name: "About my work" })).toBeHidden();
+}
+
 type ReactionFrame = { time: number; duration: number | null; scale: number; opacity: number; centerX: number; centerY: number; panelHeight: number };
 /** One painted entry frame and its configured animation duration. */
 type BubbleFrame = { time: number; duration: number | null; opacity: number; translateY: number };
@@ -69,14 +82,11 @@ async function reactionFrames(page: Page): Promise<ReactionFrame[]> {
 async function recordBubbleEntry(page: Page, selector: string): Promise<void> {
   await page.evaluate((bubbleSelector) => {
     (window as MotionWindow).bubbleFrames = new Promise<BubbleFrame[]>((resolve) => {
-      /** Starts recording when the requested bubble begins its entry animation.
-       * @param event - CSS animation start used to identify the target bubble.
-       */
-      function handleAnimationStart(event: AnimationEvent): void {
-        const target = event.target;
-        if (!(target instanceof HTMLElement) || !target.matches(bubbleSelector)) return;
+      const observer = new MutationObserver(() => {
+        const target = document.querySelector(bubbleSelector);
+        if (!(target instanceof HTMLElement)) return;
         const bubble = target;
-        document.removeEventListener("animationstart", handleAnimationStart, true);
+        observer.disconnect();
         const startedAt = performance.now();
         const frames: BubbleFrame[] = [];
         const timing = bubble.getAnimations()[0]?.effect?.getTiming();
@@ -95,8 +105,8 @@ async function recordBubbleEntry(page: Page, selector: string): Promise<void> {
           else resolve(frames);
         }
         sample();
-      }
-      document.addEventListener("animationstart", handleAnimationStart, true);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
     });
   }, selector);
 }
@@ -191,7 +201,7 @@ test("sent and reply bubbles fade and rise into place with snappy paint", async 
   });
   await page.goto("/");
   await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
-  await page.getByRole("button", { name: "Ask about my work" }).click();
+  await revealComposer(page);
   const composer = page.getByRole("textbox", { name: "Your question" });
   await composer.fill("Animate both bubbles");
 
@@ -218,7 +228,7 @@ test("reduced motion paints sent and reply bubbles at their final state", async 
   });
   await page.goto("/");
   await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
-  await page.getByRole("button", { name: "Ask about my work" }).click();
+  await revealComposer(page);
   const composer = page.getByRole("textbox", { name: "Your question" });
   await composer.fill("Keep bubbles static");
   await page.getByRole("button", { name: "Send", exact: true }).click();
@@ -241,7 +251,7 @@ test("suggested follow-ups share one animated pill without changing layout", asy
   });
   await page.goto("/");
   await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
-  await page.getByRole("button", { name: "Ask about my work" }).click();
+  await revealComposer(page);
   await page.getByRole("textbox", { name: "Your question" }).fill("Show suggestions");
   await recordSuggestionEntry(page);
   await page.getByRole("button", { name: "Send", exact: true }).click();
@@ -308,7 +318,7 @@ test("reduced motion shows suggested follow-ups at their final state", async ({ 
   });
   await page.goto("/");
   await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
-  await page.getByRole("button", { name: "Ask about my work" }).click();
+  await revealComposer(page);
   await page.getByRole("textbox", { name: "Your question" }).fill("Show suggestions");
   await page.getByRole("button", { name: "Send", exact: true }).click();
 
@@ -359,7 +369,7 @@ for (const name of ["Copy reply", "Retry message", "Failure details"] as const) 
     await page.goto("/");
     await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
     await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
-    await page.getByRole("button", { name: "Ask about my work" }).click();
+    await revealComposer(page);
     const composer = page.getByRole("textbox", { name: "Your question" });
     await expect(composer).toBeFocused();
     await composer.fill("Scale these actions");

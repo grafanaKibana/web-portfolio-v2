@@ -71,7 +71,6 @@ export function ContactForm(props: ContactFormProps) {
       <Field>
         <FieldLabel htmlFor="contact-name">{labels.name}</FieldLabel>
         <Input
-          className="placeholder:text-content-foreground"
           id="contact-name"
           name="name"
           onInput={(event) => {
@@ -87,7 +86,6 @@ export function ContactForm(props: ContactFormProps) {
       <Field data-invalid={isEmailInvalid}>
         <FieldLabel htmlFor="contact-email">{labels.email}</FieldLabel>
         <Input
-          className="placeholder:text-content-foreground"
           aria-invalid={isEmailInvalid}
           id="contact-email"
           name="email"
@@ -105,7 +103,7 @@ export function ContactForm(props: ContactFormProps) {
       <Field className="min-h-0 flex-1">
         <FieldLabel htmlFor="contact-message">{labels.message}</FieldLabel>
         <Textarea
-          className="min-h-28 flex-1 resize-y placeholder:text-content-foreground"
+          className="min-h-28 flex-1 resize-y"
           id="contact-message"
           name="message"
           onChange={(event) => {

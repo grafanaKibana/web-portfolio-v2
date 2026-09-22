@@ -19,6 +19,9 @@ export interface ConversationTurn {
   followUps?: AskFollowUp[];
 }
 
+/** Synchronous admission result for a question submitted to the conversation. */
+export type ConversationSubmission = { accepted: true; turnId: string } | { accepted: false };
+
 /** State and actions exposed by the conversation controller. */
 export interface UseConversationResult {
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -28,7 +31,7 @@ export interface UseConversationResult {
   setDraft: Dispatch<SetStateAction<string>>;
   pending: boolean;
   expanded: boolean;
-  submit: () => void;
+  submit: () => ConversationSubmission;
   submitQuestion: (question: string) => void;
   stop: () => void;
   retry: (turnId: string) => void;

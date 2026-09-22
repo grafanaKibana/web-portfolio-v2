@@ -11,7 +11,7 @@ import { askSectionIds, captureAskContext } from "@/lib/section-context";
 import { ConversationService } from "./conversation.service";
 import { AskStreamError } from "./conversation.errors";
 import { conversationConfig } from "./conversation.config";
-import type { ActiveRequest, ConversationTurn, UseConversationResult } from "./conversation.models";
+import type { ActiveRequest, ConversationSubmission, ConversationTurn, UseConversationResult } from "./conversation.models";
 
 const { genericError, maxConversationInputLength } = conversationConfig;
 
@@ -124,16 +124,17 @@ export function useConversation(pathname: string): UseConversationResult {
   /** Appends one valid question with an immutable view-context snapshot.
    * @param question - Full visitor or generated follow-up question.
    * @param clearDraft - Whether the submitted text came from the composer.
+   * @returns Synchronous admission result without changing rejected drafts.
    */
-  const submitValue = useCallback((question: string, clearDraft: boolean) => {
-    if (activeRequest.current) return;
+  const submitValue = useCallback((question: string, clearDraft: boolean): ConversationSubmission => {
+    if (activeRequest.current) return { accepted: false };
     question = question.trim();
     if (!question || question.length > maxConversationInputLength) {
       inputRef.current?.setCustomValidity(question
         ? `Keep the question to ${maxConversationInputLength.toLocaleString("en-US")} characters or fewer.`
         : "Write a question first.");
       inputRef.current?.reportValidity();
-      return;
+      return { accepted: false };
     }
     const turn: ConversationTurn = {
       id: String(nextTurnId.current++),
@@ -148,11 +149,14 @@ export function useConversation(pathname: string): UseConversationResult {
     setStatusAnnouncement("");
     inputRef.current?.setCustomValidity("");
     startRequest(snapshot, turn.id);
+    return { accepted: true, turnId: turn.id };
   }, [pathname, replaceTurns, startRequest]);
 
-  /** Submits the current composer draft. */
+  /** Submits the current composer draft.
+   * @returns Whether a turn was admitted, with its stable identity.
+   */
   const submit = useCallback(() => {
-    submitValue(draft, true);
+    return submitValue(draft, true);
   }, [draft, submitValue]);
 
   /** Submits a generated follow-up while preserving an unrelated composer draft.

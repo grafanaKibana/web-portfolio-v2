@@ -13,15 +13,34 @@ async function readyLauncher(page: Page): Promise<Locator> {
   await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
   await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
   const launcher = page.locator("button[data-launcher]");
-  await expect(launcher).toBeVisible({ timeout: 5_000 });
+  const input = page.getByRole("textbox", { name: "Your question" });
+  await expect.poll(async () => await input.isVisible() || await launcher.isVisible(), { timeout: 5_000 }).toBe(true);
   return launcher;
 }
 
-/** Opens the native nonmodal conversation surface.
+/** Reveals the first-message composer without opening a conversation surface.
  * @param page - Active portfolio page.
- * @returns The visible named conversation dialog.
+ * @returns The hidden named conversation surface reserved for the first send.
  */
 async function openConversation(page: Page): Promise<Locator> {
+  const launcher = await readyLauncher(page);
+  const input = page.getByRole("textbox", { name: "Your question" });
+  if (!await input.isVisible()) {
+    await launcher.focus();
+    await expect(input).toBeVisible();
+    await input.focus();
+  }
+  const dialog = page.getByRole("dialog", { name: "About my work" });
+  await expect(dialog).toBeHidden();
+  await expect(input).toBeVisible();
+  return dialog;
+}
+
+/** Reopens retained conversation history directly in its responsive surface.
+ * @param page - Active portfolio page.
+ * @returns The visible named conversation surface.
+ */
+async function reopenConversation(page: Page): Promise<Locator> {
   await (await readyLauncher(page)).click();
   const dialog = page.getByRole("dialog", { name: "About my work" });
   await expect(dialog).toBeVisible();
@@ -35,6 +54,7 @@ async function openConversation(page: Page): Promise<Locator> {
 async function submitQuestion(page: Page, question: string): Promise<void> {
   await page.getByRole("textbox", { name: "Your question" }).fill(question);
   await page.getByRole("button", { exact: true, name: "Send" }).click();
+  await expect(page.getByRole("dialog", { name: "About my work" })).toBeVisible();
 }
 
 /** Reveals a reaction through its owning message before pointer interaction.
@@ -46,6 +66,37 @@ async function hoverReaction(reaction: Locator): Promise<void> {
     .locator('[data-slot="bubble-content"]').hover();
   await expect(visual).toHaveCSS("opacity", "1");
   await expect(visual).toHaveCSS("transform", "none");
+}
+
+/** Waits for surface/composer geometry and their reveal owners before sampling coordinates.
+ * @param surface - Conversation surface whose stable hit targets are required.
+ */
+async function settleSurfaceMotion(surface: Locator): Promise<void> {
+  await surface.evaluate(async (element) => {
+    const paint = element.querySelector("[data-chat-paint]");
+    const composer = element.querySelector("[data-conversation-composer]");
+    if (!paint || !composer) throw new Error("Conversation paint and composer must exist before sampling.");
+    const owners = [element, paint];
+    const measured = [...owners, composer];
+    let previous: number[] | undefined;
+    let settledFrames = 0;
+    for (let frame = 0; frame < 120; frame += 1) {
+      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+      const moving = owners.some((owner) => owner.getAnimations().some((animation) =>
+        (animation.playState === "running" || animation.pending)
+        && animation.effect?.getTiming().iterations !== Infinity));
+      const geometry = measured.flatMap((target) => {
+        const rect = target.getBoundingClientRect();
+        return [rect.x, rect.y, rect.width, rect.height];
+      });
+      const stable = previous !== undefined
+        && geometry.every((value, index) => Math.abs(value - (previous?.[index] ?? Infinity)) < 0.01);
+      settledFrames = !moving && stable ? settledFrames + 1 : 0;
+      if (settledFrames >= 3) return;
+      previous = geometry;
+    }
+    throw new Error("Conversation surface/composer geometry did not settle before sampling.");
+  });
 }
 
 /** Positions a page link above the bottom conversation surface for a real pointer click.
@@ -85,10 +136,16 @@ async function requiredBox(locator: Locator): Promise<NonNullable<Awaited<Return
  * @param page - Active portfolio page.
  * @param testInfo - Current Playwright result metadata.
  * @param name - Stable screenshot artifact name.
+ * @param animations - Whether active motion is preserved in the captured frame.
  */
-async function captureConversation(page: Page, testInfo: TestInfo, name: string): Promise<void> {
+async function captureConversation(
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+  animations: "allow" | "disabled" = "disabled",
+): Promise<void> {
   const path = testInfo.outputPath(`${name}.png`);
-  await page.screenshot({ animations: "disabled", path });
+  await page.screenshot({ animations, path });
   await testInfo.attach(name, { contentType: "image/png", path });
 }
 
@@ -97,6 +154,30 @@ async function captureConversation(page: Page, testInfo: TestInfo, name: string)
  */
 async function expectCompactSuggestionGeometry(page: Page): Promise<void> {
   const latestTurn = page.locator("[data-turn]").last();
+  if ((page.viewportSize()?.width ?? 1440) < 640) {
+    const suggestions = page.locator("[data-mobile-suggestions]");
+    await expect(suggestions).toBeVisible();
+    const row = await requiredBox(suggestions);
+    const buttons = await suggestions.getByRole("button").all();
+    for (const suggestion of buttons) {
+      const button = await requiredBox(suggestion);
+      expect(button.height).toBeCloseTo(36, 0);
+      expect(button.y).toBeGreaterThanOrEqual(row.y);
+      expect(button.y + button.height).toBeLessThanOrEqual(row.y + row.height);
+    }
+    if (buttons.length > 1) {
+      const first = await requiredBox(buttons[0] as Locator);
+      const last = await requiredBox(buttons[buttons.length - 1] as Locator);
+      expect(last.x - (first.x + first.width)).toBeGreaterThanOrEqual(3);
+      expect(last.x - (first.x + first.width)).toBeLessThanOrEqual(4);
+      expect(first.x - row.x).toBeGreaterThanOrEqual(2);
+      expect(first.x - row.x).toBeLessThanOrEqual(4);
+      expect(row.x + row.width - (last.x + last.width)).toBeGreaterThanOrEqual(2);
+      expect(row.x + row.width - (last.x + last.width)).toBeLessThanOrEqual(4);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    return;
+  }
   const suggestions = latestTurn.locator('[data-slot="bubble-reactions"][aria-label="Suggested questions"]');
   const actions = latestTurn.locator('[data-slot="bubble-reactions"][aria-label="Reply actions"]');
   await expect(suggestions).toBeVisible();
@@ -152,14 +233,17 @@ async function expectExteriorShadow(
   await testInfo.attach(`${name}-without-shadow`, { body: withoutShadow, contentType: "image/png" });
 }
 
-/** Installs a test control that pauses the next surface clip animation at creation time.
+/** Installs a test control that pauses every track in the next conversation morph.
  * @param page - Browser page receiving the animation control.
  */
 async function installSurfaceClipAnimationControl(page: Page): Promise<void> {
   await page.addInitScript(() => {
     let pauseNextClip = false;
-    let releaseScheduled = false;
-    window.addEventListener("test-pause-next-surface-clip", () => { pauseNextClip = true; });
+    const captured = new Set<Animation>();
+    (window as unknown as { testSurfaceMorphAnimations: Set<Animation> }).testSurfaceMorphAnimations = captured;
+    const morphSelector = "[data-chat-frame], [data-chat-paint], [data-conversation-composer] [data-slot='input-group'], [data-chat-reveal], [data-conversation-history]";
+    window.addEventListener("test-pause-next-surface-clip", () => { captured.clear(); pauseNextClip = true; });
+    window.addEventListener("test-release-surface-clip", () => { pauseNextClip = false; });
     // eslint-disable-next-line @typescript-eslint/unbound-method -- Forwarded below with the original receiver via .call.
     const animate = Element.prototype.animate;
     /** Pauses only the next armed conversation surface clip animation.
@@ -169,50 +253,71 @@ async function installSurfaceClipAnimationControl(page: Page): Promise<void> {
      */
     Element.prototype.animate = function controlledAnimate(keyframes, options) {
       const animation = animate.call(this, keyframes, options);
-      if (pauseNextClip && this.hasAttribute("data-chat-paint")) {
+      if (pauseNextClip && this.matches(morphSelector)) {
         animation.pause();
-        if (!releaseScheduled) {
-          releaseScheduled = true;
-          queueMicrotask(() => {
-            pauseNextClip = false;
-            releaseScheduled = false;
-          });
-        }
+        captured.add(animation);
       }
       return animation;
     };
   });
 }
 
-/** Arms the next conversation surface clip animation for synchronous inspection.
+/** Arms the next conversation morph for synchronous inspection.
  * @param page - Browser page containing the installed animation control.
  */
 async function pauseNextSurfaceClipAnimation(page: Page): Promise<void> {
   await page.evaluate(() => { window.dispatchEvent(new Event("test-pause-next-surface-clip")); });
 }
 
-/** Moves every active element animation to the same normalized point.
- * @param locator - Element with synchronized motion tracks.
+/** Waits until the moving composer owns its finite geometry track.
+ * @param composer - Input group that must participate in the morph.
+ */
+async function waitForComposerMorph(composer: Locator): Promise<void> {
+  await expect.poll(() => composer.evaluate((element) => element.getAnimations().some((animation) => {
+    const endTime = animation.effect?.getComputedTiming().endTime;
+    const keyframes = (animation.effect as KeyframeEffect | null)?.getKeyframes() ?? [];
+    return typeof endTime === "number" && Number.isFinite(endTime) && endTime > 0
+      && keyframes.some((frame) => frame.transform !== undefined || frame.width !== undefined || frame.height !== undefined);
+  }))).toBe(true);
+}
+
+/** Moves every active descendant animation to the same normalized point.
+ * @param locator - Conversation shell with synchronized motion tracks.
  * @param progress - Normalized animation progress from zero through one.
  */
 async function setMotionProgress(locator: Locator, progress: number): Promise<void> {
-  await locator.evaluate((element, fraction) => {
-    for (const animation of element.getAnimations()) {
-      const duration = animation.effect?.getComputedTiming().duration;
-      if (typeof duration !== "number") throw new Error("Paint animation duration must be numeric.");
+  await locator.evaluate((_element, fraction) => {
+    const captured = (window as unknown as { testSurfaceMorphAnimations?: Set<Animation> }).testSurfaceMorphAnimations;
+    const animations = [...(captured ?? [])].filter((animation) => {
+      const endTime = animation.effect?.getComputedTiming().endTime;
+      const keyframes = (animation.effect as KeyframeEffect | null)?.getKeyframes() ?? [];
+      return typeof endTime === "number" && Number.isFinite(endTime) && endTime > 0
+        && keyframes.some((frame) => frame.transform !== undefined || frame.width !== undefined || frame.height !== undefined
+          || frame.clipPath !== undefined || frame.opacity !== undefined);
+    });
+    if (animations.length === 0) throw new Error("Expected finite conversation morph tracks.");
+    for (const animation of animations) {
+      const duration = animation.effect?.getComputedTiming().endTime;
+      if (typeof duration !== "number") throw new Error("Morph animation duration must be numeric.");
       animation.currentTime = duration * fraction;
     }
+    if (fraction === 0) window.dispatchEvent(new Event("test-release-surface-clip"));
   }, progress);
 }
 
-/** Resumes every synchronized motion track and waits for its settled frame.
- * @param locator - Element with paused motion tracks.
+/** Resumes every synchronized descendant track and waits for its settled frame.
+ * @param locator - Conversation shell with paused motion tracks.
  */
 async function finishMotion(locator: Locator): Promise<void> {
-  await locator.evaluate(async (element) => {
-    const animations = element.getAnimations();
+  await locator.evaluate(async () => {
+    const captured = (window as unknown as { testSurfaceMorphAnimations?: Set<Animation> }).testSurfaceMorphAnimations;
+    const animations = [...(captured ?? [])].filter((animation) => {
+      const endTime = animation.effect?.getComputedTiming().endTime;
+      return typeof endTime === "number" && Number.isFinite(endTime) && endTime > 0;
+    });
     for (const animation of animations) animation.play();
-    await Promise.all(animations.map((animation) => animation.finished));
+    await Promise.allSettled(animations.map(async (animation) => animation.finished));
+    captured?.clear();
   });
 }
 
@@ -226,7 +331,8 @@ test("the supported shell exposes one launcher across representative routes", as
     await page.goto(path);
     await readyLauncher(page);
     await expect(page.locator("button[data-launcher]")).toHaveCount(1);
-    await expect(page.locator("[data-chat-surface]")).toHaveCount(1);
+    await expect(page.locator("[data-chat-surface]")).toHaveCount(0);
+    await expect(page.locator("[data-conversation-composer]")).toHaveCount(1);
   }
 });
 
@@ -439,7 +545,7 @@ test("retry preserves the original detail-page context after client navigation",
 
   await page.getByRole("link", { exact: true, name: "Home" }).click();
   await expect(page).toHaveURL(/\/$/u);
-  await openConversation(page);
+  await reopenConversation(page);
   const retry = page.getByRole("button", { name: "Retry message" });
   await hoverReaction(retry);
   await retry.click();
@@ -474,7 +580,7 @@ test("only the latest reply exposes compact follow-ups that prefill the focused 
   const footerBox = await requiredBox(footer);
   expect(footerBox.x - bubbleBox.x).toBeCloseTo(12, 0);
   await expectCompactSuggestionGeometry(page);
-  await page.setViewportSize({ width: 320, height: 800 });
+  await page.setViewportSize({ width: 640, height: 800 });
   await hoverReaction(footer.getByRole("button", { name: "Copy reply" }));
   await expectCompactSuggestionGeometry(page);
 
@@ -515,7 +621,7 @@ test("completed exchange pairs meet without an extra transcript gap", async ({ p
   await expect(page.locator('[role="log"]')).toHaveCSS("gap", "0px");
 });
 
-test("one long follow-up wraps without overlapping actions and prefills its full question", async ({ page }) => {
+test("one long mobile follow-up scrolls locally and prefills its full question", async ({ page }) => {
   const longQuestion = "How does Nikita's project evidence transfer to an adjacent AI engineering role that uses Python and LangChain?";
   const longLabel = "Assess an adjacent AI role using detailed portfolio evidence";
   const stream = "event: metadata\ndata: {\"mode\":\"live\"}\n\n"
@@ -538,10 +644,10 @@ test("one long follow-up wraps without overlapping actions and prefills its full
   await expect(suggestion).toBeVisible();
   const suggestionBox = await requiredBox(suggestion);
   const suggestionGroupBox = await requiredBox(page.locator('[aria-label="Suggested questions"]'));
-  const actionsBox = await requiredBox(page.locator('[aria-label="Reply actions"]'));
-  expect(suggestionBox.height).toBeGreaterThan(24);
+  const actionsBox = await requiredBox(page.locator("[data-turn]").last().locator("[data-answer-actions]"));
+  expect(suggestionBox.height).toBeGreaterThanOrEqual(30);
   expect(suggestionBox.x).toBeGreaterThanOrEqual(suggestionGroupBox.x);
-  expect(suggestionBox.x + suggestionBox.width).toBeLessThanOrEqual(suggestionGroupBox.x + suggestionGroupBox.width + 1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(suggestionGroupBox.y).toBeGreaterThanOrEqual(actionsBox.y + actionsBox.height);
   await suggestion.click();
   await expect(page.getByRole("textbox", { name: "Your question" })).toHaveValue(longQuestion);
@@ -634,7 +740,7 @@ for (const theme of ["light", "dark"] as const) {
 test.describe("message actions without hover", () => {
   test.use({ hasTouch: true, viewport: { width: 375, height: 812 } });
 
-  test("touch keeps copy, retry, and info pills available", async ({ page }, testInfo) => {
+  test("touch keeps mobile answer actions and failure details available", async ({ page }, testInfo) => {
     let requests = 0;
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.route("**/api/ask", async (route) => {
@@ -649,16 +755,14 @@ test.describe("message actions without hover", () => {
     expect(await page.evaluate(() => matchMedia("(hover: none)").matches)).toBe(true);
     await submitQuestion(page, "Touch actions");
     await expect(page.locator("[data-answer]")).toHaveText(liveAnswer);
-    await expect(page.locator('[aria-label="Reply actions"] [data-reaction-visual]')).toHaveCSS("opacity", "1");
-    await expect(page.locator('[aria-label="Message actions"] [data-reaction-visual]')).toHaveCSS("opacity", "1");
+    const actions = page.locator("[data-answer-actions]");
+    await expect(actions.getByRole("button", { name: "Copy reply" })).toBeVisible();
+    await expect(actions.getByRole("button", { name: "Retry message" })).toBeVisible();
     await page.getByRole("button", { name: "Retry message" }).tap();
     const info = page.locator('[aria-label="Failure details"]');
-    await expect(info).toBeAttached();
-    await expect(info.locator("[data-reaction-visual]")).toHaveCSS("opacity", "1");
-    await expect(info.locator("[data-reaction-visual]")).toHaveCSS("transform", "none");
-    await expect(page.locator('[aria-label="Message actions"] [data-reaction-visual]')).toHaveCSS("opacity", "1");
-    await expect(page.locator('[aria-label="Message actions"] [data-reaction-visual]')).toHaveCSS("transform", "none");
-    await captureConversation(page, testInfo, "touch-action-pills");
+    await expect(info).toBeVisible();
+    await expect(page.getByRole("button", { name: "Retry message" })).toBeVisible();
+    await captureConversation(page, testInfo, "touch-answer-actions");
   });
 });
 
@@ -693,6 +797,7 @@ test("the first pointer click activates Copy through its stable hidden target", 
   await composer.focus();
   await page.mouse.move(0, 0);
   await expect(composer).toBeFocused();
+  await settleSurfaceMotion(page.locator("[data-chat-surface]"));
   const hiddenGeometry = await copy.evaluate((element) => {
     const box = element.getBoundingClientRect();
     return {
@@ -743,12 +848,32 @@ test("Copy reply writes the exact plain-text answer on every successful activati
   await submitQuestion(page, "Copy this reply");
   const copy = page.getByRole("button", { name: "Copy reply" });
   await hoverReaction(copy);
+  const copyHandle = await copy.elementHandle();
   await copy.click();
+
+  const iconFrames = await copyHandle.evaluate(async (element) => {
+    const frames: Array<{ copy: number; check: number }> = [];
+    const until = performance.now() + 240;
+    while (performance.now() < until) {
+      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+      const copyIcon = element.querySelector<HTMLElement>('[data-copy-icon="copy"]');
+      const checkIcon = element.querySelector<HTMLElement>('[data-copy-icon="check"]');
+      if (!copyIcon || !checkIcon) throw new Error("Both copy feedback glyphs must remain mounted during feedback.");
+      frames.push({
+        copy: Number.parseFloat(getComputedStyle(copyIcon).opacity),
+        check: Number.parseFloat(getComputedStyle(checkIcon).opacity),
+      });
+    }
+    return frames;
+  });
+  expect(iconFrames.some(({ copy: opacity }) => opacity > 0 && opacity < 1)).toBe(true);
+  expect(iconFrames.some(({ check: opacity }) => opacity > 0 && opacity < 1)).toBe(true);
 
   expect(await page.evaluate(() => [sessionStorage.getItem("test-copied-reply-1")])).toEqual([liveAnswer]);
   const copied = page.getByRole("button", { name: "Copied" });
   await expect(copied.locator("svg.lucide-check")).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Reply copied." })).toHaveText("Reply copied.");
+  await page.waitForTimeout(1_200);
   await hoverReaction(copied);
   await copied.click();
   expect(await page.evaluate(() => [
@@ -756,8 +881,14 @@ test("Copy reply writes the exact plain-text answer on every successful activati
     sessionStorage.getItem("test-copied-reply-2"),
   ])).toEqual([liveAnswer, liveAnswer]);
   await expect(copied.locator("svg.lucide-check")).toBeVisible();
+  await page.waitForTimeout(1_000);
+  await expect(copied).toHaveAccessibleName("Copied");
+  const restoredCopy = page.getByRole("button", { name: "Copy reply" });
+  await expect(restoredCopy).toBeVisible({ timeout: 1_500 });
+  await expect(restoredCopy.locator('[data-copy-icon="copy"]')).toHaveCSS("opacity", "1");
+  await expect(restoredCopy.locator('[data-copy-icon="check"]')).toHaveCSS("opacity", "0");
   await page.mouse.move(0, 0);
-  await expect(page.locator('[aria-label="Reply actions"] [data-reaction-visual]')).toHaveCSS("opacity", "0");
+  await expect(page.locator("[data-answer-actions] [data-reaction-visual]")).toHaveCSS("opacity", "0");
 });
 
 test("Copy reply keeps focus and prevents duplicate writes while clipboard work is pending", async ({ page }) => {
@@ -849,6 +980,7 @@ test("a late clipboard rejection cannot copy after the conversation closes", asy
 
   await page.getByRole("button", { name: "Close conversation" }).click();
   await expect(page.locator("[data-chat-surface]")).toBeHidden();
+  await expect(page.locator("[data-morph]")).toHaveCount(0);
   await expect(launcher).toBeFocused();
   await page.evaluate(() => { window.dispatchEvent(new Event("test-reject-copy")); });
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem("test-copy-rejected"))).toBe("true");
@@ -1042,180 +1174,225 @@ test("Retry message regenerates the same exchange without duplicating its questi
   });
 });
 
-test("desktop launcher morphs the same painted node and hover never opens chat", async ({ page }, testInfo) => {
+test("desktop entry reveals a composer on intent without opening chat", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1_440, height: 900 });
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
+  let requests = 0;
+  await page.route("**/api/ask", async (route) => {
+    requests += 1;
+    await route.fulfill({ body: liveStream, contentType: "text/event-stream" });
+  });
   await page.goto("/");
   const launcher = await readyLauncher(page);
   const entry = page.locator("[data-edge-entry]");
   const stroke = page.locator("[data-entry-stroke]");
   const strokeHandle = await stroke.elementHandle();
   const resting = await requiredBox(stroke);
-  const hitArea = await requiredBox(entry);
-
   expect(resting.width).toBeCloseTo(120, 0);
   expect(resting.height).toBeCloseTo(5, 0);
+  expect((await requiredBox(launcher)).height).toBeCloseTo(40, 0);
   await expect(stroke).not.toHaveCSS("box-shadow", "none");
   await expectExteriorShadow(page, stroke, "boxShadow", testInfo, "conversation-desktop-line-shadow");
-  expect(hitArea.width).toBeCloseTo(160, 0);
-  expect(hitArea.height).toBeGreaterThanOrEqual(44);
-  await expect(launcher.locator("svg.lucide-sparkle")).toHaveCount(1);
   await launcher.hover();
-  await expect.poll(() => stroke.evaluate((element) => element.getAnimations().length)).toBeGreaterThan(0);
-  await setMotionProgress(stroke, 0.5);
-  const openingFrame = await requiredBox(stroke);
-  expect(openingFrame.width).toBeGreaterThan(120);
-  expect(openingFrame.width).toBeLessThan(160);
-  await expect(stroke).toHaveCSS("opacity", "1");
-  await finishMotion(stroke);
-  await expect.poll(async () => (await requiredBox(stroke)).width).toBeCloseTo(160, 0);
-  await expect.poll(async () => (await requiredBox(stroke)).height).toBeCloseTo(36, 0);
-  const pillBox = await requiredBox(stroke);
-  const labelBox = await requiredBox(launcher.getByText("Ask about my work", { exact: true }));
-  const iconBox = await requiredBox(launcher.locator("svg.lucide-sparkle"));
-  await expect(launcher.getByText("Ask about my work", { exact: true })).toHaveCSS("font-size", "12px");
-  expect(labelBox.height).toBeCloseTo(pillBox.height, 0);
-  expect(labelBox.y + labelBox.height / 2).toBeCloseTo(pillBox.y + pillBox.height / 2, 0);
-  expect(iconBox.y + iconBox.height / 2).toBeCloseTo(pillBox.y + pillBox.height / 2, 0);
-  await expect(stroke).not.toHaveCSS("box-shadow", "none");
-  await expectExteriorShadow(page, stroke, "boxShadow", testInfo, "conversation-desktop-pill-shadow");
-  await captureConversation(page, testInfo, "conversation-desktop-hover");
+  const input = page.getByRole("textbox", { name: "Your question" });
+  const composer = page.locator('[data-conversation-composer] [data-slot="input-group"]');
+  const fade = page.locator("[data-entry-fade]");
+  const send = page.getByRole("button", { name: "Send", exact: true });
+  await expect(input).toBeVisible();
+  await expect(input).toHaveAttribute("placeholder", "Ask about my work…");
+  await expect(input).toHaveCSS("font-size", "14px");
+  await expect(input).toHaveCSS("line-height", "20px");
+  await expect(page.locator("[data-entry-composer-star]")).toBeVisible();
+  await expect(send).toBeVisible();
+  await expect(send).toHaveText("Send");
+  await expect(send).toHaveCSS("background-image", "none");
+  expect(await composer.evaluate((element) => {
+    const sample = document.createElement("span");
+    sample.style.backgroundColor = "var(--background)";
+    document.body.append(sample);
+    const expected = getComputedStyle(sample).backgroundColor;
+    sample.remove();
+    return getComputedStyle(element).backgroundColor === expected;
+  })).toBe(true);
+  await expect(composer).toHaveCSS("opacity", "1");
+  expect((await requiredBox(composer)).height).toBeCloseTo(40, 0);
+  expect((await requiredBox(input)).height).toBeCloseTo(38, 0);
+  expect((await requiredBox(send)).height).toBeCloseTo(32, 0);
+  const fadeBox = await requiredBox(fade);
+  const entryBox = await requiredBox(entry);
+  expect(fadeBox.width).toBeCloseTo(Math.min(entryBox.width + 96, 1_440), 0);
+  expect(fadeBox.x + fadeBox.width / 2).toBeCloseTo(720, 0);
   await expect(page.getByRole("dialog", { name: "About my work" })).toBeHidden();
   expect(await stroke.evaluate((element, original) => element === original, strokeHandle)).toBe(true);
-
+  await captureConversation(page, testInfo, "conversation-desktop-hover");
+  await input.fill("An unsent first question\nwith a second line\nand a final line");
+  const multilineGroupBox = await requiredBox(composer);
+  const starBox = await requiredBox(page.locator("[data-entry-composer-star]"));
+  const multilineSendBox = await requiredBox(send);
+  const starCenter = starBox.y + starBox.height / 2;
+  const sendCenter = multilineSendBox.y + multilineSendBox.height / 2;
+  expect(starCenter).toBeGreaterThan(multilineGroupBox.y + multilineGroupBox.height / 2);
+  expect(sendCenter).toBeGreaterThan(multilineGroupBox.y + multilineGroupBox.height / 2);
+  expect(Math.abs(starCenter - sendCenter)).toBeLessThanOrEqual(2);
+  expect(multilineGroupBox.y + multilineGroupBox.height - (multilineSendBox.y + multilineSendBox.height)).toBeCloseTo(4, 0);
   await page.mouse.move(0, 0);
-  await expect.poll(() => stroke.evaluate((element) => element.getAnimations().length)).toBeGreaterThan(0);
-  await setMotionProgress(stroke, 0.5);
-  const closingFrame = await requiredBox(stroke);
-  expect(closingFrame.width).toBeGreaterThan(120);
-  expect(closingFrame.width).toBeLessThan(160);
-  await expect(stroke).toHaveCSS("opacity", "1");
-  await finishMotion(stroke);
-  await expect.poll(async () => (await requiredBox(stroke)).width).toBeCloseTo(120, 0);
-  expect(await stroke.evaluate((element, original) => element === original, strokeHandle)).toBe(true);
-
-  await launcher.click();
-  await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
+  await expect(input).toBeVisible();
+  await expect(input).toHaveValue("An unsent first question\nwith a second line\nand a final line");
+  await input.fill("");
+  await input.blur();
+  await expect(entry).toHaveAttribute("data-entry-revealed", "false");
+  await expect(input).toBeHidden();
   await expect.poll(async () => (await requiredBox(stroke)).width).toBeCloseTo(120, 0);
   await expect.poll(async () => (await requiredBox(stroke)).height).toBeCloseTo(5, 0);
+  expect(requests).toBe(0);
 });
 
-test("the panel grows from the launcher line", async ({ page }, testInfo) => {
+test("retained desktop composer moves continuously between the page field and panel", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1_440, height: 900 });
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
   await installSurfaceClipAnimationControl(page);
+  await page.route("**/api/ask", async (route) => {
+    await route.fulfill({ body: liveStream, contentType: "text/event-stream; charset=utf-8" });
+  });
   await page.goto("/");
-  const launcher = await readyLauncher(page);
-  const stroke = page.locator("[data-entry-stroke]");
+  const shell = page.locator("[data-conversation-shell]");
   const surface = page.locator("[data-chat-surface]");
-  const paint = page.locator("[data-chat-paint]");
+  const composer = page.locator('[data-conversation-composer] [data-slot="input-group"]');
+  const reopenField = page.locator("[data-reopen-field]");
+  const launcher = await readyLauncher(page);
+
+  await openConversation(page);
+  await submitQuestion(page, "Retain one continuous desktop composer");
+  await expect(page.locator("[data-answer]")).toHaveText(liveAnswer);
+  await page.getByRole("button", { name: "Close conversation" }).click();
+  await expect(surface).toBeHidden();
+  await expect(surface).not.toHaveAttribute("data-morph");
+  await settleSurfaceMotion(surface);
+  await launcher.hover();
+  await expect(reopenField).toBeVisible();
+  const entryBox = await requiredBox(reopenField);
+  const originalFontSize = await reopenField.evaluate((element) => getComputedStyle(element).fontSize);
 
   await pauseNextSurfaceClipAnimation(page);
+  await expect(page.locator("[data-edge-entry]")).toHaveAttribute("data-entry-revealed", "true");
   await launcher.click();
-  await expect(surface).toBeVisible();
-  const surfaceBox = await requiredBox(surface);
-  await expect.poll(() => paint.evaluate((element) => element.getAnimations().length)).toBeGreaterThan(0);
-  await setMotionProgress(paint, 0);
-  await expect(page.getByRole("textbox", { name: "Your question" })).not.toBeFocused();
-  await expect(paint).toHaveCount(1);
-  await expect(surface).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-  await expect(surface).toHaveCSS("overflow", "visible");
-  await expect(surface).toHaveCSS("clip-path", "none");
-  await expect(surface).not.toHaveCSS("filter", "none");
-  await expect(paint).toHaveCSS("background-image", "none");
-  await expect(stroke).toHaveCSS("opacity", "1");
-  const lineBox = await requiredBox(stroke);
-  expect(lineBox.width).toBeCloseTo(120, 0);
-  expect(lineBox.height).toBeCloseTo(5, 0);
-  expect(await stroke.evaluate((element) => element.getAnimations().length)).toBe(0);
-  const startClip = await paint.evaluate((element) => getComputedStyle(element).clipPath);
-  expect(startClip).toContain("100%");
-  const openingStartBox = await requiredBox(paint);
-  expect(lineBox.y - (openingStartBox.y + openingStartBox.height)).toBeCloseTo(1, 0);
-  expect(await requiredBox(surface)).toEqual(surfaceBox);
-  await setMotionProgress(paint, 0.5);
-  const middleClip = await paint.evaluate((element) => getComputedStyle(element).clipPath);
-  expect(middleClip).not.toBe(startClip);
-  const openingMiddleBox = await requiredBox(paint);
-  expect(openingMiddleBox.y + openingMiddleBox.height).toBeLessThan(lineBox.y);
-  expect(await requiredBox(surface)).toEqual(surfaceBox);
-  expect(await requiredBox(stroke)).toEqual(lineBox);
-  await expectExteriorShadow(page, surface, "filter", testInfo, "conversation-opening-mid-shadow");
-  const midOpenPath = testInfo.outputPath("conversation-opening-mid-shadow.png");
-  await page.screenshot({ animations: "allow", path: midOpenPath });
-  await testInfo.attach("conversation-opening-mid-shadow-full", { contentType: "image/png", path: midOpenPath });
-  await setMotionProgress(paint, 1);
-  const finalClip = await paint.evaluate((element) => getComputedStyle(element).clipPath);
-  expect(finalClip).not.toBe(middleClip);
-  expect(finalClip).toMatch(/^inset\(0(?:px)?/u);
-  const openingFinalBox = await requiredBox(paint);
-  expect(openingFinalBox.y + openingFinalBox.height).toBeLessThan(lineBox.y);
-  expect(await requiredBox(surface)).toEqual(surfaceBox);
-  expect(await requiredBox(stroke)).toEqual(lineBox);
-  const path = testInfo.outputPath("conversation-opening-panel.png");
-  await page.screenshot({ animations: "allow", path });
-  await testInfo.attach("conversation-opening-panel", { contentType: "image/png", path });
-  await finishMotion(paint);
+  await expect(surface).toHaveAttribute("data-morph", "opening");
+  await waitForComposerMorph(composer);
+  const history = page.locator("[data-conversation-history]");
+  const firstTurn = page.locator("[data-turn]:visible").first();
+  /**
+   * Samples composer and retained-transcript geometry at one controlled morph point.
+   * @param fraction - Normalized opening progress.
+   * @returns Composer geometry and transcript position.
+   */
+  const sampleOpening = async (fraction: number) => {
+    await setMotionProgress(shell, fraction);
+    return {
+      turnY: (await requiredBox(firstTurn)).y,
+      composer: await requiredBox(composer),
+      scrollTop: await history.evaluate((element) => element.scrollTop),
+    };
+  };
+  const openingStartSample = await sampleOpening(0);
+  const openingStart = openingStartSample.composer;
+  await captureConversation(page, testInfo, "desktop-reopen-morph-start", "allow");
+  const retainedMotionSamples = [openingStartSample, await sampleOpening(0.25)];
+  const openingMiddleSample = await sampleOpening(0.5);
+  retainedMotionSamples.push(openingMiddleSample);
+  const openingMiddle = openingMiddleSample.composer;
+  await captureConversation(page, testInfo, "desktop-reopen-morph-middle", "allow");
+  retainedMotionSamples.push(await sampleOpening(0.75), await sampleOpening(0.9));
+  const openingEndSample = await sampleOpening(1);
+  retainedMotionSamples.push(openingEndSample);
+  const openingEnd = openingEndSample.composer;
+  const transcriptEndY = openingEndSample.turnY;
+  await captureConversation(page, testInfo, "desktop-reopen-morph-end", "allow");
 
-  await expect(paint).toHaveCSS("opacity", "1");
-  await expect(paint).toHaveCSS("clip-path", "none");
-  await expect(surface).not.toHaveCSS("filter", "none");
-  const finalBox = await requiredBox(surface);
-  expect(finalBox.width).toBeCloseTo(652.8, 0);
+  expect(Math.max(...retainedMotionSamples.map(({ turnY }) => turnY))
+    - Math.min(...retainedMotionSamples.map(({ turnY }) => turnY)), JSON.stringify(retainedMotionSamples)).toBeLessThanOrEqual(1);
+  expect(new Set(retainedMotionSamples.map(({ scrollTop }) => Math.round(scrollTop))).size).toBe(1);
+
+  expect(openingStart.x).toBeCloseTo(entryBox.x, 0);
+  expect(openingStart.y).toBeCloseTo(entryBox.y, 0);
+  expect(openingStart.width).toBeCloseTo(entryBox.width, 0);
+  const endCenter = { x: openingEnd.x + openingEnd.width / 2, y: openingEnd.y + openingEnd.height / 2 };
+  const openingStartDistance = Math.hypot(
+    openingStart.x + openingStart.width / 2 - endCenter.x,
+    openingStart.y + openingStart.height / 2 - endCenter.y,
+  );
+  const openingMiddleDistance = Math.hypot(
+    openingMiddle.x + openingMiddle.width / 2 - endCenter.x,
+    openingMiddle.y + openingMiddle.height / 2 - endCenter.y,
+  );
+  expect(openingMiddleDistance).toBeLessThan(openingStartDistance);
+  await expect(page.locator("[data-conversation-composer]:visible")).toHaveCount(1);
+  await expect(page.locator("[data-reopen-field]:visible, [data-conversation-composer]:visible")).toHaveCount(1);
+  expect(await page.getByRole("textbox", { name: "Your question" })
+    .evaluate((element) => getComputedStyle(element).fontSize)).toBe(originalFontSize);
+  const surfaceBox = await requiredBox(surface);
+  expect(openingEnd.x).toBeGreaterThanOrEqual(surfaceBox.x - 1);
+  expect(openingEnd.y).toBeGreaterThanOrEqual(surfaceBox.y - 1);
+  expect(openingEnd.x + openingEnd.width).toBeLessThanOrEqual(surfaceBox.x + surfaceBox.width + 1);
+  expect(openingEnd.y + openingEnd.height).toBeLessThanOrEqual(surfaceBox.y + surfaceBox.height + 1);
+  await finishMotion(shell);
+  await expect(page.locator("[data-morph]")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
+  await expect.poll(async () => Math.abs((await requiredBox(firstTurn)).y - transcriptEndY)).toBeLessThanOrEqual(1);
 
   await pauseNextSurfaceClipAnimation(page);
   await page.getByRole("button", { name: "Close conversation" }).click();
-  await expect.poll(() => paint.evaluate((element) => (
-    element.getAnimations().some((candidate) => (candidate.effect as KeyframeEffect | null)?.getKeyframes().some((frame) => frame.clipPath !== undefined))
-  ))).toBe(true);
-  await setMotionProgress(paint, 0);
-  const closingStart = await paint.evaluate((element) => getComputedStyle(element).clipPath);
-  expect(closingStart).toMatch(/^inset\(0(?:px)?/u);
-  const closingStartBox = await requiredBox(paint);
-  expect(closingStartBox.y + closingStartBox.height).toBeLessThan(lineBox.y);
-  expect(await requiredBox(stroke)).toEqual(lineBox);
-  await setMotionProgress(paint, 0.2);
-  const closingMiddle = await paint.evaluate((element) => getComputedStyle(element).clipPath);
-  expect(closingMiddle).not.toBe(closingStart);
-  const closingMiddleBox = await requiredBox(paint);
-  expect(closingMiddleBox.y + closingMiddleBox.height).toBeLessThan(lineBox.y);
-  expect(await requiredBox(surface)).toEqual(surfaceBox);
-  expect(await requiredBox(stroke)).toEqual(lineBox);
-  await expectExteriorShadow(page, surface, "filter", testInfo, "conversation-closing-mid-shadow");
-  const midClosePath = testInfo.outputPath("conversation-closing-mid-shadow.png");
-  await page.screenshot({ animations: "allow", path: midClosePath });
-  await testInfo.attach("conversation-closing-mid-shadow-full", { contentType: "image/png", path: midClosePath });
-  await setMotionProgress(paint, 1);
-  expect(await paint.evaluate((element) => getComputedStyle(element).clipPath)).toContain("100%");
-  const closingFinalBox = await requiredBox(paint);
-  expect(lineBox.y - (closingFinalBox.y + closingFinalBox.height)).toBeCloseTo(1, 0);
-  expect(await requiredBox(stroke)).toEqual(lineBox);
-  await finishMotion(paint);
+  await expect(surface).toHaveAttribute("data-morph", "closing");
+  await waitForComposerMorph(composer);
+  await setMotionProgress(shell, 0);
+  const closingStart = await requiredBox(composer);
+  await captureConversation(page, testInfo, "desktop-close-morph-start", "allow");
+  await setMotionProgress(shell, 0.5);
+  const closingMiddle = await requiredBox(composer);
+  await captureConversation(page, testInfo, "desktop-close-morph-middle", "allow");
+  await setMotionProgress(shell, 1);
+  const closingEnd = await requiredBox(composer);
+  await captureConversation(page, testInfo, "desktop-close-morph-end", "allow");
+  expect(closingStart.y).toBeCloseTo(openingEnd.y, 0);
+  const closeTarget = { x: closingEnd.x + closingEnd.width / 2, y: closingEnd.y + closingEnd.height / 2 };
+  const closingStartDistance = Math.hypot(
+    closingStart.x + closingStart.width / 2 - closeTarget.x,
+    closingStart.y + closingStart.height / 2 - closeTarget.y,
+  );
+  const closingMiddleDistance = Math.hypot(
+    closingMiddle.x + closingMiddle.width / 2 - closeTarget.x,
+    closingMiddle.y + closingMiddle.height / 2 - closeTarget.y,
+  );
+  expect(closingMiddleDistance).toBeLessThan(closingStartDistance);
+  await expect(page.locator("[data-conversation-composer]:visible")).toHaveCount(1);
+  await expect(page.locator("[data-reopen-field]:visible, [data-conversation-composer]:visible")).toHaveCount(1);
+  await finishMotion(shell);
   await expect(surface).toBeHidden();
+  await expect(page.locator("[data-morph]")).toHaveCount(0);
 });
 
 test("interrupted opening clears motion state before reopening", async ({ page }) => {
   await page.setViewportSize({ width: 1_440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
+  await installControlledReply(page, false);
   await page.goto("/");
   const launcher = await readyLauncher(page);
   const surface = page.locator("[data-chat-surface]");
-  const paint = page.locator("[data-chat-paint]");
 
   await launcher.hover();
-  await launcher.click();
-  await expect.poll(() => paint.evaluate((element) => element.getAnimations().length)).toBeGreaterThan(0);
+  await page.getByRole("textbox", { name: "Your question" }).focus();
+  await page.getByRole("textbox", { name: "Your question" }).fill("Interrupt this opening");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(surface).toHaveAttribute("data-morph", "opening");
   await page.keyboard.press("Escape");
   await expect(surface).toBeHidden();
-  expect(await paint.evaluate((element) => element.getAnimations().length)).toBe(0);
+  await expect(page.locator("[data-morph]")).toHaveCount(0);
 
-  await launcher.click();
+  await reopenConversation(page);
   await expect(surface).toBeVisible();
-  await expect.poll(() => paint.evaluate((element) => element.getAnimations().length)).toBe(0);
+  await expect(page.locator("[data-morph]")).toHaveCount(0);
   const reopened = await requiredBox(surface);
-  await expect(paint).toHaveCSS("clip-path", "none");
   expect(reopened.width).toBeCloseTo(652.8, 0);
+  await expect(page.locator("[data-conversation-composer]:visible")).toHaveCount(1);
   await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
 });
 
@@ -1224,19 +1401,16 @@ test("reduced motion opens at final geometry without an opening transition", asy
   await page.emulateMedia({ reducedMotion: "reduce" });
   await installControlledReply(page);
   await page.goto("/");
-  const launcher = await readyLauncher(page);
   const surface = page.locator("[data-chat-surface]");
-  const paint = page.locator("[data-chat-paint]");
 
-  await launcher.click();
+  await openConversation(page);
+  await submitQuestion(page, "Grow without motion");
   await expect(surface).toBeVisible();
   const finalBox = await requiredBox(surface);
   expect(finalBox.width).toBeCloseTo(652.8, 0);
-  expect(await paint.evaluate((element) => element.getAnimations().length)).toBe(0);
-  await expect(paint).toHaveCSS("clip-path", "none");
+  await expect(page.locator("[data-morph]")).toHaveCount(0);
   await expect(surface).not.toHaveCSS("filter", "none");
-  await expect(page.locator("[data-entry-stroke]")).toHaveCSS("opacity", "1");
-  await submitQuestion(page, "Grow without motion");
+  await expect(page.locator("[data-conversation-composer]:visible")).toHaveCount(1);
   await emitReply(page, "Reduced-motion portfolio detail. ".repeat(220));
   await expect(page.locator("[data-answer]")).toContainText("Reduced-motion portfolio detail.");
   expect((await requiredBox(surface)).height).toBeCloseTo(600, 0);
@@ -1245,15 +1419,17 @@ test("reduced motion opens at final geometry without an opening transition", asy
   )))).toBe(false);
 });
 
-test("streaming content grows the panel smoothly to two thirds of the viewport and reset shrinks it", async ({ page }, testInfo) => {
+test("streaming content grows the panel smoothly and Start over returns to the focused page field", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1_440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await installControlledReply(page);
   await page.goto("/");
   await openConversation(page);
   const surface = page.locator("[data-chat-surface]");
-  const restingHeight = (await requiredBox(surface)).height;
   await submitQuestion(page, "Grow with the streamed answer");
+  await expect(surface).not.toHaveAttribute("data-morph");
+  await settleSurfaceMotion(surface);
+  const pendingHeight = (await requiredBox(surface)).height;
   await emitReply(page, "Short answer.");
   await expect.poll(() => surface.evaluate((element) => element.getAnimations().length)).toBe(0);
   const shortHeight = (await requiredBox(surface)).height;
@@ -1327,7 +1503,7 @@ test("streaming content grows the panel smoothly to two thirds of the viewport a
   const viewportHeight = await page.evaluate(() => window.visualViewport?.height ?? window.innerHeight);
   await expect.poll(async () => (await requiredBox(surface)).height).toBeCloseTo(viewportHeight * 2 / 3, 0);
   const cappedHeight = (await requiredBox(surface)).height;
-  expect(new Set([restingHeight, shortHeight, mediumHeight, cappedHeight].map(Math.round)).size).toBeGreaterThanOrEqual(3);
+  expect(new Set([pendingHeight, shortHeight, mediumHeight, cappedHeight].map(Math.round)).size).toBeGreaterThanOrEqual(3);
   expect(cappedHeight).toBeLessThanOrEqual(viewportHeight * 2 / 3 + 1);
   expect(cappedHeight).toBeCloseTo(viewportHeight * 2 / 3, 0);
   const history = page.locator("[data-conversation-history]");
@@ -1337,13 +1513,81 @@ test("streaming content grows the panel smoothly to two thirds of the viewport a
   expect(composerBox.y + composerBox.height).toBeLessThan(surfaceBox.y + surfaceBox.height);
   await expectExteriorShadow(page, surface, "filter", testInfo, "conversation-intrinsic-height-shadow");
 
-  await page.getByRole("button", { name: "Start over" }).click();
+  const activeInput = page.getByRole("textbox", { name: "Your question" });
+  await activeInput.focus();
+  await expect(activeInput).toBeFocused();
+  const activeGroup = page.locator('[data-conversation-composer] [data-slot="input-group"]:visible');
+  const focusedRing = await activeGroup.evaluate((element) => getComputedStyle(element).boxShadow);
+  expect(focusedRing).not.toBe("none");
+  expect(focusedRing).toContain("3px");
+  const startOver = page.getByRole("button", { name: "Start over" });
+  const resetComposerPaint = page.evaluate(() => new Promise<Array<{ count: number; shadow: string }>>((resolve) => {
+    const button = document.querySelector<HTMLButtonElement>('[aria-label="Start over"]');
+    if (!button) throw new Error("Start over must exist before tracing composer paint.");
+    button.addEventListener("click", () => {
+      const frames: Array<{ count: number; shadow: string }> = [];
+      const startedAt = performance.now();
+      /** Records one visible composer-ring frame through reset. */
+      const sample = (): void => {
+        const groups = [...document.querySelectorAll<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]')]
+          .filter((element) => {
+            const style = getComputedStyle(element);
+            return element.getClientRects().length > 0
+              && style.display !== "none"
+              && style.visibility === "visible"
+              && style.opacity !== "0";
+          });
+        const [group] = groups;
+        frames.push({ count: groups.length, shadow: groups.length === 1 && group ? getComputedStyle(group).boxShadow : "" });
+        if (performance.now() - startedAt >= 450) resolve(frames);
+        else requestAnimationFrame(sample);
+      };
+      sample();
+    }, { once: true });
+  }));
+  const resetPaint = page.evaluate(() => new Promise<Array<{ boxShadow: string; connected: boolean; focusVisible: boolean; outlineColor: string; outlineStyle: string }>>((resolve) => {
+    const button = document.querySelector<HTMLButtonElement>('[aria-label="Start over"]');
+    if (!button) throw new Error("Start over must exist before pointer reset.");
+    button.addEventListener("click", () => {
+      const frames: Array<{ boxShadow: string; connected: boolean; focusVisible: boolean; outlineColor: string; outlineStyle: string }> = [];
+      let remaining = 18;
+      /** Records one pointer-reset paint frame. */
+      const sample = (): void => {
+        const style = getComputedStyle(button);
+        frames.push({
+          boxShadow: style.boxShadow,
+          connected: button.isConnected,
+          focusVisible: button.matches(":focus-visible"),
+          outlineColor: style.outlineColor,
+          outlineStyle: style.outlineStyle,
+        });
+        remaining -= 1;
+        if (remaining === 0) resolve(frames);
+        else requestAnimationFrame(sample);
+      };
+      sample();
+    }, { once: true });
+  }));
+  await startOver.click();
+  const resetComposerFrames = await resetComposerPaint;
+  const resetFrames = await resetPaint;
+  await testInfo.attach("desktop-reset-composer-ring", { body: JSON.stringify(resetComposerFrames), contentType: "application/json" });
+  expect(resetComposerFrames.length).toBeGreaterThan(2);
+  expect(resetComposerFrames.every(({ count, shadow }) => count === 1 && shadow === focusedRing), JSON.stringify(resetComposerFrames)).toBe(true);
+  const paintedResetFrames = resetFrames.filter(({ connected }) => connected);
+  expect(paintedResetFrames.length).toBeGreaterThan(0);
+  expect(paintedResetFrames.every(({ boxShadow, focusVisible, outlineColor, outlineStyle }) => (
+    !focusVisible && boxShadow === "none" && (outlineStyle === "none" || outlineColor === "rgba(0, 0, 0, 0)")
+  )), JSON.stringify(resetFrames)).toBe(true);
   await expect(page.locator("[data-turn]")).toHaveCount(0);
-  await expect.poll(() => surface.evaluate((element) => element.getAnimations().some((animation) => (
-    (animation.effect as KeyframeEffect | null)?.getKeyframes().some((frame) => frame.height !== undefined)
-  )))).toBe(true);
-  await expect.poll(async () => (await requiredBox(surface)).height).toBeCloseTo(restingHeight, 0);
-  await expect.poll(() => surface.evaluate((element) => element.getAnimations().length)).toBe(0);
+  await expect(surface).toBeHidden();
+  const freshInput = page.getByRole("textbox", { name: "Your question" });
+  await expect(freshInput).toBeVisible();
+  await expect(freshInput).toHaveValue("");
+  await expect(freshInput).toBeFocused();
+  await expect(page.locator("[data-edge-entry]")).toHaveAttribute("data-entry-revealed", "true");
+  await expect(page.locator("[data-conversation-composer]:visible")).toHaveCount(1);
+  await captureConversation(page, testInfo, "desktop-start-over-field");
 });
 
 test("new content retargets active panel growth without stale completion", async ({ page }) => {
@@ -1353,8 +1597,10 @@ test("new content retargets active panel growth without stale completion", async
   await page.goto("/");
   await openConversation(page);
   await submitQuestion(page, "Retarget the panel growth");
-  await emitReply(page, "Short answer.");
   const surface = page.locator("[data-chat-surface]");
+  await expect(surface).not.toHaveAttribute("data-morph");
+  await settleSurfaceMotion(surface);
+  await emitReply(page, "Short answer.");
   await expect.poll(() => surface.evaluate((element) => element.getAnimations().length)).toBe(0);
 
   const frames = await page.evaluate(async () => {
@@ -1390,17 +1636,19 @@ test("new content retargets active panel growth without stale completion", async
   expect(await surface.evaluate((element) => element.style.height)).toBe("");
 });
 
-test("the popup stays inside representative compact, tablet, and desktop widths", async ({ page }) => {
+test("the active conversation stays inside representative compact, tablet, and desktop widths", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await installControlledReply(page, false);
   for (const width of [320, 1_024, 1_440]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto("/");
     await openConversation(page);
+    await submitQuestion(page, `Check ${String(width)} pixel bounds`);
     const surface = await requiredBox(page.locator("[data-chat-surface]"));
 
     expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
-    expect(surface.width).toBeLessThanOrEqual(653);
-    expect(surface.height).toBeLessThanOrEqual(800 * 2 / 3 + 1);
+    expect(surface.width).toBeLessThanOrEqual(width < 640 ? width : 653);
+    expect(surface.height).toBeLessThanOrEqual(width < 640 ? 800 : 800 * 2 / 3 + 1);
     expect(surface.x).toBeGreaterThanOrEqual(0);
     expect(surface.x + surface.width).toBeLessThanOrEqual(width);
   }
@@ -1410,44 +1658,50 @@ test("pointer reopen keeps focus paint off the launcher throughout the reveal", 
   await page.setViewportSize({ width: 1_440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await installSurfaceClipAnimationControl(page);
+  await installControlledReply(page, false);
   await page.goto("/");
   const launcher = await readyLauncher(page);
   const shell = page.locator("[data-conversation-shell]");
+  const composer = page.locator('[data-conversation-composer] [data-slot="input-group"]');
   const stroke = page.locator("[data-entry-stroke]");
   const surface = page.locator("[data-chat-surface]");
-  const paint = page.locator("[data-chat-paint]");
 
-  await launcher.click();
+  await openConversation(page);
   await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
+  await submitQuestion(page, "Preserve pointer reopen focus paint");
   await page.getByRole("button", { name: "Close conversation" }).click();
   await expect(surface).toBeHidden();
+  await expect(surface).not.toHaveAttribute("data-morph");
+  await settleSurfaceMotion(surface);
   await launcher.hover();
   await pauseNextSurfaceClipAnimation(page);
+  await expect(page.locator("[data-edge-entry]")).toHaveAttribute("data-entry-revealed", "true");
   await launcher.click();
-  await expect.poll(() => paint.evaluate((element) => element.getAnimations().length)).toBeGreaterThan(0);
-  await setMotionProgress(paint, 0);
-  await expect(shell).toHaveAttribute("data-keyboard-focus", "false");
+  await waitForComposerMorph(composer);
+  await setMotionProgress(shell, 0);
   await expect(launcher).toHaveCSS("outline-style", "none");
   await expect(launcher).toHaveCSS("box-shadow", "none");
   await expect(stroke).toHaveCSS("outline-style", "none");
-  await setMotionProgress(paint, 0.5);
+  await setMotionProgress(shell, 0.5);
   await expect(launcher).toHaveCSS("outline-style", "none");
   await expect(launcher).toHaveCSS("box-shadow", "none");
   await expect(stroke).toHaveCSS("outline-style", "none");
-  await finishMotion(paint);
+  await finishMotion(shell);
   await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
 });
 
 test("pointer dismissal restores the launcher line while keyboard dismissal restores visible focus", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1_440, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await installControlledReply(page, false);
   await page.goto("/");
   const launcher = await readyLauncher(page);
   const entry = page.locator("[data-edge-entry]");
   const stroke = page.locator("[data-entry-stroke]");
 
-  await launcher.click();
+  await openConversation(page);
   await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
+  await submitQuestion(page, "Preserve dismissal focus behavior");
   await page.getByRole("button", { name: "Close conversation" }).click();
   await expect(launcher).toBeFocused();
   expect((await requiredBox(stroke)).width).toBeCloseTo(120, 0);
@@ -1474,8 +1728,7 @@ test("pointer dismissal restores the launcher line while keyboard dismissal rest
   await page.keyboard.press("Enter");
   await expect(launcher).toBeFocused();
   expect(await launcher.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
-  await expect(entry).toHaveAttribute("data-entry-revealed", "true");
-  await expect(page.locator("[data-conversation-shell]")).toHaveAttribute("data-keyboard-focus", "true");
+  await expect(entry).toHaveAttribute("data-entry-revealed", "false");
   await expect(launcher).toHaveCSS("outline-style", "none");
   await expect(launcher).toHaveCSS("box-shadow", "none");
   await expect(stroke).toHaveCSS("outline-style", "solid");
@@ -1484,13 +1737,85 @@ test("pointer dismissal restores the launcher line while keyboard dismissal rest
   await page.keyboard.press("Enter");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "About my work" })).toBeHidden();
+  await expect(page.locator("[data-morph]")).toHaveCount(0);
   await expect(launcher).toBeFocused();
 
+  await launcher.hover();
+  await expect(entry).toHaveAttribute("data-entry-revealed", "true");
   await launcher.click();
   const email = page.getByRole("textbox", { name: "Email" });
   await email.click();
   await expect(page.getByRole("dialog", { name: "About my work" })).toBeHidden();
   await expect(email).toBeFocused();
+  await expect(stroke).toBeVisible();
+  await expect(stroke).not.toHaveCSS("background-image", "none");
+});
+
+test("desktop retained line reveals a stable rounded field and reopens its existing thread", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1_440, height: 900 });
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "no-preference" });
+  await page.route("**/api/ask", async (route) => {
+    await route.fulfill({ body: liveStream, contentType: "text/event-stream; charset=utf-8" });
+  });
+  await page.goto("/");
+  const launcher = await readyLauncher(page);
+  await openConversation(page);
+  await submitQuestion(page, "Keep this retained desktop thread");
+  await expect(page.locator("[data-answer]")).toHaveText(liveAnswer);
+  await page.getByRole("button", { name: "Close conversation" }).click();
+  await expect(page.locator("[data-chat-surface]")).toBeHidden();
+  await expect(page.locator("[data-entry-stroke]")).not.toHaveCSS("background-image", "none");
+
+  await launcher.hover();
+  const entry = page.locator("[data-edge-entry]");
+  const field = page.locator("[data-reopen-field]");
+  await expect(entry).toHaveAttribute("data-entry-revealed", "true");
+  await expect(field).toBeVisible();
+  expect((await requiredBox(field)).height).toBeCloseTo(40, 0);
+  const samples = await entry.evaluate(async (element) => {
+    const launcherElement = element.querySelector<HTMLElement>("[data-launcher]");
+    const fieldElement = element.querySelector<HTMLElement>("[data-reopen-field]");
+    if (!launcherElement || !fieldElement) throw new Error("Retained launcher paint must be available while hovered.");
+    const frames: Array<{ revealed: string | null; launcherBackground: string; fieldBackground: string }> = [];
+    const until = performance.now() + 650;
+    while (performance.now() < until) {
+      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+      frames.push({
+        revealed: element.getAttribute("data-entry-revealed"),
+        launcherBackground: getComputedStyle(launcherElement).backgroundColor,
+        fieldBackground: getComputedStyle(fieldElement).backgroundColor,
+      });
+    }
+    return frames;
+  });
+  expect(samples.every(({ revealed }) => revealed === "true")).toBe(true);
+  expect(samples.every(({ launcherBackground }) => launcherBackground === "rgba(0, 0, 0, 0)")).toBe(true);
+  expect(samples.every(({ fieldBackground }) => fieldBackground !== "rgba(0, 0, 0, 0)")).toBe(true);
+
+  const roundedPaint = await launcher.screenshot({ animations: "allow" });
+  const originalStyle = await field.evaluate((element) => {
+    const value = element.getAttribute("style");
+    element.style.borderRadius = "0";
+    element.style.clipPath = "none";
+    return value;
+  });
+  const squarePaint = await launcher.screenshot({ animations: "allow" });
+  await field.evaluate((element, value) => {
+    if (value === null) element.removeAttribute("style");
+    else element.setAttribute("style", value);
+  }, originalStyle);
+  expect(roundedPaint.equals(squarePaint)).toBe(false);
+  await captureConversation(page, testInfo, "desktop-retained-reopen-field");
+  expect(await field.evaluate((element) => getComputedStyle(element).borderRadius)).toBe(
+    await page.locator("#contact-name").evaluate((element) => getComputedStyle(element).borderRadius),
+  );
+
+  await launcher.click();
+  const dialog = page.getByRole("dialog", { name: "About my work" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator("[data-header-chrome] span").filter({ hasText: /^About my work$/u })).toHaveCount(0);
+  await expect(page.locator("[data-answer]")).toHaveText(liveAnswer);
+  await expect(page.locator("[data-user-message]")).toHaveText("Keep this retained desktop thread");
 });
 
 test("validation, safe Markdown, and completion announcements stay separated", async ({ page }) => {
@@ -1650,7 +1975,7 @@ test("closing the native conversation clears an open failure tooltip", async ({ 
   await expect(conversation).toBeHidden();
   await expect(tooltip).toBeHidden();
 
-  await openConversation(page);
+  await reopenConversation(page);
   await expect(tooltip).toBeHidden();
   await expect(page.locator('[aria-label="Failure details"]')).toBeAttached();
 });
@@ -1665,7 +1990,6 @@ test("Stop preserves partial text, Retry replaces it, and Start over invalidates
       requestCount += 1;
       const encoder = new TextEncoder();
       const first = requestCount === 1;
-      let timer: number | undefined;
       const body = new ReadableStream<Uint8Array>({
         /** Emits a partial first answer or a complete retry response.
          * @param controller - Synthetic answer stream controller.
@@ -1674,7 +1998,7 @@ test("Stop preserves partial text, Retry replaces it, and Start over invalidates
           controller.enqueue(encoder.encode("event: metadata\ndata: {\"mode\":\"live\"}\n\n"));
           controller.enqueue(encoder.encode(`event: delta\ndata: {\"text\":\"${first ? "Old partial" : "Fresh answer"}\"}\n\n`));
           if (first) {
-            timer = window.setTimeout(() => {
+            window.addEventListener("test-release-stale-reply", () => {
               try {
                 controller.enqueue(encoder.encode("event: delta\ndata: {\"text\":\" stale suffix\"}\n\n"));
                 controller.enqueue(encoder.encode("event: done\ndata: {\"sources\":[],\"followUps\":[]}\n\n"));
@@ -1682,15 +2006,11 @@ test("Stop preserves partial text, Retry replaces it, and Start over invalidates
               } catch {
                 // Reader cancellation intentionally wins this delayed stale response.
               }
-            }, 500);
+            }, { once: true });
           } else {
             controller.enqueue(encoder.encode("event: done\ndata: {\"sources\":[],\"followUps\":[]}\n\n"));
             controller.close();
           }
-        },
-        /** Releases the delayed response when Stop or reset cancels its reader. */
-        cancel: () => {
-          if (timer !== undefined) window.clearTimeout(timer);
         },
       });
       return Promise.resolve(new Response(body, { headers: { "Content-Type": "text/event-stream" } }));
@@ -1715,15 +2035,19 @@ test("Stop preserves partial text, Retry replaces it, and Start over invalidates
   await page.getByRole("button", { name: "Retry message" }).click();
   await expect(answer).toHaveText("Fresh answer");
   await expect(page.locator("[data-conversation-status]")).toHaveText("Answer complete.");
-  await page.waitForTimeout(550);
+  await releaseStaleReply(page);
   await expect(answer).toHaveText("Fresh answer");
 
   const startOver = page.getByRole("button", { name: "Start over" });
   await expect(startOver.locator("svg.lucide-message-circle-plus")).toHaveCount(1);
   await startOver.click();
   await expect(page.locator("[data-turn]")).toHaveCount(0);
+  await expect(page.locator("[data-chat-surface]")).toBeHidden();
+  await expect(page.getByRole("textbox", { name: "Your question" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Your question" })).toHaveValue("");
-  await expect(page.locator("[data-conversation-status]")).toBeEmpty();
+  await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
+  await expect(page.locator("[data-conversation-composer]:visible")).toHaveCount(1);
+  await expect(page.locator("[data-conversation-status]")).toHaveCount(0);
 });
 
 test("transcript scrolling stays local while page scrolling remains available outside", async ({ page }) => {
@@ -1807,9 +2131,58 @@ test("mobile navigation suppresses conversation and route changes preserve compl
   await projectsLink.click();
   await expect(page).toHaveURL(/\/projects$/u);
   await expect(page.getByRole("dialog", { name: "About my work" })).toBeHidden();
-  await openConversation(page);
+  await reopenConversation(page);
   await expect(page.locator("[data-turn]")).toHaveCount(1);
   await expect(page.getByRole("textbox", { name: "Your question" })).toHaveValue("Preserved draft");
+});
+
+test("route navigation during close motion preserves history without stealing destination focus", async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.route("**/api/ask", async (route) => {
+    await route.fulfill({ body: liveStream, contentType: "text/event-stream; charset=utf-8" });
+  });
+  await page.goto("/");
+  await openConversation(page);
+  await submitQuestion(page, "Remember this closing conversation");
+  await expect(page.locator("[data-answer]")).toHaveText(liveAnswer);
+  await page.getByRole("textbox", { name: "Your question" }).fill("Preserved during close");
+  const projectsLink = page.locator('[data-slot="more-projects-link"]');
+  await placeInUpperViewport(projectsLink);
+  const surface = page.locator("[data-chat-surface]");
+  await page.getByRole("button", { name: "Close conversation" }).click();
+  await expect(surface).toHaveAttribute("data-morph", "closing");
+  await surface.evaluate((element) => {
+    for (const animation of element.getAnimations({ subtree: true })) {
+      if (animation.effect?.getTiming().iterations !== Infinity) animation.pause();
+    }
+  });
+
+  await projectsLink.click();
+  await expect(page).toHaveURL(/\/projects$/u);
+  const routeFocus = await page.evaluate(() => {
+    const active = document.activeElement;
+    return {
+      id: active?.id ?? "",
+      isLauncher: active instanceof HTMLElement && active.dataset.launcher === "true",
+      tag: active?.tagName ?? "",
+    };
+  });
+  expect(routeFocus.isLauncher).toBe(false);
+  await testInfo.attach("focus-after-route", {
+    body: Buffer.from(JSON.stringify(routeFocus)),
+    contentType: "application/json",
+  });
+  const destinationLink = page.locator("main a").first();
+  await destinationLink.focus();
+  await expect(destinationLink).toBeFocused();
+  await expect(page.locator("[data-morph]")).toHaveCount(0);
+  await page.waitForTimeout(350);
+  await expect(destinationLink).toBeFocused();
+  const launcher = await readyLauncher(page);
+  await expect(launcher).toBeVisible();
+  await launcher.click();
+  await expect(page.locator("[data-turn]")).toHaveCount(1);
+  await expect(page.getByRole("textbox", { name: "Your question" })).toHaveValue("Preserved during close");
 });
 
 test("modal, route, and reset cancellation reject delayed stale answers", async ({ page }) => {
@@ -1855,7 +2228,7 @@ test("modal, route, and reset cancellation reject delayed stale answers", async 
   await expect(page.getByText("Reply stopped.", { exact: true })).toBeAttached();
   await releaseStaleReply(page);
   await page.getByRole("button", { name: "Close navigation" }).click();
-  await openConversation(page);
+  await reopenConversation(page);
   await expect(page.locator("[data-answer]")).toHaveText("Partial 1");
   await expect(page.getByText("Reply stopped.", { exact: true })).toBeVisible();
 
@@ -1868,7 +2241,7 @@ test("modal, route, and reset cancellation reject delayed stale answers", async 
   await expect(page).toHaveURL(/\/projects$/u);
   await expect(page.getByText("Reply stopped.", { exact: true })).toBeAttached();
   await releaseStaleReply(page);
-  await openConversation(page);
+  await reopenConversation(page);
   await expect(page.locator("[data-answer]")).toHaveText("Partial 2");
   await expect(page.getByText("Reply stopped.", { exact: true })).toBeVisible();
 
@@ -1878,7 +2251,10 @@ test("modal, route, and reset cancellation reject delayed stale answers", async 
   await page.getByRole("button", { name: "Start over" }).click();
   await expect(page.locator("[data-turn]")).toHaveCount(0);
   await releaseStaleReply(page);
-  await expect(page.locator("[data-conversation-status]")).toBeEmpty();
+  await expect(page.locator("[data-conversation-status]")).toHaveCount(0);
+  await expect(page.locator("[data-chat-surface]")).toBeHidden();
+  await expect(page.getByRole("textbox", { name: "Your question" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
 });
 
 test("splash suppression, viewport bounds, reduced motion, and themes preserve the shell", async ({ page }, testInfo) => {
@@ -1903,9 +2279,9 @@ test("splash suppression, viewport bounds, reduced motion, and themes preserve t
     await page.reload();
     const launcher = await readyLauncher(page);
     await launcher.hover();
-    const launcherPaint = await launcher.getByText("Ask about my work", { exact: true }).evaluate((element) => {
+    const launcherPaint = await page.getByRole("textbox", { name: "Your question" }).evaluate((element) => {
       const sample = document.createElement("span");
-      sample.style.color = "var(--background)";
+      sample.style.color = "var(--foreground)";
       sample.style.backgroundImage = "var(--brand-accent-text-gradient)";
       document.body.append(sample);
       const expectedColor = getComputedStyle(sample).color;
@@ -1927,21 +2303,44 @@ test("splash suppression, viewport bounds, reduced motion, and themes preserve t
     await page.mouse.move(0, 0);
     const entryBox = await requiredBox(page.locator("[data-edge-entry]"));
     expect(entryBox.y + entryBox.height).toBeLessThanOrEqual(900 - 8 + 1);
-    await launcher.click();
+    await openConversation(page);
+    const entryComposer = page.locator('[data-conversation-composer] [data-slot="input-group"]');
+    const entryPaint = await entryComposer.evaluate((element) => {
+      const sample = document.createElement("span");
+      sample.style.backgroundColor = "var(--background)";
+      document.body.append(sample);
+      const expected = getComputedStyle(sample).backgroundColor;
+      sample.remove();
+      const actual = getComputedStyle(element);
+      return { backgroundColor: actual.backgroundColor, backgroundImage: actual.backgroundImage, expected };
+    });
+    if (preference.colorScheme === "dark") {
+      expect(entryPaint.backgroundImage).not.toBe("none");
+    } else {
+      expect(entryPaint.backgroundColor).toBe(entryPaint.expected);
+    }
+    await submitQuestion(page, `Expanded ${preference.theme} screenshot`);
     const surface = page.locator("[data-chat-surface]");
-    const paint = page.locator("[data-chat-paint]");
+    const frame = page.locator("[data-chat-frame]");
     const surfaceBox = await requiredBox(surface);
-    const input = page.getByRole("textbox", { name: "Your question" });
     expect(surfaceBox.width).toBeLessThanOrEqual(653);
     expect(surfaceBox.x).toBeGreaterThanOrEqual(0);
     expect(surfaceBox.x + surfaceBox.width).toBeLessThanOrEqual(1_440);
     expect(Number.parseFloat(await surface.evaluate((element) => getComputedStyle(element).borderRadius)))
-      .toBeCloseTo(43, 0);
+      .toBeCloseTo(45, 0);
     await expect(page.locator("[data-entry-stroke]")).toHaveCSS("transition-duration", "0s");
     await expect(page.locator("html")).toHaveClass(preference.colorScheme === "dark" ? /dark/u : /^(?!.*dark)/u);
-    await expect(input).toHaveCSS("background-image", "none");
-    themeSurfaceColors.push(await paint.evaluate((element) => getComputedStyle(element).backgroundColor));
-    await submitQuestion(page, `Expanded ${preference.theme} screenshot`);
+    if (preference.colorScheme === "dark") {
+      expect(await frame.evaluate((element) => {
+        const sample = document.createElement("span");
+        sample.style.backgroundColor = "var(--card)";
+        document.body.append(sample);
+        const expected = getComputedStyle(sample).backgroundColor;
+        sample.remove();
+        return getComputedStyle(element).backgroundColor === expected;
+      })).toBe(true);
+    }
+    themeSurfaceColors.push(await frame.evaluate((element) => getComputedStyle(element).backgroundColor));
     await expect(page.locator("[data-answer]")).toHaveText(liveAnswer);
     await expectCompactSuggestionGeometry(page);
     await captureConversation(page, testInfo, `conversation-desktop-${preference.theme}`);
@@ -2011,79 +2410,57 @@ test("splash suppression, viewport bounds, reduced motion, and themes preserve t
 test.describe("with a compact touch viewport", () => {
   test.use({ hasTouch: true, viewport: { width: 375, height: 812 } });
 
-  test("the compact pill opens directly without autofocus and restores after dismissal", async ({ page }, testInfo) => {
+  test("the first send opens a full-screen modal without reopening the keyboard", async ({ page }, testInfo) => {
     await page.route("**/api/ask", async (route) => {
       await route.fulfill({ body: liveStream, contentType: "text/event-stream; charset=utf-8" });
     });
     await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
     await page.goto("/");
     const launcher = await readyLauncher(page);
-    const entry = page.locator("[data-edge-entry]");
-    const stroke = page.locator("[data-entry-stroke]");
-    const label = launcher.getByText("Ask about my work", { exact: true });
-    const badge = launcher.locator('[data-slot="badge"]');
-    const closed = await requiredBox(stroke);
+    const dialog = page.getByRole("dialog", { name: "About my work" });
+    const input = page.getByRole("textbox", { name: "Your question" });
+    if (!await input.isVisible()) await launcher.tap();
+    await input.focus();
+    await expect(dialog).toBeHidden();
+    await expect(input).toBeFocused();
+    await input.fill("Expanded compact light screenshot");
+    await page.getByRole("button", { name: "Send", exact: true }).tap();
 
-    expect(closed.height).toBeCloseTo(20, 0);
-    expect((await requiredBox(entry)).height).toBeGreaterThanOrEqual(44);
-    await expect(badge).toHaveCount(1);
-    await expect(badge).toContainText("Ask about my work");
-    await expect(badge.locator("svg.lucide-sparkle")).toHaveCount(1);
-    await expect(label).toHaveCSS("font-size", "10px");
-    await expect(label).toHaveCSS("padding-top", "2px");
-    await expect(label).toHaveCSS("padding-right", "8px");
-    await expect(stroke).not.toHaveCSS("box-shadow", "none");
-    await expectExteriorShadow(page, stroke, "boxShadow", testInfo, "conversation-compact-pill-shadow");
-    const lightLabelColor = await label.evaluate((element) => getComputedStyle(element).color);
-    const lightBackgroundColor = await page.evaluate(() => {
-      const sample = document.createElement("span");
-      sample.style.color = "var(--background)";
-      document.body.append(sample);
-      const color = getComputedStyle(sample).color;
-      sample.remove();
-      return color;
-    });
-    expect(lightLabelColor).toBe(lightBackgroundColor);
-    await launcher.tap();
-    await expect(page.getByRole("dialog", { name: "About my work" })).toBeVisible();
-    await expect(page.getByRole("group", { name: "Suggested starter questions" })).toHaveCount(0);
-    await expect(page.getByRole("textbox", { name: "Your question" })).not.toBeFocused();
-    await expect.poll(async () => (await requiredBox(stroke)).width).toBeCloseTo(120, 0);
-    await expect.poll(async () => (await requiredBox(stroke)).height).toBeCloseTo(5, 0);
-    await submitQuestion(page, "Expanded compact light screenshot");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute("data-mobile", "true");
+    await expect(input).not.toBeFocused();
+    const bounds = await requiredBox(dialog);
+    expect(bounds.x).toBeCloseTo(0, 0);
+    expect(bounds.y).toBeCloseTo(0, 0);
+    expect(bounds.width).toBeCloseTo(375, 0);
+    expect(bounds.height).toBeCloseTo(812, 0);
+    const inactiveHandle = page.locator("[data-conversation-handle]");
+    await expect(inactiveHandle).toBeHidden();
+    await expect(inactiveHandle.locator("..")).toHaveAttribute("aria-hidden", "true");
+    await expect(inactiveHandle.locator("..")).toHaveAttribute("inert", "");
     await expect(page.locator("[data-answer]")).toHaveText(liveAnswer);
     await expectCompactSuggestionGeometry(page);
-    await captureConversation(page, testInfo, "conversation-compact-light");
+    await captureConversation(page, testInfo, "conversation-mobile-modal-light");
 
     await page.getByRole("button", { name: "Close conversation" }).tap();
-    await expect.poll(async () => (await requiredBox(stroke)).height).toBeCloseTo(20, 0);
-    expect((await requiredBox(stroke)).width).toBeLessThan(160);
-    await launcher.focus();
-    await page.keyboard.press("Enter");
-    await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
-    await page.getByRole("button", { name: "Close conversation" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(launcher).toBeFocused();
+    await launcher.tap();
+    await expect(dialog).toBeVisible();
+    await expect(input).not.toBeFocused();
+    await page.getByRole("button", { name: "Close conversation" }).tap();
 
     await page.evaluate(() => { localStorage.setItem("theme", "dark"); });
     await page.reload();
     const darkLauncher = await readyLauncher(page);
-    const darkLabel = darkLauncher.getByText("Ask about my work", { exact: true });
-    const darkLabelColor = await darkLabel.evaluate((element) => getComputedStyle(element).color);
-    const darkBackgroundColor = await page.evaluate(() => {
-      const sample = document.createElement("span");
-      sample.style.color = "var(--background)";
-      document.body.append(sample);
-      const color = getComputedStyle(sample).color;
-      sample.remove();
-      return color;
-    });
-    expect(darkLabelColor).toBe(darkBackgroundColor);
-    expect(darkLabelColor).not.toBe(lightLabelColor);
-    await darkLauncher.tap();
-    await expect(page.getByRole("dialog", { name: "About my work" })).toBeVisible();
-    await submitQuestion(page, "Expanded compact dark screenshot");
+    if (!await page.getByRole("textbox", { name: "Your question" }).isVisible()) await darkLauncher.tap();
+    await expect(dialog).toBeHidden();
+    await page.getByRole("textbox", { name: "Your question" }).fill("Expanded compact dark screenshot");
+    await page.getByRole("button", { name: "Send", exact: true }).tap();
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute("data-mobile", "true");
     await expect(page.locator("[data-answer]")).toHaveText(liveAnswer);
-    await expectCompactSuggestionGeometry(page);
-    await captureConversation(page, testInfo, "conversation-compact-dark");
+    await captureConversation(page, testInfo, "conversation-mobile-modal-dark");
   });
 });
 
@@ -2199,32 +2576,39 @@ test("the first submit keeps the panel and composer rendered through every growt
   await page.goto("/");
   await openConversation(page);
   const surface = page.locator("[data-chat-surface]");
-  await expect.poll(() => surface.evaluate((element) => element.getAnimations().length)).toBe(0);
-  const restingHeight = (await requiredBox(surface)).height;
-  await page.getByRole("textbox", { name: "Your question" }).fill("Keep every growth frame visible");
+  const restingHeight = (await requiredBox(page.locator("[data-conversation-composer]"))).height;
+  await page.getByRole("textbox", { name: "Your question" })
+    .fill("Keep every growth frame visible\nfrom this taller desktop field\nwithout a first-frame jump");
+  const sourceField = await requiredBox(page.locator('[data-conversation-composer] [data-slot="input-group"]'));
 
   const frames = await page.evaluate(async () => {
-    const panel = document.querySelector<HTMLElement>("[data-chat-surface]");
-    const send = document.querySelector<HTMLButtonElement>('[data-chat-surface] button[type="submit"]');
-    if (!panel || !send) throw new Error("Conversation surface and Send must exist.");
+    const send = document.querySelector<HTMLButtonElement>('[data-conversation-composer] button[type="submit"]');
+    if (!send) throw new Error("The first-entry Send control must exist.");
     /** Captures painted panel and composer geometry for one animation frame.
      * @returns Current visible geometry and response-bubble count.
      */
     const sample = () => {
-      const composer = panel.querySelector<HTMLElement>('[data-slot="input-group"]');
-      const panelRect = panel.getBoundingClientRect();
+      const panel = document.querySelector<HTMLElement>("[data-chat-surface]");
+      const composer = document.querySelector<HTMLElement>("[data-conversation-composer]");
+      const field = composer?.querySelector<HTMLElement>("[data-slot='input-group']");
+      const panelRect = panel?.getBoundingClientRect();
       const composerRect = composer?.getBoundingClientRect();
-      const style = getComputedStyle(panel);
+      const fieldRect = field?.getBoundingClientRect();
+      const style = panel ? getComputedStyle(panel) : null;
       return {
-        answerBubbles: panel.querySelectorAll('[data-slot="message"][data-align="start"] [data-slot="bubble"]').length,
-        clipPath: style.clipPath,
+        answerBubbles: panel?.querySelectorAll('[data-slot="message"][data-align="start"] [data-slot="bubble"]').length ?? 0,
+        clipPath: style?.clipPath ?? "none",
         composerBottom: composerRect?.bottom ?? 0,
         composerHeight: composerRect?.height ?? 0,
         composerTop: composerRect?.top ?? 0,
-        opacity: Number.parseFloat(style.opacity),
-        panelBottom: panelRect.bottom,
-        panelHeight: panelRect.height,
-        panelTop: panelRect.top,
+        fieldHeight: fieldRect?.height ?? 0,
+        fieldTop: fieldRect?.top ?? 0,
+        opacity: Number.parseFloat(style?.opacity ?? "0"),
+        panelBottom: panelRect?.bottom ?? 0,
+        panelHeight: panelRect?.height ?? 0,
+        panelTop: panelRect?.top ?? 0,
+        visibleComposers: Array.from(document.querySelectorAll<HTMLElement>("[data-conversation-composer]"))
+          .filter((element) => element.getClientRects().length > 0).length,
       };
     };
     const captured = [sample()];
@@ -2238,15 +2622,20 @@ test("the first submit keeps the panel and composer rendered through every growt
   });
   await testInfo.attach("first-submit-frames", { body: JSON.stringify(frames), contentType: "application/json" });
 
-  expect(Math.min(...frames.map(({ panelHeight }) => panelHeight))).toBeGreaterThanOrEqual(restingHeight - 1);
+  const initialFrame = frames[0];
+  if (!initialFrame) throw new Error("First-submit geometry requires an initial page-field frame.");
+  expect(initialFrame.fieldTop).toBeCloseTo(sourceField.y, 0);
+  expect(initialFrame.fieldHeight).toBeCloseTo(sourceField.height, 0);
   expect(frames.every(({ composerHeight }) => composerHeight >= 35)).toBe(true);
-  expect(frames.every(({ composerBottom, composerTop, panelBottom, panelTop }) => (
+  expect(frames.every(({ visibleComposers }) => visibleComposers === 1)).toBe(true);
+  const panelFrames = frames.filter(({ panelHeight }) => panelHeight > 0);
+  expect(panelFrames.length).toBeGreaterThan(1);
+  expect(panelFrames.every(({ composerBottom, composerTop, panelBottom, panelTop }) => (
     composerTop >= panelTop - 1 && composerBottom <= panelBottom + 1
   ))).toBe(true);
-  expect(frames.every(({ answerBubbles }) => answerBubbles === 0)).toBe(true);
-  expect(frames.every(({ opacity }) => opacity >= 0.99)).toBe(true);
-  expect(new Set(frames.map(({ clipPath }) => clipPath)).size).toBe(1);
-  expect(Math.max(...frames.map(({ panelHeight }) => panelHeight))).toBeGreaterThan(restingHeight);
+  expect(panelFrames.every(({ answerBubbles }) => answerBubbles === 0)).toBe(true);
+  expect(panelFrames.at(-1)?.opacity).toBeGreaterThanOrEqual(0.99);
+  expect(Math.max(...panelFrames.map(({ panelHeight }) => panelHeight))).toBeGreaterThan(restingHeight);
   await expect(surface.locator('[data-slot="marker"]')).toHaveText("Thinking...");
 });
 
@@ -2292,7 +2681,7 @@ test("closing cancels reply chunks emitted during the painted collapse", async (
   await page.getByRole("button", { name: "Close conversation" }).click();
   await emitReply(page, " late collapsed text");
   await expect(page.getByRole("dialog", { name: "About my work" })).toBeHidden();
-  await openConversation(page);
+  await reopenConversation(page);
 
   await expect(page.locator("[data-answer]")).toHaveText("Visible partial");
   await expect(page.locator("[data-answer]")).not.toContainText("late collapsed text");
@@ -2308,7 +2697,8 @@ test("closing during panel growth pins painted height and reopening restores int
   await submitQuestion(page, "Close while the panel grows");
   await emitReply(page, "Short answer.");
   const surface = page.locator("[data-chat-surface]");
-  await expect.poll(() => surface.evaluate((element) => element.getAnimations().length)).toBe(0);
+  await expect(surface).not.toHaveAttribute("data-morph");
+  await settleSurfaceMotion(surface);
   await emitReply(page, " Growing portfolio detail.".repeat(80));
   await expect.poll(() => surface.evaluate((element) => element.getAnimations().some((animation) => (
     (animation.effect as KeyframeEffect | null)?.getKeyframes().some((frame) => frame.height !== undefined)
@@ -2326,15 +2716,17 @@ test("closing during panel growth pins painted height and reopening restores int
   expect(Math.max(...closingHeights) - Math.min(...closingHeights)).toBeLessThanOrEqual(1);
   await expect(surface).toBeHidden();
 
-  await openConversation(page);
+  await reopenConversation(page);
+  await expect(surface).not.toHaveAttribute("data-morph");
+  await settleSurfaceMotion(surface);
   expect(await surface.evaluate((element) => element.style.height)).toBe("");
   await expect(surface).not.toHaveAttribute("data-closing");
   await expect(page.locator("[data-answer]")).toContainText("Growing portfolio detail.");
 });
 
-for (const width of [390, 1_440]) {
+for (const width of [640, 1_440]) {
   for (const theme of ["light", "dark", "system-dark"] as const) {
-    test(`shadcn composer matches Contact and preserves popup geometry at ${String(width)}px in ${theme}`, async ({ page }, testInfo) => {
+    test(`shadcn composer preserves shared controls and intentional entry geometry at ${String(width)}px in ${theme}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme: theme === "light" ? "light" : "dark", reducedMotion: "reduce" });
       await page.addInitScript((value) => {
@@ -2346,20 +2738,60 @@ for (const width of [390, 1_440]) {
       const dialog = await openConversation(page);
       const input = page.getByRole("textbox", { name: "Your question" });
       const send = page.getByRole("button", { name: "Send", exact: true });
-      const group = dialog.locator('[data-slot="input-group"]');
+      const group = page.locator('[data-conversation-composer] [data-slot="input-group"]');
       const contactInput = page.locator("#contact-name");
       const contactSend = page.locator('form:has(#contact-name) button[type="submit"]');
       await expect(group).toBeVisible();
-      for (const control of [input, send, group, contactInput, contactSend]) {
-        expect((await requiredBox(control)).height).toBeCloseTo(36, 0);
-      }
-      expect((await requiredBox(page.getByRole("button", { name: "Close conversation" }))).height).toBeCloseTo(width < 640 ? 44 : 36, 0);
-      await expect(dialog).toHaveCSS("border-radius", "43px");
+      await expect(group).toHaveAttribute("data-slot", "input-group");
+      await expect(input).toHaveAttribute("data-slot", "input-group-control");
+      await expect(send).toHaveAttribute("data-slot", "button");
+      expect((await requiredBox(group)).height).toBeCloseTo(40, 0);
+      await expect(input).toHaveAttribute("placeholder", "Ask about my work…");
+      const expectedFontSize = width < 768 ? "16px" : "14px";
+      const expectedLineHeight = width < 768 ? "24px" : "20px";
+      await expect(input).toHaveCSS("font-size", expectedFontSize);
+      await expect(input).toHaveCSS("line-height", expectedLineHeight);
+      await expect(contactInput).toHaveCSS("font-size", expectedFontSize);
+      await expect(contactInput).toHaveCSS("line-height", expectedLineHeight);
+      expect((await requiredBox(input)).height).toBeCloseTo(38, 0);
+      expect((await requiredBox(send)).height).toBeCloseTo(32, 0);
+      expect((await requiredBox(contactInput)).height).toBeCloseTo((await requiredBox(group)).height, 0);
+      expect((await requiredBox(contactSend)).height).toBeCloseTo(36, 0);
+      const sharedFieldPaint = await page.evaluate(() => {
+        const ask = document.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
+        const contact = document.querySelector<HTMLElement>("#contact-name");
+        if (!ask || !contact) throw new Error("Ask and Contact fields must both be rendered.");
+        /**
+         * Reads the shared field paint properties.
+         * @param element - Rendered field surface.
+         * @returns Comparable field paint values.
+         */
+        const pick = (element: HTMLElement) => {
+          const style = getComputedStyle(element);
+          return {
+            backgroundColor: style.backgroundColor,
+            backgroundImage: style.backgroundImage,
+            borderRadius: style.borderRadius,
+          };
+        };
+        return { ask: pick(ask), contact: pick(contact) };
+      });
+      expect(sharedFieldPaint.contact).toEqual(sharedFieldPaint.ask);
+      await expect(send).toHaveText("Send");
+      await expect(send).toHaveCSS("background-image", "none");
       await expect(send).toHaveAttribute("type", "submit");
       await expect(page.locator("[data-conversation-history]")).toHaveCount(0);
       await captureConversation(page, testInfo, `composer-${String(width)}-${theme}-default`);
       await input.focus();
       await captureConversation(page, testInfo, `composer-${String(width)}-${theme}-focus`);
+      await input.fill("A multiline question\nwith a second line\nand a final line");
+      const multilineGroup = await requiredBox(group);
+      const multilineInput = await requiredBox(input);
+      const multilineSend = await requiredBox(send);
+      expect(multilineGroup.height).toBeGreaterThan(40);
+      expect(multilineGroup.y + multilineGroup.height - (multilineSend.y + multilineSend.height)).toBeCloseTo(4, 0);
+      expect(multilineInput.y + multilineInput.height - (multilineSend.y + multilineSend.height)).toBeCloseTo(3, 0);
+      await captureConversation(page, testInfo, `composer-${String(width)}-${theme}-multiline`);
       await input.fill("   ");
       await send.click();
       await expect(input).toBeFocused();
@@ -2369,14 +2801,19 @@ for (const width of [390, 1_440]) {
       await expect(input).toHaveValue("x".repeat(12_000));
       await send.click();
       await expect(page.locator("[data-user-message]")).toHaveText("x".repeat(12_000));
+      await expect(dialog).toBeVisible();
+      expect((await requiredBox(page.getByRole("button", { name: "Close conversation" }))).height).toBeCloseTo(36, 0);
+      await expect(dialog).toHaveCSS("border-radius", "45px");
       const stop = group.getByRole("button", { name: "Stop", exact: true });
       await expect(send).toHaveCount(0);
       await expect(stop).toBeVisible();
       await expect(stop).toHaveAttribute("type", "button");
-      expect((await requiredBox(stop)).height).toBeCloseTo(36, 0);
+      expect((await requiredBox(stop)).height).toBeCloseTo(32, 0);
       await expect(dialog.locator("[data-turn]").getByRole("button", { name: "Stop", exact: true })).toHaveCount(0);
       await expect(dialog.locator('[data-slot="marker"][data-variant="default"]')).toHaveText("Thinking...");
       await captureConversation(page, testInfo, `composer-${String(width)}-${theme}-pending`);
+      await input.fill("A pending multiline follow-up\nwith a second line\nand a final line");
+      await captureConversation(page, testInfo, `composer-${String(width)}-${theme}-pending-multiline`);
       await emitReply(page, "Partial reply.");
       await expect(page.locator("[data-answer]")).toHaveText("Partial reply.");
       await stop.click();
@@ -2386,6 +2823,26 @@ for (const width of [390, 1_440]) {
     });
   }
 }
+
+test("composer typography follows Contact Input across the 768px boundary", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await installControlledReply(page);
+  await page.setViewportSize({ width: 767, height: 900 });
+  await page.goto("/");
+  await openConversation(page);
+  const input = page.getByRole("textbox", { name: "Your question" });
+  const contactInput = page.locator("#contact-name");
+  await expect(input).toHaveCSS("font-size", "16px");
+  await expect(input).toHaveCSS("line-height", "24px");
+  await expect(contactInput).toHaveCSS("font-size", "16px");
+  await expect(contactInput).toHaveCSS("line-height", "24px");
+
+  await page.setViewportSize({ width: 768, height: 900 });
+  await expect(input).toHaveCSS("font-size", "14px");
+  await expect(input).toHaveCSS("line-height", "20px");
+  await expect(contactInput).toHaveCSS("font-size", "14px");
+  await expect(contactInput).toHaveCSS("line-height", "20px");
+});
 
 test("shadcn pending and stopped markers preserve one exchange node and announcement owner", async ({ page }, testInfo) => {
   await installControlledReply(page);
@@ -2492,7 +2949,7 @@ test("pending, streaming, and completion preserve the answer bubble and bottom c
   await openConversation(page);
   await submitQuestion(page, "Keep response states stable");
   const surface = page.locator("[data-chat-surface]");
-  await expect.poll(() => surface.evaluate((element) => element.getAnimations().length)).toBe(0);
+  await settleSurfaceMotion(surface);
   const pendingHeight = (await requiredBox(surface)).height;
   const composer = page.getByRole("textbox", { name: "Your question" });
   const pendingComposer = await requiredBox(composer);
@@ -2745,7 +3202,7 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await expect(page.getByRole("dialog", { name: "About my work" })).not.toBeVisible();
     await expect(history.locator('[data-slot="marker"][data-variant="separator"]')).toHaveText("Reply stopped.");
     await emitReply(page, "Hidden popup chunk. ");
-    await openConversation(page);
+    await reopenConversation(page);
     await expect(page.locator("[data-answer]")).toBeVisible();
     await expect(history).toBeVisible();
     await expect(history.locator('[data-slot="marker"][data-variant="separator"]')).toHaveText("Reply stopped.");
@@ -2778,7 +3235,7 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await expect(page.locator("[data-turn]")).toHaveCount(2);
     await expect.poll(() => distanceFromLatest(history)).toBeLessThanOrEqual(32);
     await page.getByRole("button", { name: "Close conversation" }).click();
-    await openConversation(page);
+    await reopenConversation(page);
     await expect(page.locator("[data-answer]").last()).toBeVisible();
   });
 }
@@ -2804,6 +3261,9 @@ test("shadcn immediately completed responses resume scrolled-away submit and sam
   const history = page.locator("[data-conversation-history]");
   await expect(page.locator("[data-answer]")).toContainText("Immediate response 1.");
   await expect.poll(() => distanceFromLatest(history)).toBeLessThanOrEqual(32);
+  const surface = page.locator("[data-chat-surface]");
+  await expect(surface).not.toHaveAttribute("data-morph");
+  await settleSurfaceMotion(surface);
   const original = await page.locator("[data-turn]").elementHandle();
   await page.getByRole("button", { name: "Retry message" }).focus();
   await scrollToOlderHistory(page, history);
@@ -2827,7 +3287,9 @@ test("clickable controls show pointer affordances without treating inputs as but
   await expect(launcher).toHaveCSS("cursor", "pointer");
   await expect(page.locator('a[href]').first()).toHaveCSS("cursor", "pointer");
   const dialog = await openConversation(page);
-  await expect(dialog.getByRole("button", { name: "Send", exact: true })).toHaveCSS("cursor", "pointer");
+  await expect(page.getByRole("button", { name: "Send", exact: true })).toHaveCSS("cursor", "pointer");
+  await expect(page.getByRole("textbox", { name: "Your question" })).not.toHaveCSS("cursor", "pointer");
+  await submitQuestion(page, "Check active control affordances");
   await expect(dialog.getByRole("button", { name: "Close conversation" })).toHaveCSS("cursor", "pointer");
   await expect(dialog.getByRole("textbox", { name: "Your question" })).not.toHaveCSS("cursor", "pointer");
 });
@@ -2871,11 +3333,11 @@ test("chat remains usable when browser animation setup fails", async ({ page }) 
     };
   });
   const dialog = await openConversation(page);
-  await expect(dialog).toHaveCSS("opacity", "1");
   const input = page.getByRole("textbox", { name: "Your question" });
-  const restingHeight = (await requiredBox(dialog)).height;
   await expect(input).toBeFocused();
   await submitQuestion(page, "Keep the chat usable");
+  await expect(dialog).toHaveCSS("opacity", "1");
+  const restingHeight = (await requiredBox(dialog)).height;
   await expect(dialog).not.toHaveAttribute("data-resizing", "true");
   await expect(dialog.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
   await emitReply(page, "Fail-open portfolio detail. ".repeat(40));
@@ -2884,7 +3346,7 @@ test("chat remains usable when browser animation setup fails", async ({ page }) 
   expect(await dialog.evaluate((element) => element.style.height)).toBe("");
   await page.getByRole("button", { name: "Close conversation" }).click();
   await expect(dialog).toBeHidden();
-  await openConversation(page);
+  await reopenConversation(page);
   await expect(dialog).toHaveCSS("opacity", "1");
   await expect(input).toBeFocused();
 });
@@ -3190,7 +3652,7 @@ test("settled answers do not replay line motion after reopen or responsive reflo
 
   await page.getByRole("button", { name: "Close conversation" }).click();
   await expect(dialog).toBeHidden();
-  await openConversation(page);
+  await reopenConversation(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(answer).toContainText("fully painted");
   await expect(answer).not.toHaveAttribute("data-line-reveal");

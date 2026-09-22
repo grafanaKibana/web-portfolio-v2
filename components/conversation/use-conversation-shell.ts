@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 /** Browser support state for the native conversation popover. */
 export type ConversationCapability = "unknown" | "supported" | "unsupported";
 
 interface ConversationShellOptions {
   pathname: string;
-  popoverRef: RefObject<HTMLDivElement | null>;
-  returnFocusRef: RefObject<boolean>;
+  dismiss: () => void;
   rootRef: RefObject<HTMLDivElement | null>;
-  stop: () => void;
 }
 
 /** Detects support only when both methods required by the popup lifecycle exist.
@@ -16,18 +14,17 @@ interface ConversationShellOptions {
  */
 function supportsPopover() {
   return typeof HTMLElement.prototype.showPopover === "function"
-    && typeof HTMLElement.prototype.hidePopover === "function";
+    && typeof HTMLElement.prototype.hidePopover === "function"
+    && typeof HTMLDialogElement.prototype.showModal === "function";
 }
 
 /** Coordinates feature availability with viewport, focus, splash, route, and modal state.
  * @param pathname - Current client route used to dismiss on navigation.
- * @param popoverRef - Native popup controlled by the shell lifecycle.
- * @param returnFocusRef - Explicit-dismissal focus intent cleared for shell dismissals.
+ * @param dismiss - Lifecycle-owned navigation and shell dismissal.
  * @param rootRef - Feature root receiving visible viewport variables.
- * @param stop - Active-request cancellation action.
  * @returns Capability and suppression state derived from the surrounding shell.
  */
-export function useConversationShell({ pathname, popoverRef, returnFocusRef, rootRef, stop }: ConversationShellOptions) {
+export function useConversationShell({ pathname, dismiss, rootRef }: ConversationShellOptions) {
   const initialPathnameRef = useRef(pathname);
   const [capability, setCapability] = useState<ConversationCapability>("unknown");
   const [compact, setCompact] = useState(false);
@@ -35,21 +32,13 @@ export function useConversationShell({ pathname, popoverRef, returnFocusRef, roo
   const [editingPage, setEditingPage] = useState(false);
   const [sheetMounted, setSheetMounted] = useState(false);
 
-  /** Hides the popup without focus restoration and aborts active work. */
-  const dismissForShell = useCallback(() => {
-    returnFocusRef.current = false;
-    const popover = popoverRef.current;
-    if (popover?.matches(":popover-open")) popover.hidePopover();
-    stop();
-  }, [popoverRef, returnFocusRef, stop]);
-
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => { setCapability(supportsPopover() ? "supported" : "unsupported"); });
     return () => { window.cancelAnimationFrame(frame); };
   }, []);
 
   useEffect(() => {
-    const media = window.matchMedia("(width < 64rem), (hover: none), (pointer: coarse)");
+    const media = window.matchMedia("(width < 40rem)");
     /** Tracks whether responsive styling uses the compact entry treatment. */
     function updateCompact() { setCompact(media.matches); }
     updateCompact();
@@ -78,12 +67,14 @@ export function useConversationShell({ pathname, popoverRef, returnFocusRef, roo
 
   useEffect(() => {
     let focusFrame: number | undefined;
-    /** Suppresses the entry only while focus belongs to an external editable control. */
+    /** Folds the entry while focus belongs to an external editable control. */
     function updateEditing() {
       const active = document.activeElement;
-      setEditingPage(active instanceof HTMLElement
+      const external = active instanceof HTMLElement
         && Boolean(active.closest("input, textarea, select, [contenteditable='true']"))
-        && !popoverRef.current?.contains(active));
+        && !rootRef.current?.contains(active);
+      setEditingPage(external);
+      if (external) dismiss();
     }
     /** Defers inspection until the next focus target is active.
      * @param _event - Focus transition leaving the current element.
@@ -100,7 +91,7 @@ export function useConversationShell({ pathname, popoverRef, returnFocusRef, roo
       document.removeEventListener("focusout", handleFocusOut);
       if (focusFrame !== undefined) window.cancelAnimationFrame(focusFrame);
     };
-  }, [popoverRef]);
+  }, [dismiss, rootRef]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -131,23 +122,24 @@ export function useConversationShell({ pathname, popoverRef, returnFocusRef, roo
     function updateSheet() {
       const mounted = Boolean(document.querySelector("[data-portfolio-navigation-sheet]"));
       setSheetMounted(mounted);
-      if (mounted) dismissForShell();
+      if (mounted) dismiss();
     }
     updateSheet();
     const observer = new MutationObserver(updateSheet);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => { observer.disconnect(); };
-  }, [dismissForShell]);
+  }, [dismiss]);
 
   useEffect(() => {
     if (initialPathnameRef.current === pathname) return;
     initialPathnameRef.current = pathname;
-    dismissForShell();
-  }, [dismissForShell, pathname]);
+    dismiss();
+  }, [dismiss, pathname]);
 
   return {
     capability,
     compact,
-    hidden: splashPending || editingPage || sheetMounted,
+    editingPage,
+    hidden: splashPending || sheetMounted,
   };
 }
