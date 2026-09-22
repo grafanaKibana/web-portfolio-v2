@@ -2,8 +2,8 @@ profile:
   name: "Nikita Reshetnik"
   headline: "I make things. Some talk back."
   summary:
-    - "I’m an AI Engineer with 5 years of experience building enterprise software. I work on .NET applications and AI systems that run in production."
-    - "I see features through implementation, testing, and release, and help the team coordinate the work along the way. In my free time, I sometimes contribute to open-source projects and write about technical topics that interest me."
+    - "AI Engineer with 5 years of experience building enterprise software, combining production AI delivery with a strong C#/.NET and backend engineering foundation."
+    - "Experienced in taking features through design, implementation, testing, evaluation, release, and observability while coordinating delivery across cross-functional teams."
   careerChapters:
     - id: ai
       title: "AI Engineering"
@@ -16,16 +16,6 @@ profile:
     - { label: "Education", value: "Bachelor’s degree, Software Engineering" }
     - { label: "Languages", value: "English, Ukrainian, Russian" }
     - { label: "Based in", value: "Europe" }
-  recommendations:
-    - author: "Khrystyna Velychko"
-      position: "Senior Project Manager @ Cossack Labs"
-      quote: "I worked with Nikita for over 2 years and I would strongly recommend to work with him as a software engineer. I want to emphasize that Nikita is not just a developer who writes code - he is a true engineer, curious about modern problems, innovative technologies and is always ready to take on new challenges. Nikita is eager to gain new knowledge that might be helpful in his line of work, which makes him a valuable asset for every team."
-    - author: "Yaroslav Zubets"
-      position: "Software Engineer @ Meta"
-      quote: "I had the pleasure of working with Nikita and can confidently say that he is a highly talented and driven professional. Despite being early in his career, he demonstrates exceptional analytical skills and a mature, thoughtful approach to problem-solving. He has strong ability to think outside the box when the situation calls for it. He consistently brought fresh, well-grounded ideas to the table that added real value to our work. Collaborating with him was both productive and enjoyable. He’s a quick learner, proactive, and has great potential for growth."
-    - author: "Antony Melnyk"
-      position: "Team Lead @ ELEKS"
-      quote: "It is a great pleasure working with Nikita. Nikita is result-oriented, a fast learner, and often completes tasks much faster than expected. Nikita is also great at team communication and collaboration. Highly recommend Nikita."
   experience:
     - organization: "ELEKS"
       logo: /companies/eleks.svg
@@ -35,12 +25,12 @@ profile:
       end: 2026-03
       summary: "Led cross-functional delivery of LLM-powered services, with responsibility for AI evaluation, observability, and engineering workflows. Supported hiring, onboarding, and practical adoption of AI development tools."
       highlights:
-        - "Designed and delivered an LLM-powered REST API for information extraction, classification, controlled rewriting, semantic matching, and embedding-based search. Implemented reusable prompt patterns, custom evaluations, and observability for AI feature usage, reducing manual work for end users."
-        - "Built automated LLM evaluation pipelines using deterministic metrics such as accuracy and macro- and micro-averaged F1 scores for classification, and LLM-as-a-Judge metrics for non-deterministic outputs, to detect quality regressions as prompts evolved."
-        - "Led a new cross-functional team, ran Agile ceremonies, and coordinated day-to-day work across QA, MLOps, Data Science, DevOps, and Product stakeholders. Interviewed and assessed candidates for an AI Engineer role on the project."
-        - "Created internal documentation and wikis, including a newcomer dashboard, to make project knowledge easier to find and speed up onboarding."
-        - "Modernized CI/CD pipelines, added automation to improve dev and QA workflows, and built Grafana dashboards to monitor AI infrastructure and database upgrades."
-        - "Ran hands-on AI tooling sessions for engineering teams, sharing practical workflows and real-world uses of GitHub Copilot and Cursor to support day-to-day adoption."
+        - "Pioneered AI adoption in a mature enterprise product by designing dedicated .NET AI services from proof of concept to production. Delivered LLM-powered extraction, classification, rewriting, entity matching, conversational AI, and similarity-based retrieval for a platform serving hundreds of thousands of corporate users."
+        - "Built production LLM evaluation from the ground up using hundreds of reviewed cases, a golden dataset, human-calibrated LLM judges, and prompt and model regression testing in Azure DevOps, improving key evaluation metrics by approximately 5-20% across workflows."
+        - "Reduced inference costs by approximately 75% and latency by approximately 20% through model right-sizing, workload-based routing, and caching, with regression evaluations protecting output quality."
+        - "Provided technical and project coordination for a cross-functional team, guided AI architecture decisions, interviewed engineering candidates, and mentored QA specialists on testing non-deterministic AI functionality."
+        - "Modernized CI/CD pipelines, automated development and QA workflows, and built Grafana dashboards for AI infrastructure and database upgrades."
+        - "Led hands-on AI-driven development sessions for the project team and developers across the company, sharing practical GitHub Copilot and Cursor workflows."
     - organization: "ELEKS"
       logo: /companies/eleks.svg
       role: "Software Engineer"
@@ -136,6 +126,16 @@ profile:
     - { label: "Telegram", href: "https://t.me/reshetnigram" }
     - { label: "GitHub", href: "https://github.com/grafanaKibana" }
     - { label: "LeetCode", href: "https://leetcode.com/u/grafanaKibana/" }
+  recommendations:
+    - author: "Khrystyna Velychko"
+      position: "Senior Project Manager @ Cossack Labs"
+      quote: "I worked with Nikita for over 2 years and I would strongly recommend to work with him as a software engineer. I want to emphasize that Nikita is not just a developer who writes code - he is a true engineer, curious about modern problems, innovative technologies and is always ready to take on new challenges. Nikita is eager to gain new knowledge that might be helpful in his line of work, which makes him a valuable asset for every team."
+    - author: "Yaroslav Zubets"
+      position: "Software Engineer @ Meta"
+      quote: "I had the pleasure of working with Nikita and can confidently say that he is a highly talented and driven professional. Despite being early in his career, he demonstrates exceptional analytical skills and a mature, thoughtful approach to problem-solving. He has strong ability to think outside the box when the situation calls for it. He consistently brought fresh, well-grounded ideas to the table that added real value to our work. Collaborating with him was both productive and enjoyable. He’s a quick learner, proactive, and has great potential for growth."
+    - author: "Antony Melnyk"
+      position: "Team Lead @ ELEKS"
+      quote: "It is a great pleasure working with Nikita. Nikita is result-oriented, a fast learner, and often completes tasks much faster than expected. Nikita is also great at team communication and collaboration. Highly recommend Nikita."
 
 home:
   metadataDescription: "Nikita Reshetnik, AI Engineer with 5 years of experience building enterprise software, .NET applications, and production AI systems."
