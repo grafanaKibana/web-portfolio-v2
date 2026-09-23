@@ -3,7 +3,7 @@
 import { clsx } from "clsx";
 import { ArrowLeft, Check, ChevronDown, ChevronRight, House, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -118,7 +118,7 @@ function useSectionNavigationState(
  * @param closeLabel - Accessible label for the sheet close control.
  * @param compactNavigationLabel - Accessible label for the no-JavaScript navigation.
  * @param defaultSectionLabel - Label shown before a section becomes active.
- * @param detailRoutes - Detail-route controls selected from the current pathname.
+ * @param detailRoutes - Detail-route controls selected from the active router segments.
  * @param items - Section anchors shown by the shell.
  * @param navigationLabel - Accessible popover navigation label.
  * @param primaryNavigationLabel - Accessible label for the shell navigation.
@@ -140,11 +140,15 @@ export function MobileNavigation({
   themeLabels,
   triggerLabel,
 }: MobileNavigationProps) {
-  const pathname = usePathname();
-  const detailRoute = detailRoutes.find(({ routePrefix }) => pathname.startsWith(routePrefix));
-  const activeRouteHref = pathname.startsWith("/projects")
+  const [routeSegment, detailSegment] = useSelectedLayoutSegments()
+    .filter((segment) => !segment.startsWith("("));
+  const routeHref = routeSegment ? `/${routeSegment}` : undefined;
+  const detailRoute = detailSegment && routeSegment
+    ? detailRoutes.find(({ routePrefix }) => routePrefix === `/${routeSegment}/`)
+    : undefined;
+  const activeRouteHref = routeHref === "/projects"
     ? "#projects"
-    : pathname.startsWith("/articles")
+    : routeHref === "/articles"
       ? "#writing"
       : undefined;
   const { activeLabel, open, setOpen, visible } = useSectionNavigationState(
