@@ -15,7 +15,12 @@
 }
 
 .title {
+  margin: 0;
   overflow-wrap: break-word;
+  font-size: 1.375rem;
+  line-height: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
 .description {
@@ -74,6 +79,11 @@
   .description,
   .actions {
     grid-column: 1;
+  }
+
+  .row:first-child .title {
+    font-size: 1.5rem;
+    line-height: 1.875rem;
   }
 
   .actions {

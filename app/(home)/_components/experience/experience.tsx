@@ -45,8 +45,8 @@ export function HomeExperience() {
                   <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border bg-white" data-slot="company-logo">
                     <Image alt="" className="size-full rounded-full object-contain" height={32} src={experience.logo} width={32} />
                   </span>
-                  <div className="min-w-0 flex-1" data-slot="role-heading">
-                    <Subheading>{experience.role}</Subheading>
+                  <div data-slot="role-heading">
+                    <h3 className={clsx(styles.roleTitle, "m-0 font-semibold")}>{experience.role}</h3>
                     <p className={clsx(styles.organization, "mt-0.75 text-muted-foreground md:mt-1")}>
                       {experience.organization}
                     </p>

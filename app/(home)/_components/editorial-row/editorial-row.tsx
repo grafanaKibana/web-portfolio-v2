@@ -2,7 +2,6 @@
 
 import { clsx } from "clsx";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
-import { Subheading } from "../subheading";
 
 import styles from "./editorial-row.module.scss";
 
@@ -51,7 +50,7 @@ export function HomeEditorialRow({ actions, askRecord, dataSlot, description, me
       onClick={followRowLink}
     >
       <article className={styles.body} data-slot="home-editorial-row">
-        <Subheading className={styles.title}>{title}</Subheading>
+        <h3 className={styles.title}>{title}</h3>
         <p className={styles.description}>{description}</p>
         <div className={styles.metadata} data-slot="row-metadata">{metadata}</div>
         <div className={clsx(styles.actions, "cursor-default [&_a]:cursor-pointer")} data-slot="project-actions">{actions}</div>
