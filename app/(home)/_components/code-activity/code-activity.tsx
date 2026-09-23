@@ -15,7 +15,6 @@ const activityMonth = new Intl.DateTimeFormat("en", { month: "short", timeZone: 
 const activityDate = new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const pullRequestGroupStyles = {
   group: styles.group,
-  groupLabel: styles.groupLabel,
   contribution: styles.contribution,
   statusIcon: styles.statusIcon,
   copy: styles.copy,

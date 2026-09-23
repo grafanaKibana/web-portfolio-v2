@@ -1,6 +1,7 @@
 import { ChevronRight, Navigation2 } from "lucide-react";
 import Image from "next/image";
 import sectionStyles from "@/app/(home)/_components/section.module.scss";
+import { Subheading } from "@/app/(home)/_components/subheading";
 import { profile } from "@/lib/content/portfolio/server";
 import { clsx } from "clsx";
 import { ExperienceItem } from "./experience-item";
@@ -44,8 +45,8 @@ export function HomeExperience() {
                   <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border bg-white" data-slot="company-logo">
                     <Image alt="" className="size-full rounded-full object-contain" height={32} src={experience.logo} width={32} />
                   </span>
-                  <div data-slot="role-heading">
-                    <h3 className={clsx(styles.roleTitle, "m-0 font-semibold")}>{experience.role}</h3>
+                  <div className="min-w-0 flex-1" data-slot="role-heading">
+                    <Subheading>{experience.role}</Subheading>
                     <p className={clsx(styles.organization, "mt-0.75 text-muted-foreground md:mt-1")}>
                       {experience.organization}
                     </p>
@@ -77,13 +78,7 @@ export function HomeExperience() {
         className="mt-16 lg:mt-32"
         data-slot="experience-recommendations"
       >
-        <h3
-          className={clsx(sectionStyles.label, "m-0 border-t pt-3 font-mono font-normal uppercase text-muted-foreground lg:pt-3.5")}
-          data-page-motion-row
-          id="experience-recommendations-heading"
-        >
-          Recommendations
-        </h3>
+        <Subheading data-page-motion-row id="experience-recommendations-heading">Recommendations</Subheading>
         <RecommendationTrack>
           {profile.recommendations.map((recommendation) => (
             <li

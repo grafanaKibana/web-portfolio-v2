@@ -4,6 +4,7 @@ import Image from "next/image";
 import type { CSSProperties } from "react";
 import type { PortfolioProfile } from "@/lib/content/portfolio/validation";
 import sectionStyles from "../section.module.scss";
+import { Subheading } from "../subheading";
 import { CredentialTrack } from "./credential-track";
 import styles from "./education.module.scss";
 
@@ -77,7 +78,7 @@ export function EducationContent({
       </h2>
       <div className={clsx(styles.tracks, !hasCredentials && styles.academicOnly)} data-slot="education-tracks">
         <div className={styles.academic} data-page-motion-row data-slot="education-academic">
-          <h3 className={styles.trackLabel}>Academic</h3>
+          <Subheading className="mb-6">Academic</Subheading>
           <p className={styles.qualification}>{education.qualification}</p>
           <p className={styles.institution}>{education.institution}</p>
           <p className={styles.academicMeta}>
@@ -90,7 +91,7 @@ export function EducationContent({
 
         {hasCredentials && (
           <div className={styles.credentials} data-page-motion-row data-slot="education-credentials">
-            <h3 className={styles.trackLabel}>Professional credentials</h3>
+            <Subheading className="mb-5">Professional credentials</Subheading>
             <div className={styles.credentialFrame}>
               <CredentialTrack potentialOverflow={certifications.length > 2} singleColumn={certifications.length <= 2}>
                 {certifications.map((certification) => (

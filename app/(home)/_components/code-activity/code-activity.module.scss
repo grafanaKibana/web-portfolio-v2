@@ -3,12 +3,6 @@
 $chart-column-count: 53;
 $chart-gap: 0.1875rem;
 
-.groupLabel {
-  font-size: 0.75rem;
-  line-height: 1.125rem;
-  letter-spacing: 0.08em;
-}
-
 .group + .group {
   margin-top: 1.75rem;
 }

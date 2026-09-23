@@ -1,6 +1,7 @@
 import { profile } from "@/lib/content/portfolio/server";
 import { clsx } from "clsx";
 import sectionStyles from "@/app/(home)/_components/section.module.scss";
+import { Subheading } from "@/app/(home)/_components/subheading";
 import styles from "./about.module.scss";
 
 /**
@@ -29,7 +30,7 @@ export function HomeAbout() {
               <p className={clsx(styles.chapterMeta, "font-mono text-muted-foreground")}>
                 {chapter.meta}
               </p>
-              <h3 className={styles.chapterTitle}>{chapter.title}</h3>
+              <Subheading className="mt-2">{chapter.title}</Subheading>
               <p className={clsx(styles.chapterSummary, "text-content-foreground")}>
                 {chapter.summary}
               </p>

@@ -5,6 +5,7 @@ import type {
   CodeContribution,
   CodeContributionStatus,
 } from "@/lib/content/github-activity.models";
+import { Subheading } from "../subheading";
 
 const pullRequestPeriod = new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" });
 const pullRequestCount = new Intl.NumberFormat("en-US");
@@ -13,7 +14,6 @@ const visibleContributionCount = 3;
 /** CSS module classes used by the pull-request group presentation. */
 export interface PullRequestGroupStyles {
   group: string | undefined;
-  groupLabel: string | undefined;
   contribution: string | undefined;
   statusIcon: string | undefined;
   copy: string | undefined;
@@ -114,9 +114,7 @@ export function PullRequestGroup(props: PullRequestGroupProps) {
 
   return (
     <section className={styles.group} data-slot="pull-request-group">
-      <h3 className={clsx(styles.groupLabel, "m-0 font-mono font-normal uppercase text-muted-foreground")} data-page-motion-row>
-        {label}
-      </h3>
+      <Subheading data-page-motion-row>{label}</Subheading>
       <ul aria-label={`${label} contributions`} className="m-0 mt-4 list-none p-0">
         {visibleContributions.map((contribution) => (
           <PullRequestRow

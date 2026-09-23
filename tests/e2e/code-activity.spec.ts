@@ -4,7 +4,7 @@ import type { PullRequestGroupStyles } from "@/app/(home)/_components/code-activ
 import type { CodeContribution } from "@/lib/content/github-activity.models";
 
 const styles: PullRequestGroupStyles = {
-  group: "group", groupLabel: "groupLabel", contribution: "contribution", statusIcon: "statusIcon",
+  group: "group", contribution: "contribution", statusIcon: "statusIcon",
   copy: "copy", repository: "repository", title: "title", meta: "meta", period: "period", diff: "diff",
   additions: "additions", deletions: "deletions", disclosure: "disclosure",
   disclosureSummary: "disclosureSummary", remainder: "remainder",
