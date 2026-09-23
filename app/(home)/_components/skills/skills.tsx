@@ -39,6 +39,7 @@ import sectionStyles from "@/app/(home)/_components/section.module.scss";
 import { Subheading } from "../subheading";
 import { profile } from "@/lib/content/portfolio/server";
 import { clsx } from "clsx";
+import { SkillList } from "./skill-list";
 import styles from "./skills.module.scss";
 
 const semanticIconProps = { absoluteStrokeWidth: true, size: 20, strokeWidth: 2 } as const;
@@ -60,16 +61,7 @@ function SemanticGradientIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: st
 }
 
 const skillIcons: Readonly<Record<string, ReactNode>> = {
-  "Microsoft Agent Framework": (
-    <Image
-      alt=""
-      className={clsx(styles.brandIcon, styles.colorBrandIcon)}
-      data-icon-kind="microsoft-agent-framework"
-      height={20}
-      src="/skills/microsoft-agent-framework.svg"
-      width={20}
-    />
-  ),
+  "Microsoft Agent Framework": (<Image alt="" className={clsx(styles.brandIcon, styles.colorBrandIcon)} data-icon-kind="microsoft-agent-framework" height={20} src="/skills/microsoft-agent-framework.svg" width={20}/>),
   "Semantic Kernel": <SemanticGradientIcon icon={Sparkles} tone={styles.orchestration} />,
   "Microsoft.Extensions.AI": <Microsoft className={clsx(styles.brandIcon, styles.colorBrandIcon)} />,
   "Large Language Models": <SemanticGradientIcon icon={BrainCircuit} tone={styles.orchestration} />,
@@ -155,30 +147,14 @@ export function HomeSkills() {
             key={group.title}
           >
             <Subheading align="center" className={styles.groupLabel} data-page-motion-lead>{group.title}</Subheading>
-            <ul
+            <SkillList
               className={clsx(
                 styles.skillList,
                 "m-0 mt-4.5 flex list-none flex-wrap justify-center gap-x-5.5 gap-y-3.5 p-0 md:gap-x-8 lg:mt-6.5 lg:gap-x-10 lg:gap-y-4.5",
               )}
               data-page-motion-item
-            >
-              {group.skills.map((skill) => (
-                <li
-                  className="inline-flex items-center gap-2 text-sm leading-6 text-content-foreground lg:gap-2.5"
-                  data-slot="skill"
-                  key={skill}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="grid size-5 shrink-0 place-items-center"
-                    data-slot="skill-icon"
-                  >
-                    {skillIcons[skill]}
-                  </span>
-                  <span data-slot="skill-label">{skill}</span>
-                </li>
-              ))}
-            </ul>
+              skills={group.skills.map((skill) => ({ name: skill, icon: skillIcons[skill] }))}
+            />
           </section>
         ))}
       </div>

@@ -1,14 +1,6 @@
-.skills {
-  min-height: 100svh;
-}
-
 .sectionLabel {
   margin: 0 0 2rem;
   padding-top: 0.75rem;
-}
-
-.skillGroup {
-  padding-bottom: 1.625rem;
 }
 
 .skillGroup + .skillGroup {
@@ -21,6 +13,17 @@
 
 .skillList {
   --page-motion-distance: 4px;
+}
+
+// Safari drops repaints of nested filters, so each icon owns a single filter.
+.skill [data-slot="skill-icon"] > * {
+  filter: grayscale(1) var(--icon-filter, contrast(1));
+  transition: filter 160ms ease-out;
+}
+
+.skill:hover [data-slot="skill-icon"] > *,
+.skill[data-popup-open] [data-slot="skill-icon"] > * {
+  filter: grayscale(0) var(--icon-filter, contrast(1));
 }
 
 .brandIcon {
@@ -53,7 +56,7 @@
 }
 
 .colorBrandIcon {
-  filter: saturate(0.86) brightness(0.93);
+  --icon-filter: saturate(0.86) brightness(0.93);
 }
 
 .codexIcon {
@@ -163,12 +166,12 @@
 }
 
 :global(.dark) .colorBrandIcon {
-  filter: saturate(0.78) brightness(1.12);
+  --icon-filter: saturate(0.78) brightness(1.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :global(:root:not(.light, .dark)) .colorBrandIcon {
-    filter: saturate(0.78) brightness(1.12);
+    --icon-filter: saturate(0.78) brightness(1.12);
   }
 }
 
@@ -176,10 +179,6 @@
   .sectionLabel {
     margin-bottom: 2.5rem;
     padding-top: 0.875rem;
-  }
-
-  .skillGroup {
-    padding-bottom: 2.375rem;
   }
 
   .skillGroup + .skillGroup {
