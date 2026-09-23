@@ -1,4 +1,45 @@
 import { expect, test, type Locator } from "@playwright/test";
+import { compile } from "sass";
+
+const editorialRowCss = compile(
+  "app/(home)/_components/editorial-row/editorial-row.module.scss",
+).css.replaceAll(/:global\(([^)]+)\)/g, "$1");
+
+for (const width of [1023, 1024, 1280] as const) {
+  test(`editorial row fixture preserves its responsive measure at ${String(width)}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 720 });
+    await page.setContent(`
+      <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        ${editorialRowCss}
+      </style>
+      <article class="row">
+        <div class="body">
+          <h2 class="title"><a data-row-link href="#fixture">Editorial fixture</a></h2>
+          <p class="description">A concise summary that keeps the fixture representative.</p>
+          <div class="metadata"><ul><li>Metadata</li></ul></div>
+          <div class="actions"><a href="#action">Action</a></div>
+        </div>
+      </article>
+    `);
+
+    const body = page.locator(".body");
+    await expect(body).toHaveCSS("display", width >= 1024 ? "grid" : "block");
+    if (width >= 1024) {
+      const geometry = await body.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          tracks: style.gridTemplateColumns.split(" ").map((track) => Number.parseFloat(track)),
+          gap: Number.parseFloat(style.columnGap),
+        };
+      });
+      expect(geometry.tracks[1]).toBeCloseTo(224, 1);
+      expect(geometry.gap).toBeCloseTo(48, 1);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+}
 
 /**
  * Reads the destination exposed by a row's native primary link.

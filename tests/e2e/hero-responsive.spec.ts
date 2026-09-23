@@ -16,8 +16,9 @@ for (const colorScheme of ["light", "dark"] as const) {
       if (width < 640) {
         const heading = await hero.getByRole("heading", { level: 1 }).boundingBox();
         if (!heading) throw new Error("Hero heading must be measurable");
-        expect(heading.x).toBeGreaterThanOrEqual(22);
-        expect(heading.x + heading.width).toBeLessThanOrEqual(width - 22);
+        const gutter = await hero.evaluate((element) => Number.parseFloat(getComputedStyle(element).paddingLeft));
+        expect(heading.x).toBeGreaterThanOrEqual(gutter);
+        expect(heading.x + heading.width).toBeLessThanOrEqual(width - gutter);
       } else {
         const links = await hero.locator("ul a").evaluateAll((elements) =>
           elements.map((element) => {

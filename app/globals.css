@@ -108,7 +108,7 @@
   }
 
   .page-shell-gutter {
-    padding-inline: 1.375rem;
+    padding-inline: var(--page-shell-padding-inline);
   }
 
   .text-ui-xs {
@@ -128,12 +128,6 @@
     @apply outline outline-2 outline-offset-2;
   }
 
-  @media (min-width: 48rem) {
-    .page-shell-gutter {
-      padding-inline: 6rem;
-    }
-  }
-
   @media (min-width: 64rem) {
     .desktop-link-row-gap {
       column-gap: 1.625rem;
@@ -141,16 +135,19 @@
 
   }
 
-  @media (min-width: 80rem) {
-    .page-shell-gutter {
-      padding-inline: 12.5rem;
-    }
-
-  }
 }
 
 :root {
   --site-header-height: 3.75rem;
+
+  /* Editorial width controls: Home, lists, detail pages, and footer share this frame. */
+  --page-shell-max-width: 54rem; /* Increase for wider content and longer lines on large screens. */
+  --page-shell-desktop-min-gutter: 4rem; /* Increase to push content inward on tablets and smaller desktops. */
+  --page-shell-mobile-gutter: 1.375rem; /* Increase to narrow page content below 48rem. */
+
+  /* Derived insets: compact header sits 0.25rem closer to the edge; desktop header follows the page frame. */
+  --page-shell-padding-inline: var(--page-shell-mobile-gutter);
+  --site-header-padding-inline: max(0rem, calc(var(--page-shell-mobile-gutter) - 0.25rem));
 
   /* Light Jade surfaces stay vivid; text and focus use a deeper companion. */
   --background: oklch(1 0 0);
@@ -197,6 +194,16 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: var(--ring);
+}
+
+@media (min-width: 48rem) {
+  :root {
+    /* 48rem is the mobile/desktop switch; CSS media queries cannot use custom properties. */
+
+    /* Center content at its max width without shrinking side space below the minimum. */
+    --page-shell-padding-inline: max(var(--page-shell-desktop-min-gutter), calc((100vw - var(--page-shell-max-width)) / 2));
+    --site-header-padding-inline: var(--page-shell-padding-inline);
+  }
 }
 
 @media (min-width: 80rem) {

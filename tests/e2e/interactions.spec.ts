@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { compile } from "sass";
 
 import { buildMailtoHref } from "@/app/(home)/_components/contact/build-mailto-href";
+import { readShellWidthContract } from "./shell-width";
 
 const homeCodeActivityCss = compile(
   "app/(home)/_components/code-activity/code-activity.module.scss",
@@ -34,13 +35,15 @@ function expectStaggeredDelays(delays: Array<number | null>) {
 test("desktop navigation and header match the corrected design contract", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 768 });
   await page.goto("/");
+  const { pageGutter } = await readShellWidthContract(page);
   const header = page.getByRole("banner");
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
 
   await expect(header).toHaveCSS("height", "76px");
   await expect(header).toHaveCSS("border-bottom-width", "0px");
   await expect(header).toHaveCSS("background-image", /linear-gradient/);
-  await expect(page.locator("#about")).toHaveCSS("padding-left", "200px");
+  expect(await page.locator("#about").evaluate((element) => Number.parseFloat(getComputedStyle(element).paddingLeft)))
+    .toBeCloseTo(pageGutter, 1);
   expect(await navigation.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
   )).toEqual(["/#top", "/#about", "/#experience", "/#education", "/#skills", "/#projects", "/#code", "/#writing", "/#contact"]);
@@ -49,8 +52,10 @@ test("desktop navigation and header match the corrected design contract", async 
   const homeBox = await page.getByRole("link", { name: "Back to top" }).boundingBox();
   const themeBox = await page.locator('[data-slot="theme-toggle"]').boundingBox();
   if (!homeBox || !themeBox) throw new Error("Header controls must be measurable");
-  expect(homeBox).toMatchObject({ x: 200, width: 32, height: 32 });
-  expect(themeBox).toMatchObject({ x: 1048, width: 32, height: 32 });
+  expect(homeBox).toMatchObject({ width: 32, height: 32 });
+  expect(homeBox.x).toBeCloseTo(pageGutter, 1);
+  expect(themeBox).toMatchObject({ width: 32, height: 32 });
+  expect(themeBox.x).toBeCloseTo(1280 - pageGutter - themeBox.width, 1);
 
   await page.locator("#about").evaluate((section) => {
     section.scrollIntoView();
@@ -96,6 +101,7 @@ test("the shell stays compact with tablet gutters through 1279px", async ({ page
   for (const width of [768, 1024, 1279]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/");
+    const { pageGutter } = await readShellWidthContract(page);
 
     const header = page.getByRole("banner");
     const navigation = page.getByRole("navigation", { name: "Primary navigation" });
@@ -104,10 +110,14 @@ test("the shell stays compact with tablet gutters through 1279px", async ({ page
     if (!homeBox || !themeBox) throw new Error("Tablet header controls must be measurable");
 
     await expect(header).toHaveCSS("height", "60px");
-    await expect(navigation).toHaveCSS("padding-left", "96px");
-    await expect(page.locator("#about")).toHaveCSS("padding-left", "96px");
-    expect(homeBox).toMatchObject({ x: 96, width: 44, height: 44 });
-    expect(themeBox).toMatchObject({ x: width - 140, width: 44, height: 44 });
+    expect(await navigation.evaluate((element) => Number.parseFloat(getComputedStyle(element).paddingLeft)))
+      .toBeCloseTo(pageGutter, 1);
+    expect(await page.locator("#about").evaluate((element) => Number.parseFloat(getComputedStyle(element).paddingLeft)))
+      .toBeCloseTo(pageGutter, 1);
+    expect(homeBox).toMatchObject({ width: 44, height: 44 });
+    expect(homeBox.x).toBeCloseTo(pageGutter, 1);
+    expect(themeBox).toMatchObject({ width: 44, height: 44 });
+    expect(themeBox.x).toBeCloseTo(width - pageGutter - themeBox.width, 1);
     expect(await navigation.getByRole("link").evaluateAll((links) =>
       links.map((link) => link.getAttribute("href")),
     )).toEqual(["/#top"]);
@@ -137,13 +147,14 @@ test("compact header stays aligned while the intro wraps without overflow", asyn
   for (const width of [344, 360, 390]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/");
+    const { headerGutter } = await readShellWidthContract(page);
 
     const homeBox = await page.getByRole("link", { name: "Back to top" }).boundingBox();
     const themeBox = await page.locator('[data-slot="theme-toggle"]').boundingBox();
     if (!homeBox || !themeBox) throw new Error("Header controls must be measurable");
-    expect(homeBox.x).toBe(18);
+    expect(homeBox.x).toBe(headerGutter);
     expect(homeBox.width).toBe(44);
-    expect(themeBox.x + themeBox.width).toBe(width - 18);
+    expect(themeBox.x + themeBox.width).toBe(width - headerGutter);
     expect(themeBox.width).toBe(44);
     await expect(page.getByRole("button", { name: "Jump to section" })).toHaveCount(0);
 
@@ -159,6 +170,16 @@ test("Home reflows at 200 percent zoom equivalents", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0, { timeout: 5_000 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const root = page.locator("html");
+  await root.evaluate((element) => { element.style.fontSize = "200%"; });
+  try {
+    expect(await root.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  } finally {
+    await root.evaluate((element) => { element.style.removeProperty("font-size"); });
   }
 });
 

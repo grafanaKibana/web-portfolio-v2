@@ -66,8 +66,8 @@ export default async function ProjectPage({
   const nextProject = nextSlug ? await loadProject(nextSlug) : undefined;
 
   return (
-    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
-      <article className="mx-auto max-w-[68ch]">
+    <main id="main" tabIndex={-1} className="page-shell-gutter w-full flex-1 py-12 focus:outline-none lg:py-20">
+      <article>
         <header className="pb-12" data-slot="project-hero">
           <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between" data-page-motion-intro data-slot="project-title-row">
             <h1 className="min-w-0 flex-1 [overflow-wrap:anywhere] text-4xl leading-[1.15] font-semibold tracking-[-0.025em] md:text-5xl">{project.metadata.title}</h1>

@@ -13,8 +13,8 @@ export const metadata: Metadata = {
  */
 export default function AccessibilityPage() {
   return (
-    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 [overflow-wrap:anywhere] focus:outline-none lg:py-20">
-      <article className="mx-auto max-w-[68ch] text-base leading-7">
+    <main id="main" tabIndex={-1} className="page-shell-gutter w-full flex-1 py-12 [overflow-wrap:anywhere] focus:outline-none lg:py-20">
+      <article className="text-base leading-7">
         <header>
           <h1 className="text-4xl font-semibold tracking-tight" data-page-motion-intro>Accessibility</h1>
           <p className="mt-4 font-mono text-xs leading-[1.125rem] text-muted-foreground" data-page-motion-intro>Last updated: August 29, 2026</p>

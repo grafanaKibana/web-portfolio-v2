@@ -76,19 +76,21 @@
 
 @media (min-width: 48rem) {
   .educationRows {
+    --education-rail-width: 8.75rem;
+
     position: relative;
   }
 
   .educationRows::before {
     position: absolute;
-    inset: 0 auto 0 8.75rem;
+    inset: 0 auto 0 var(--education-rail-width);
     width: 1px;
     background: var(--border);
     content: "";
   }
 
   .educationRow {
-    grid-template-columns: 8.75rem minmax(0, 1fr);
+    grid-template-columns: var(--education-rail-width) minmax(0, 1fr);
   }
 
   .educationRow + .educationRow {
@@ -137,19 +139,7 @@
 }
 
 @media (min-width: 80rem) {
-  .educationRows::before {
-    left: 12.5rem;
-  }
-
-  .educationRow {
-    grid-template-columns: 12.5rem minmax(0, 1fr);
-  }
-
-  .rowLabel {
-    padding-right: 2.5rem;
-  }
-
-  .educationRow > [data-slot="education-row-content"] {
-    padding-left: 2.5rem;
+  .educationRows {
+    --education-rail-width: 11.5rem;
   }
 }

@@ -59,7 +59,6 @@
   }
 
   .heading {
-    max-width: 56.25rem;
     /* stylelint-disable-next-line number-max-precision -- Preserve the approved responsive type curve. */
     font-size: clamp(2.5rem, -0.576923rem + 4.807692vw, 3.75rem);
   }

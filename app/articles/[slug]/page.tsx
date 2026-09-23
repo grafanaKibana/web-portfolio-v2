@@ -60,8 +60,8 @@ export default async function ArticlePage({
   if (!article) notFound();
 
   return (
-    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
-      <article className="mx-auto max-w-[68ch]">
+    <main id="main" tabIndex={-1} className="page-shell-gutter w-full flex-1 py-12 focus:outline-none lg:py-20">
+      <article>
         <header className="pb-12">
           <p className="font-mono text-xs leading-[1.125rem] text-muted-foreground" data-page-motion-intro>
             <time dateTime={article.metadata.published}>

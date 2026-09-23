@@ -25,7 +25,7 @@ export default async function ArticlesPage() {
     right.metadata.published.localeCompare(left.metadata.published));
 
   return (
-    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-4xl flex-1 px-6 py-12 focus:outline-none lg:py-20">
+    <main id="main" tabIndex={-1} className="page-shell-gutter w-full flex-1 py-12 focus:outline-none lg:py-20">
       <h1 className="text-4xl font-semibold tracking-tight" data-page-motion-intro>Articles</h1>
       {articles.length ? (
         <ul className="mt-10 [&>li:not(:last-child)>a]:border-b">

@@ -70,7 +70,7 @@ Inline prose links stay underlined. Hover and focus may strengthen the text of a
 
 Use Geist Sans for headings and reading, and Geist Mono for dates, labels, counts, and code. Keep overview prose compact and long-form reading more spacious, with metadata and footer links sharing a quiet secondary scale. Let the hero scale down naturally on tablet and phone. Distinguish top-level section markers from subsections through weight while retaining their shared uppercase Mono treatment and divider lines, including the centered Skills rules.
 
-Give the page generous gutters and consistent pauses between sections, with smaller gaps inside related groups. Keep metadata secondary and long-form reading at a centered, comfortable measure within the page shell. Headings separate reading sections more strongly than paragraphs; the first content block sits close to its header divider. Thin dividers and open rows provide structure. Reserve rounded surfaces and shadows for controls and overlays that need separation.
+Give the page generous gutters and consistent pauses between sections, with smaller gaps inside related groups. Keep metadata secondary and align long-form reading directly to the shared editorial shell. Headings separate reading sections more strongly than paragraphs; the first content block sits close to its header divider. Thin dividers and open rows provide structure. Reserve rounded surfaces and shadows for controls and overlays that need separation.
 
 ### Icons and imagery
 

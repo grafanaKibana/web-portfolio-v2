@@ -9,21 +9,9 @@
 }
 
 .navigation {
-  padding-inline: 1.125rem;
+  padding-inline: var(--site-header-padding-inline);
 }
 
 .summary::-webkit-details-marker {
   display: none;
-}
-
-@media (min-width: 48rem) {
-  .navigation {
-    padding-inline: 6rem;
-  }
-}
-
-@media (min-width: 80rem) {
-  .navigation {
-    padding-inline: 12.5rem;
-  }
 }

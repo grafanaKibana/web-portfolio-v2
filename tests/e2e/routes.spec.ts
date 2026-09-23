@@ -1,9 +1,76 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { readShellWidthContract } from "./shell-width";
 
 const collectionRoutes = [
   { path: "/articles", rowSlot: "article-row" },
   { path: "/projects", rowSlot: "project-row" },
 ] as const;
+
+const staticReadingRoutes = [
+  "/accessibility",
+  "/privacy",
+  "/terms",
+  "/for-robots",
+] as const;
+
+const routeShellViewports = [390, 768, 1280, 1920] as const;
+
+/**
+ * Reads the rendered shell box and its inner content edges.
+ *
+ * @param shell - Route element that owns shared shell padding.
+ * @returns Numeric padding and content-edge geometry.
+ */
+async function readShellGeometry(shell: Locator) {
+  return shell.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    const paddingLeft = Number.parseFloat(style.paddingLeft);
+    const paddingRight = Number.parseFloat(style.paddingRight);
+
+    return {
+      paddingLeft,
+      paddingRight,
+      contentLeft: box.left + paddingLeft,
+      contentRight: box.right - paddingRight,
+    };
+  });
+}
+
+/**
+ * Asserts shared route-shell padding and page-level overflow safety.
+ *
+ * @param page - Browser page rendering the route.
+ * @param shell - Route element that owns shared shell padding.
+ * @returns Resolved shell geometry for child-alignment assertions.
+ */
+async function expectSharedRouteShell(page: Page, shell: Locator) {
+  const { pageGutter } = await readShellWidthContract(page);
+  const geometry = await readShellGeometry(shell);
+
+  expect(geometry.paddingLeft).toBeCloseTo(pageGutter, 1);
+  expect(geometry.paddingRight).toBeCloseTo(pageGutter, 1);
+  expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+
+  return geometry;
+}
+
+/**
+ * Asserts that visible route content occupies the shared shell frame.
+ *
+ * @param content - Visible route content expected to span the shell.
+ * @param geometry - Shared shell content-edge geometry.
+ */
+async function expectContentToSpanShell(
+  content: Locator,
+  geometry: Awaited<ReturnType<typeof readShellGeometry>>,
+) {
+  const box = await content.boundingBox();
+  if (!box) throw new Error("Rendered route content must be measurable");
+
+  expect(box.x).toBeCloseTo(geometry.contentLeft, 1);
+  expect(box.x + box.width).toBeCloseTo(geometry.contentRight, 1);
+}
 
 /**
  * Reads unique detail destinations from a rendered collection.
@@ -42,6 +109,43 @@ for (const collection of collectionRoutes) {
   });
 }
 
+for (const collection of collectionRoutes) {
+  test(`${collection.path} collection rows follow the shared editorial shell`, async ({ page }) => {
+    for (const width of routeShellViewports) {
+      await page.setViewportSize({ width, height: 900 });
+      const response = await page.goto(collection.path);
+      expect(response?.status()).toBe(200);
+
+      const main = page.locator("main#main");
+      const geometry = await expectSharedRouteShell(page, main);
+      const rows = page.locator(`[data-slot="${collection.rowSlot}"]`);
+
+      for (const row of await rows.all()) {
+        const box = await row.boundingBox();
+        if (!box) throw new Error("Rendered collection row must be measurable");
+        expect(box.x).toBeCloseTo(geometry.contentLeft, 1);
+        expect(box.x + box.width).toBeCloseTo(geometry.contentRight, 1);
+      }
+    }
+  });
+}
+
+for (const path of staticReadingRoutes) {
+  test(`${path} content spans the shared editorial shell`, async ({ page }) => {
+    for (const width of routeShellViewports) {
+      await page.setViewportSize({ width, height: 900 });
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(200);
+
+      const main = page.locator("main#main");
+      const geometry = await expectSharedRouteShell(page, main);
+      const article = main.locator(":scope > article");
+      await expect(article.getByRole("heading", { level: 1 })).toHaveCount(1);
+      await expectContentToSpanShell(article, geometry);
+    }
+  });
+}
+
 for (const family of ["articles", "projects"] as const) {
   test(`unknown ${family} slugs return a non-indexable static 404`, async ({ page }) => {
     const response = await page.goto(`/${family}/__test-missing-content__`);
@@ -66,21 +170,22 @@ test("available detail pages expose route-aware return navigation", async ({ pag
   }
 });
 
-test("available detail shells remain centered and overflow-safe", async ({ page }) => {
-  for (const width of [390, 1280]) {
-    await page.setViewportSize({ width, height: 900 });
-    for (const collection of collectionRoutes) {
-      await page.goto(collection.path);
-      const paths = await discoverDetailPaths(page, collection.rowSlot);
-      if (paths.length === 0) continue;
+test("available detail content spans the shared editorial shell", async ({ page }) => {
+  for (const collection of collectionRoutes) {
+    await page.setViewportSize({ width: routeShellViewports[0], height: 900 });
+    await page.goto(collection.path);
+    const paths = await discoverDetailPaths(page, collection.rowSlot);
+    if (paths.length === 0) continue;
+
+    for (const width of routeShellViewports) {
+      await page.setViewportSize({ width, height: 900 });
       await page.goto(paths[0] ?? collection.path);
 
-      const article = page.locator("main#main > article");
-      const box = await article.boundingBox();
-      if (!box) throw new Error("Rendered detail article must be measurable");
-      expect(box.x).toBeGreaterThanOrEqual(0);
-      expect(box.x + box.width).toBeLessThanOrEqual(width);
-      expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+      const main = page.locator("main#main");
+      const geometry = await expectSharedRouteShell(page, main);
+      const article = main.locator(":scope > article");
+      await expectContentToSpanShell(article, geometry);
+      await expect(page.getByRole("link", { name: "Back to list" })).toBeVisible();
     }
   }
 });
@@ -114,17 +219,41 @@ test.describe("without JavaScript", () => {
     });
   }
 });
+test("rendered Project pagination divider aligns to the shared shell", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/projects");
+  const paths = await discoverDetailPaths(page, "project-row");
 
-test("reading roles retain measure, hierarchy and first-block spacing", async ({ page }) => {
+  for (const path of paths) {
+    await page.goto(path);
+    const pagination = page.locator('[data-slot="project-pagination"]');
+    if (!await pagination.count()) continue;
+
+    const main = page.locator("main#main");
+    const geometry = await expectSharedRouteShell(page, main);
+    const divider = pagination.locator('[data-slot="next-project"]');
+    const box = await divider.boundingBox();
+    if (!box) throw new Error("Rendered Project pagination divider must be measurable");
+    expect(box.x).toBeCloseTo(geometry.contentLeft, 1);
+    expect(box.x + box.width).toBeCloseTo(geometry.contentRight, 1);
+    return;
+  }
+});
+
+
+test("reading roles retain shared width, hierarchy and first-block spacing", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   for (const collection of collectionRoutes) {
     await page.goto(collection.path);
     const paths = await discoverDetailPaths(page, collection.rowSlot);
     if (!paths.length) continue;
-    for (const width of [390, 767, 768, 1440]) {
+    for (const width of routeShellViewports) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(paths[0] ?? collection.path);
-      const article = page.locator("main#main > article");
+      const main = page.locator("main#main");
+      const geometry = await expectSharedRouteShell(page, main);
+      const article = main.locator(":scope > article");
+      await expectContentToSpanShell(article, geometry);
       const title = article.locator("h1");
       await expect(title).toHaveCSS("font-size", width < 768 ? "36px" : "48px");
       await expect(article.locator("header")).toHaveCSS("padding-bottom", "48px");
@@ -140,17 +269,6 @@ test("reading roles retain measure, hierarchy and first-block spacing", async ({
         await expect(heading).toHaveCSS("font-size", level === "H2" ? "24px" : "20px");
         await expect(heading).toHaveCSS("line-height", level === "H2" ? "30px" : "26px");
       }
-      const measure = await article.evaluate((element) => {
-        const probe = document.createElement("div");
-        probe.style.width = "68ch";
-        element.append(probe);
-        const maximum = probe.getBoundingClientRect().width;
-        probe.remove();
-        const box = element.getBoundingClientRect();
-        return { width: box.width, maximum, left: box.left, right: innerWidth - box.right };
-      });
-      expect(measure.width).toBeLessThanOrEqual(measure.maximum + 1);
-      expect(measure.left).toBeCloseTo(measure.right, 1);
       await title.evaluate((heading) => { heading.textContent = "LongUnbrokenTitle".repeat(15); });
       expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
     }
