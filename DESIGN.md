@@ -34,7 +34,7 @@ Support desktop review, mobile scanning, and focused long-form reading. Keyboard
 
 Home progresses through **Hero → About → Experience → Education → Skills → Selected work → Code activity → Writing → Contact**.
 
-The hero introduces Nikita and offers résumé and experience actions. About provides the personal overview and career chapters; Experience carries the detailed timeline and recommendations. Projects and writing provide deeper evidence before Contact.
+The hero introduces Nikita and offers direct contact, résumé, and experience actions. About provides the personal overview and career chapters; Experience carries the detailed timeline and recommendations. Projects and writing provide deeper evidence before Contact.
 
 | Surface | Role |
 | --- | --- |
@@ -92,7 +92,7 @@ Keep controls and individual icons still unless their existing behavior requires
 | Education | Academic keeps its natural height; credentials show two full entries and a partial next entry when more exist, with the Recommendations edge fade and full-row verification links |
 | Skills | Centered semantic groups, recognizable marks, and restrained group reveals |
 | Project and article pages | Strong title, secondary metadata, focused prose, clear return navigation |
-| Contact | Paired direct links in source order, a compact form with consistent label and field gaps, native validation, and mail-app handoff |
+| Contact | Direct email and profile links in source order, aligned beside the introduction on wide screens |
 | Conversation | Direct page composer, nonmodal desktop panel and full-screen modal phone thread, validated inline sources and clear recovery |
 
 The conversation entry is an intentional accent exception: desktop rests as a jade line and reveals the standard composer on hover, click or keyboard intent. The first question is entered on the page, with a left star, the shared “Ask about my work…” placeholder, an opaque field, a standard shadcn Send button on desktop and arrow on phone, and a subtle form-local page-colored radial fade without blur. Phone entry unfolds at the page top or upward scroll and folds on downward scroll, never while editing or holding a draft. Focusing another page field folds the AI composer without hiding its gradient line or moving focus. Only an accepted send opens the thread; retained history reveals a field-shaped reopen control on phone downward scroll, while the desktop gradient line reveals the reopen field on hover and reopens it on click or keyboard activation. Mobile and touch reopening keeps the keyboard closed; desktop mouse, pen and keyboard intent retains composer focus after reveal without overriding a later focus choice.
@@ -117,7 +117,7 @@ Desktop has generous outer space, inline navigation, split editorial composition
 
 Education pairs Academic and Professional credentials at comfortable desktop widths and stacks them at narrower widths. On desktop, Credentials takes only its needed width up to a comfortable cap, and Academic fills the remainder. Credential marks may be monochrome icons or intact issuer badges. Show two full credentials and part of the next when the list overflows; short collections use one item per row. Academic has no trailing padding. Native scrolling and focus must reach every credential.
 
-Contact links use two equal columns in source order, with E-Mail as the visible email label and the address retained in its accessible name. Enlarged text may reduce that grid to one column. Keep the Contact form sized to its fields rather than stretching its message field to the adjacent links. Let other social links and skill groups wrap naturally. Keep reading order intact and use split layouts only while both columns remain comfortable. Compact navigation and conversation fit the available viewport, including the on-screen keyboard. Touch actions remain available without hover.
+Contact places its introduction and direct links in one wide-screen row, with the links using only their intrinsic width on the right. Links use two compact columns in source order, with E-Mail as the visible email label and the address retained in its accessible name. Narrow or enlarged layouts stack the two groups and may reduce the link grid to one column. Let other social links and skill groups wrap naturally. Keep reading order intact and use split layouts only while both groups remain comfortable. Compact navigation and conversation fit the available viewport, including the on-screen keyboard. Touch actions remain available without hover.
 
 Breakpoints belong in code. Evaluate both representative screen sizes and the widths where a layout changes.
 

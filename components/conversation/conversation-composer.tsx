@@ -13,6 +13,13 @@ const { maxConversationInputLength } = conversationConfig;
 /** Shared prompt shown by every editable and retained conversation entry. */
 export const conversationPlaceholder = "Ask about my work…";
 
+/** Paints the resizable field shell independently of its unscaled controls.
+ * @returns Shared field surface for editable and retained entries.
+ */
+export function ConversationFieldSurface() {
+  return <span aria-hidden className={clsx("field-surface", styles.fieldSurface)} data-composer-surface><span data-composer-accent /></span>;
+}
+
 /** Properties for the conversation's single active editable composer. */
 export interface ConversationComposerProps {
   model: UseConversationResult;
@@ -85,12 +92,14 @@ export function ConversationComposer({
       <Field>
         <FieldLabel className="sr-only" htmlFor={inputId}>Your question</FieldLabel>
         <InputGroup className={clsx(styles.inputGroup, mobile && styles.mobileGroup)}>
+          <ConversationFieldSurface />
           {suggestions.length > 0 ? (
             <InputGroupAddon
               align="block-start"
               aria-label="Suggested questions"
               className={styles.mobileSuggestions}
               data-mobile-suggestions
+              data-composer-content
               onClick={(event) => {
                 if (!(event.target as HTMLElement).closest("button")) inputRef.current?.focus({ preventScroll: true });
               }}
@@ -109,7 +118,7 @@ export function ConversationComposer({
               ))}
             </InputGroupAddon>
           ) : null}
-          <div className={styles.inputRow}>
+          <div className={styles.inputRow} data-composer-content data-composer-row>
             {entry || !mobile ? (
               <InputGroupAddon align="inline-start" className={styles.entryAddon} onClick={() => { inputRef.current?.focus({ preventScroll: true }); }}>
                 <Sparkle aria-hidden className={styles.entryStar} data-entry-composer-star />

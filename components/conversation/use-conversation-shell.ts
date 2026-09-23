@@ -29,7 +29,6 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
   const [capability, setCapability] = useState<ConversationCapability>("unknown");
   const [compact, setCompact] = useState(false);
   const [splashPending, setSplashPending] = useState(true);
-  const [editingPage, setEditingPage] = useState(false);
   const [sheetMounted, setSheetMounted] = useState(false);
 
   useEffect(() => {
@@ -64,34 +63,6 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
       if (fallback !== undefined) window.clearTimeout(fallback);
     };
   }, []);
-
-  useEffect(() => {
-    let focusFrame: number | undefined;
-    /** Folds the entry while focus belongs to an external editable control. */
-    function updateEditing() {
-      const active = document.activeElement;
-      const external = active instanceof HTMLElement
-        && Boolean(active.closest("input, textarea, select, [contenteditable='true']"))
-        && !rootRef.current?.contains(active);
-      setEditingPage(external);
-      if (external) dismiss();
-    }
-    /** Defers inspection until the next focus target is active.
-     * @param _event - Focus transition leaving the current element.
-     */
-    function handleFocusOut(_event: FocusEvent) {
-      if (focusFrame !== undefined) window.cancelAnimationFrame(focusFrame);
-      focusFrame = window.requestAnimationFrame(updateEditing);
-    }
-    updateEditing();
-    document.addEventListener("focusin", updateEditing);
-    document.addEventListener("focusout", handleFocusOut);
-    return () => {
-      document.removeEventListener("focusin", updateEditing);
-      document.removeEventListener("focusout", handleFocusOut);
-      if (focusFrame !== undefined) window.cancelAnimationFrame(focusFrame);
-    };
-  }, [dismiss, rootRef]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -139,7 +110,6 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
   return {
     capability,
     compact,
-    editingPage,
     hidden: splashPending || sheetMounted,
   };
 }

@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "components/conversation/conversation.module.scss"
+        ],
+        "createdAt": "2026-09-23T11:46:21.441Z",
+        "reason": "Agent: DESIGN.md specifies the phone header contracting into its close handle; height and margin change preserve the layout handoff."
+      },
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "components/conversation/conversation-composer.module.scss"
+        ],
+        "createdAt": "2026-09-23T11:46:26.448Z",
+        "reason": "Agent: DESIGN.md specifies a brief Stop-button width transition to fit its label without scaling the text."
+      }
+    ]
+  }
+}

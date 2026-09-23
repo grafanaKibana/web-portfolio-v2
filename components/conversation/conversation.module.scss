@@ -22,6 +22,8 @@
 }
 
 .edgeEntry {
+  --revealed-field-lift: 0px;
+
   isolation: isolate;
   display: flex;
   width: min(37.8rem, calc(var(--viewport-width) - 2rem));
@@ -76,7 +78,7 @@
   box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 12%);
   pointer-events: none;
   transform: translateX(-50%);
-  transition: opacity 100ms ease 180ms;
+  transition: opacity 0s 380ms;
 }
 
 .surface {
@@ -125,9 +127,27 @@
   position: absolute;
   z-index: 0;
   inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.morphFill {
+  position: absolute;
+  inset: 0;
   border: 1px solid var(--border);
   border-radius: inherit;
   background: var(--background);
+}
+
+.morphLine {
+  position: absolute;
+  z-index: 3;
+  width: 7.5rem;
+  height: var(--launcher-line-height);
+  border-radius: 999px;
+  background: var(--brand-accent-text-gradient);
+  opacity: 0;
   pointer-events: none;
 }
 
@@ -141,7 +161,7 @@
   flex-direction: column;
   padding: var(--draft-padding);
   overflow: hidden;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: inherit;
   background: transparent;
   opacity: 1;
@@ -154,7 +174,8 @@
 }
 
 .shell[data-morph] .edgeEntry :is(.entryField, .reopenLabel, .entryStroke, .entryFade),
-.shell[data-morph] .edgeEntry {
+.shell[data-morph] .edgeEntry,
+.shell[data-open="true"] .edgeEntry {
   visibility: hidden;
   pointer-events: none;
 }
@@ -228,7 +249,6 @@
   .entryStroke {
     background: buttontext;
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -248,17 +268,67 @@
   z-index: 1;
   visibility: hidden;
   width: 100%;
-  clip-path: inset(calc(100% - var(--launcher-line-height)) max(0px, calc((100% - 7.5rem) / 2)) 0 round calc(var(--launcher-line-height) / 2));
   pointer-events: none;
-  transition: clip-path 280ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 280ms;
+  transition: transform 380ms cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 380ms;
+}
+
+.edgeEntry [data-composer-surface] {
+  width: 7.5rem;
+  height: var(--launcher-line-height);
+  border-color: transparent;
+
+  // Isolated paint resizes without reflowing or scaling the field's controls.
+  transition: width 380ms cubic-bezier(0.4, 0, 0.2, 1), height 380ms cubic-bezier(0.4, 0, 0.2, 1), border-color 160ms 220ms;
+}
+
+.edgeEntry [data-composer-accent] {
+  opacity: 1;
+  transition: opacity 160ms cubic-bezier(0.4, 0, 0.2, 1) 220ms;
 }
 
 .edgeEntry[data-entry-revealed="true"] .entryField {
   visibility: visible;
   transition-delay: 0s;
-  clip-path: inset(-4px round 1.5rem);
-  opacity: 1;
   pointer-events: auto;
+}
+
+.edgeEntry[data-entry-revealed="true"] [data-composer-surface] {
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  border-color: var(--border);
+  transition-delay: 0s;
+}
+
+.edgeEntry[data-entry-revealed="true"] [data-composer-accent] {
+  opacity: 0;
+  transition-duration: 180ms;
+  transition-delay: 0s;
+}
+
+@media (forced-colors: active) {
+  .edgeEntry [data-composer-accent] {
+    background: buttontext;
+  }
+}
+
+@media (min-width: 40rem) {
+  .edgeEntry {
+    --revealed-field-lift: 8px;
+
+    padding-bottom: 2.5rem;
+  }
+
+  .entryField {
+    transform: translateY(2.5rem);
+  }
+
+  .edgeEntry[data-entry-revealed="true"] .entryField {
+    transform: translateY(calc(2.5rem - var(--revealed-field-lift)));
+  }
+
+  .edgeEntry[data-entry-revealed="true"] .reopenLabel {
+    transform: translateY(calc(-1 * var(--revealed-field-lift)));
+  }
 }
 
 .shell[data-hidden="true"] .edgeEntry :is(.entryField, .reopenLabel) {
@@ -276,7 +346,7 @@
   background: radial-gradient(ellipse at 50% 60%, color-mix(in oklab, var(--background) 80%, transparent) 20%, transparent 72%);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 380ms cubic-bezier(0.55, 0, 0.25, 1);
 }
 
 .entryFade[data-visible="true"] {
@@ -293,8 +363,19 @@
   padding-inline: 0.75rem;
   color: var(--muted-foreground);
   font-weight: 400;
-  clip-path: inset(calc(100% - var(--launcher-line-height)) max(0px, calc((100% - 7.5rem) / 2)) 0 round calc(var(--launcher-line-height) / 2));
-  transition: clip-path 280ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 280ms;
+  position: relative;
+  border-color: transparent;
+  background: transparent;
+  transition: transform 380ms cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 380ms;
+}
+
+.edgeEntry [data-composer-content] {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.reopenLabel > [data-composer-content] {
+  position: relative;
 }
 
 .reopenLabel > svg {
@@ -304,7 +385,12 @@
 .edgeEntry[data-entry-revealed="true"] .reopenLabel {
   visibility: visible;
   transition-delay: 0s;
-  clip-path: inset(-4px round 1.5rem);
+}
+
+.edgeEntry[data-entry-revealed="true"] [data-composer-content] {
+  opacity: 1;
+  transition-duration: 110ms;
+  transition-delay: 270ms;
 }
 
 .mobileSurface {
@@ -338,6 +424,10 @@
 }
 
 .mobileSurface .morphFrame {
+  border: 0;
+}
+
+.mobileSurface .morphFill {
   border: 0;
 }
 
@@ -378,11 +468,12 @@
 }
 
 .mobileTranscript {
-  flex: 1 1 0;
+  flex: 0 1 auto;
+  margin-top: auto;
 }
 
 .mobileTranscript [data-conversation-history] {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   padding-inline-end: 0;
 }
 
@@ -401,7 +492,12 @@
 
 .edgeEntry[data-entry-revealed="true"] .entryStroke {
   opacity: 0;
-  transition-delay: 60ms;
+  transition-delay: 0s;
+}
+
+.shell[data-morph="closing"] .entryStroke {
+  opacity: 1;
+  transition: none;
 }
 
 .edgeEntry[data-entry-revealed="true"] .edgeButton:focus-visible {
@@ -416,9 +512,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .entryField,
+  .edgeEntry [data-composer-surface],
+  .edgeEntry [data-composer-accent],
   .entryStroke,
   .entryFade,
-  .reopenLabel {
+  .reopenLabel,
+  .edgeEntry [data-composer-content] {
     transition: none;
   }
 }
@@ -440,7 +539,7 @@
   }
 }
 
-:global(.dark) .morphFrame {
+:global(.dark) .morphFill {
   background: var(--card);
 }
 
@@ -499,9 +598,7 @@
   }
 }
 
-// Native closure briefly focuses the page before the fresh reset field mounts.
-.shell[data-resetting] [data-slot="input-group"] {
-  border-color: var(--reset-field-border);
-  box-shadow: var(--reset-field-ring);
-  transition: none;
+.surface[data-morph] [data-slot="input-group"] {
+  box-shadow: none;
+  border-color: transparent;
 }

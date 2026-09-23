@@ -151,7 +151,7 @@ home:
   writing:
     indexDescription: "Articles by Nikita Reshetnik about AI and software engineering."
   contact:
-    description: "Have a role, project, or engineering challenge worth discussing? Send me a message or email me directly."
+    description: "Have a role, project, or engineering challenge worth discussing? Email me directly or connect through one of the links."
     email: "reshetnik.nikita@gmail.com"
   footer:
     locale: "en-GB"

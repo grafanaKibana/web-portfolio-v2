@@ -372,12 +372,14 @@ function ConversationCopy({ mobile, turn }: {
   );
 }
 
-/** Explains a failed reply on hover or keyboard focus inside the native chat.
+/** Explains a failed reply on hover, touch, or keyboard focus inside the native chat.
+ * @param mobile - Whether to match the mobile transcript action controls.
  * @param surfaceRef - Native chat surface that contains the tooltip portal.
  * @param turn - Failed reply whose safe error is displayed.
  * @returns One info reaction with a noninteractive explanation.
  */
-function ConversationInfo({ surfaceRef, turn }: {
+function ConversationInfo({ mobile, surfaceRef, turn }: {
+  mobile: boolean;
   surfaceRef: RefObject<HTMLElement | null>;
   turn: ConversationTurn;
 }) {
@@ -390,9 +392,11 @@ function ConversationInfo({ surfaceRef, turn }: {
         aria-describedby={tooltipId}
         aria-label="Failure details"
         closeOnClick={false}
-        render={<span className="relative flex size-6 cursor-default items-center justify-center rounded-full outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0} />}
+        render={mobile
+          ? <Button className={composerStyles.mobileActionButton} size="icon" type="button" variant="ghost" />
+          : <span className="relative flex size-6 cursor-default items-center justify-center rounded-full outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0} />}
       >
-        <ConversationReactionVisual><Info className="size-3.5" /></ConversationReactionVisual>
+        {mobile ? <Info className="size-4" /> : <ConversationReactionVisual><Info className="size-3.5" /></ConversationReactionVisual>}
       </TooltipTrigger>
       {/* Keep tooltip content in the native chat's top layer through the public portal API. */}
       <TooltipPrimitive.Portal container={surfaceRef}>
@@ -539,7 +543,7 @@ function ConversationAnswer({
       {showAnswer && (turn.status === "pending" || turn.status === "complete") ? <ConversationCopy mobile={mobile} turn={turn} /> : null}
       {turn.status === "error" && active ? (
         <ConversationReactions align="start" className="static translate-y-0 p-0">
-          <ConversationInfo surfaceRef={surfaceRef} turn={turn} />
+          <ConversationInfo mobile={mobile} surfaceRef={surfaceRef} turn={turn} />
         </ConversationReactions>
       ) : null}
       {mobile ? (

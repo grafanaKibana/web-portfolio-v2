@@ -6,6 +6,31 @@
   height: auto;
   flex-direction: column;
   justify-content: flex-end;
+  border-color: transparent;
+  background: transparent;
+}
+
+.fieldSurface {
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  border-radius: inherit;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.fieldSurface > span {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: var(--brand-accent-text-gradient);
+  opacity: 0;
+}
+
+.inputGroup > [data-composer-content] {
+  position: relative;
 }
 
 .inputRow {
@@ -102,17 +127,18 @@
 
 .mobileAnswerActions {
   display: flex;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   align-items: center;
   justify-content: flex-start;
   gap: 0.25rem;
-  margin-top: 0.25rem;
 }
 
 .mobileActionButton {
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  padding-inline: 0.625rem;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
   color: var(--content-foreground);
 }
 

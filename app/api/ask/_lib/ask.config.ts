@@ -9,7 +9,7 @@ export const askServerConfig = {
   /** Maximum duration of the full server request lifecycle. */
   askServerTimeoutMs: 60_000,
   defaultApiBaseUrl: "https://api.openai.com/v1",
-  defaultModel: "gpt-5.6-luna",
+  defaultModel: "gpt-6-luna",
   defaultMaxCompletionTokens: 8_192,
   maxCorpusBytes: 256 * 1_024,
   optionalDataTimeoutMs: 5_000,

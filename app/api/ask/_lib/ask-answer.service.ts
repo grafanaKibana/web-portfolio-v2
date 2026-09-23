@@ -127,9 +127,9 @@ export class AskAnswerService {
   ): Promise<AsyncIterable<ProviderChunk>> {
     signal.throwIfAborted();
     const sourceIds = sources.map(({ id }) => id);
-    // Cache options are enabled only for the verified OpenAI endpoint and model.
+    // Cache options are enabled only for the verified OpenAI endpoint and models.
     const explicitCache = configuration.baseUrl === askServerConfig.defaultApiBaseUrl
-      && configuration.model === "gpt-5.6-luna";
+      && ["gpt-5.6-luna", "gpt-6-luna"].includes(configuration.model);
     const model = new ChatOpenAI({
       apiKey: configuration.apiKey,
       configuration: { baseURL: configuration.baseUrl, maxRetries: 0, logLevel: "off" },

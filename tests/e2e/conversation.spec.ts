@@ -134,6 +134,164 @@ async function box(locator: Locator): Promise<NonNullable<Awaited<ReturnType<Loc
   return bounds;
 }
 
+/** Pauses the first document-timeline animation inside the desktop surface.
+ * @param page - Page containing the conversation surface.
+ */
+async function pauseSurfaceMotion(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    for (let frame = 0; frame < 10; frame += 1) {
+      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+      const surface = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="false"]');
+      const animations = surface?.getAnimations({ subtree: true }).filter(({ timeline }) => timeline === document.timeline) ?? [];
+      if (animations.length === 0) continue;
+      for (const animation of animations) animation.pause();
+      return;
+    }
+    throw new Error("Expected desktop surface motion to start within ten animation frames.");
+  });
+}
+
+/** Verifies that panel motion never changes the panel frame's dimensions.
+ * @param surface - Animated desktop surface.
+ */
+async function expectFrameGeometryStable(surface: Locator): Promise<void> {
+  const geometryKeyframes = await surface.locator("[data-chat-frame]").evaluate((element) =>
+    element.getAnimations().flatMap(({ effect }) => effect instanceof KeyframeEffect ? effect.getKeyframes() : [])
+      .filter((keyframe) => keyframe.width !== undefined || keyframe.height !== undefined));
+  expect(geometryKeyframes).toHaveLength(0);
+}
+
+/** Triggers and samples the desktop panel midway through its surface motion.
+ * @param control - Control that starts opening or closing the desktop surface.
+ * @returns Current frame clip and opacity.
+ */
+async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPath: string; opacity: number }> {
+  return control.evaluate(async (element) => {
+    (element as HTMLElement).click();
+    for (let frame = 0; frame < 10; frame += 1) {
+      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+      const target = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="false"] [data-chat-frame]');
+      const animations = target?.getAnimations() ?? [];
+      const animation = animations.find(({ effect }) =>
+        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.clipPath !== undefined));
+      if (!target || !animation?.effect) continue;
+      const owner = target.parentElement;
+      if (!owner) throw new Error("Expected the frame to belong to a surface.");
+      for (const current of owner.getAnimations({ subtree: true })) {
+        if (current.timeline !== document.timeline) continue;
+        const duration = Number(current.effect?.getTiming().duration);
+        if (!Number.isFinite(duration)) continue;
+        current.pause();
+        current.currentTime = Number(animation.effect.getTiming().duration) * 0.45;
+      }
+      const style = getComputedStyle(target);
+      return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
+    }
+    throw new Error("Expected desktop opening motion to start within ten animation frames.");
+  });
+}
+
+/** Reads the first frame of an interrupted desktop close animation.
+ * @param surface - Closing desktop surface.
+ * @returns Closing frame's initial clip and opacity.
+ */
+async function sampleClosingStart(surface: Locator): Promise<{ clipPath: string; opacity: number }> {
+  await expect(surface).toHaveAttribute("data-closing", "true");
+  return surface.locator("[data-chat-frame]").evaluate((element) => {
+    const animation = element.getAnimations().find(({ effect }) =>
+      effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.clipPath !== undefined));
+    if (!(animation?.effect instanceof KeyframeEffect)) throw new Error("Expected an active desktop closing frame animation.");
+    for (const current of element.getAnimations()) {
+      current.pause();
+      current.currentTime = 0;
+    }
+    const style = getComputedStyle(element);
+    return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
+  });
+}
+
+/** Compares computed clip polygons while tolerating engine rounding.
+ * @param actual - Closing clip polygon.
+ * @param expected - Interrupted opening clip polygon.
+ */
+function expectClipPathClose(actual: string, expected: string): void {
+  const values = (value: string) => Array.from(value.matchAll(/-?\d+(?:\.\d+)?/g), ([match]) => Number(match));
+  const actualValues = values(actual);
+  const expectedValues = values(expected);
+  expect(actualValues).toHaveLength(expectedValues.length);
+  actualValues.forEach((value, index) => { expect(value).toBeCloseTo(expectedValues[index] ?? Number.NaN, 4); });
+}
+
+/** Samples actual field-surface resizing while its controls fade independently.
+ * @param field - Entry wrapper whose surface should be transitioning.
+ * @returns Mid-transition paint and control geometry.
+ */
+async function sampleEntryResize(field: Locator) {
+  return field.evaluate(async (element) => {
+    const paint = element.querySelector<HTMLElement>("[data-composer-surface]");
+    const controls = element.querySelector<HTMLElement>("[data-composer-content]");
+    if (!paint || !controls) throw new Error("Expected separate field paint and controls.");
+    for (let frame = 0; frame < 10; frame += 1) {
+      const animation = paint.getAnimations().find(({ effect }) =>
+        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.width !== undefined));
+      if (animation?.effect) {
+        for (const current of element.getAnimations({ subtree: true })) {
+          current.pause();
+          current.currentTime = Number(animation.effect.getTiming().duration) / 2;
+        }
+        return { width: paint.getBoundingClientRect().width, height: paint.getBoundingClientRect().height,
+          fullWidth: element.getBoundingClientRect().width, fullHeight: element.getBoundingClientRect().height,
+          clip: getComputedStyle(element).clipPath, controlsWidth: controls.getBoundingClientRect().width, controlsOpacity: Number(getComputedStyle(controls).opacity),
+          accent: getComputedStyle(paint.firstElementChild ?? paint).opacity };
+      }
+      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+    }
+    throw new Error("Expected an active field width transition.");
+  });
+}
+
+/** Completes document-timeline animations owned by one surface morph.
+ * @param surface - Surface containing morph-owned layers.
+ */
+async function finishMorph(surface: Locator): Promise<void> {
+  await surface.evaluate((element) => {
+    for (const animation of element.getAnimations({ subtree: true })) {
+      if (animation.timeline === document.timeline && Number.isFinite(animation.effect?.getComputedTiming().endTime)) animation.finish();
+    }
+  });
+}
+
+/** Records whether the resting jade line is painted at the native closing handoff.
+ * @param surface - Closing host whose temporary line is about to be removed.
+ */
+async function trackLineHandoff(surface: Locator): Promise<void> {
+  await surface.evaluate((element) => {
+    const observer = new MutationObserver(() => {
+      if (element.hasAttribute("data-closing")) return;
+      const stroke = element.closest("[data-conversation-shell]")?.querySelector<HTMLElement>("[data-entry-stroke]");
+      (element as HTMLElement & { handoffLineVisible?: boolean }).handoffLineVisible = Boolean(stroke && getComputedStyle(stroke).visibility === "visible" && getComputedStyle(stroke).opacity === "1");
+      observer.disconnect();
+    });
+    observer.observe(element, { attributes: true, attributeFilter: ["data-closing"] });
+  });
+}
+
+/** Verifies that the resting launcher line uses the configured jade brand gradient.
+ * @param stroke - Visible launcher line.
+ */
+async function expectJadeLine(stroke: Locator): Promise<void> {
+  const colors = await stroke.evaluate((element) => {
+    const probe = document.createElement("span");
+    probe.style.backgroundImage = "var(--brand-accent-text-gradient)";
+    document.body.append(probe);
+    const expected = getComputedStyle(probe).backgroundImage;
+    probe.remove();
+    return { actual: getComputedStyle(element).backgroundImage, expected };
+  });
+  expect(colors.actual).toBe(colors.expected);
+  expect(colors.actual).not.toBe("none");
+}
+
 test.describe("conversation smoke", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
   test.beforeEach(async ({ page }) => {
@@ -144,6 +302,102 @@ test.describe("conversation smoke", () => {
     await installTransport(page);
     await page.goto("/");
     await readyComposer(page);
+  });
+
+  test("@webkit desktop entry reveals on hover or page end without reacting to upward scroll", async ({ page }) => {
+    const entry = page.locator("[data-edge-entry]");
+    const input = page.getByRole("textbox", { name: "Your question" });
+
+    await page.mouse.move(8, 8);
+    await expect(input).toBeHidden();
+    await page.evaluate(() => {
+      const maximum = document.documentElement.scrollHeight - window.innerHeight;
+      window.scrollTo({ behavior: "instant", top: Math.min(1_200, Math.max(0, maximum - 300)) });
+    });
+    await page.evaluate(() => { window.scrollBy({ behavior: "instant", top: -160 }); });
+    await expect(input).toBeHidden();
+
+    await entry.hover();
+    await expect(input).toBeVisible();
+    await page.mouse.move(8, 8);
+    await expect(input).toBeHidden();
+
+    await page.evaluate(() => { window.scrollTo({ behavior: "instant", top: document.documentElement.scrollHeight }); });
+    await expect(input).toBeVisible();
+    const footerContent = await box(page.locator("footer > :last-child"));
+    const entryField = await box(page.locator('[data-edge-entry] [data-slot="input-group"]'));
+    expect(entryField.y - (footerContent.y + footerContent.height)).toBeGreaterThanOrEqual(8);
+  });
+
+  test("@webkit desktop hover morph keeps one jade shape through reveal and hide", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.reload();
+    await readyComposer(page);
+    await page.mouse.move(8, 8);
+
+    const entry = page.locator("[data-edge-entry]");
+    const field = entry.locator("[data-conversation-composer]").locator("..");
+    const fade = entry.locator("[data-entry-fade]");
+    await expect(page.getByRole("textbox", { name: "Your question" })).toBeHidden();
+    await entry.hover();
+    const revealSample = await sampleEntryResize(field);
+    expect(revealSample.clip).toBe("none");
+    expect(revealSample.width).toBeGreaterThan(120);
+    expect(revealSample.width).toBeLessThan(revealSample.fullWidth);
+    expect(revealSample.height).toBeGreaterThan(5);
+    expect(revealSample.height).toBeLessThan(revealSample.fullHeight);
+    expect(revealSample.controlsWidth).toBeGreaterThan(revealSample.width);
+    expect(revealSample.controlsOpacity).toBe(0);
+    const lateFade = await field.evaluate((element) => {
+      for (const animation of element.getAnimations({ subtree: true })) animation.currentTime = 320;
+      const controls = element.querySelector("[data-composer-content]");
+      if (!controls) throw new Error("Expected fading controls.");
+      return Number(getComputedStyle(controls).opacity);
+    });
+    expect(lateFade).toBeGreaterThan(0);
+    expect(lateFade).toBeLessThan(1);
+    expect(await entry.locator("[data-entry-stroke]").evaluate((element) => getComputedStyle(element).opacity)).toBe("0");
+    const jadeOpacity = Number(revealSample.accent);
+    expect(jadeOpacity).toBe(0);
+
+    const fadeOpacity = await fade.evaluate((element) => {
+      const animation = element.getAnimations()[0];
+      if (!animation?.effect) throw new Error("Expected an active entry fade transition.");
+      animation.pause();
+      animation.currentTime = Number(animation.effect.getTiming().duration) / 2;
+      return Number.parseFloat(getComputedStyle(element).opacity);
+    });
+    expect(fadeOpacity).toBeGreaterThan(0);
+    expect(fadeOpacity).toBeLessThan(1);
+
+    await finishMorph(entry);
+    await page.mouse.move(8, 8);
+    const hideSample = await sampleEntryResize(field);
+    expect(hideSample.accent).toBe("0");
+    expect(hideSample.controlsOpacity).toBe(0);
+    expect(hideSample.clip).toBe("none");
+    expect(hideSample.width).toBeGreaterThan(120);
+    expect(hideSample.width).toBeLessThan(hideSample.fullWidth);
+    expect(await entry.locator("[data-entry-stroke]").evaluate((element) => getComputedStyle(element).opacity)).toBe("0");
+    await finishMorph(entry);
+    await expect(field).toBeHidden();
+    await expect(entry.locator("[data-entry-stroke]")).toHaveCSS("opacity", "1");
+  });
+
+  test("desktop hover reveal honors reduced motion", async ({ page }) => {
+    const entry = page.locator("[data-edge-entry]");
+    const field = entry.locator("[data-conversation-composer]").locator("..");
+    const fade = entry.locator("[data-entry-fade]");
+    await page.mouse.move(8, 8);
+    await entry.hover();
+
+    await expect(field).toHaveCSS("transition-duration", "0s");
+    await expect(fade).toHaveCSS("transition-duration", "0s");
+    await expect(field).toHaveCSS("visibility", "visible");
+    await expect(fade).toHaveCSS("opacity", "1");
+    const strokeBounds = await box(entry.locator("[data-entry-stroke]"));
+    const fieldBounds = await box(entry.locator('[data-slot="input-group"]'));
+    expect(strokeBounds.y + strokeBounds.height - fieldBounds.y - fieldBounds.height).toBeCloseTo(8, 0);
   });
 
   test("@webkit primary stream moves from pending through completion and remains usable", async ({ page }) => {
@@ -229,8 +483,10 @@ test.describe("conversation smoke", () => {
     await expect(dialog).toBeVisible();
     await expect(page.locator("[data-answer]").filter({ hasText: "Rejected reset answer." })).toHaveCount(0);
     await page.getByRole("button", { name: "Start over" }).click();
+    await expect(dialog).toBeHidden();
     await expect(page.locator("[data-turn]")).toHaveCount(0);
 
+    await readyComposer(page);
     await send(page, "Synthetic fresh question");
     await emit(page, { done: true, request: 2, text: "Synthetic fresh answer." });
     await expect(page.locator("[data-answer]")).toHaveText("Synthetic fresh answer.");
@@ -263,5 +519,193 @@ test.describe("conversation smoke", () => {
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
     await expect(launcher).toBeFocused();
+  });
+
+  test("@webkit desktop send moves the revealed field into the appearing panel", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.reload();
+    await readyComposer(page);
+    const entryField = page.locator("[data-edge-entry] [data-conversation-composer]").locator("..");
+    const entryComposer = page.locator('[data-edge-entry] [data-slot="input-group"]');
+    await expect.poll(async () => entryField.evaluate((element) => element.getAnimations().length)).toBe(0);
+    await page.getByRole("textbox", { name: "Your question" }).fill("Synthetic moving composer question");
+    await expect.poll(async () => entryField.evaluate((element) => element.getAnimations().length)).toBe(0);
+    const before = await box(entryComposer);
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await pauseSurfaceMotion(page);
+
+    const surface = page.locator('[data-chat-surface][data-mobile="false"]');
+    const surfaceComposer = surface.locator('[data-conversation-composer] [data-slot="input-group"]');
+    const motion = await surfaceComposer.evaluate((element) => {
+      const animation = element.getAnimations().find(({ effect }) =>
+        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
+      if (!(animation?.effect instanceof KeyframeEffect)) throw new Error("Expected composer transfer motion.");
+      const keyframes = animation.effect.getKeyframes();
+      const duration = Number(animation.effect.getTiming().duration);
+      animation.currentTime = 0;
+      const start = element.getBoundingClientRect();
+      animation.currentTime = duration / 2;
+      const middle = element.getBoundingClientRect();
+      animation.currentTime = duration;
+      const end = element.getBoundingClientRect();
+      return {
+        keyframes,
+        start: { bottom: start.bottom, left: start.left, width: start.width, height: start.height },
+        middle: { bottom: middle.bottom, width: middle.width },
+        end: { bottom: end.bottom, left: end.left, width: end.width, height: end.height },
+      };
+    });
+    const geometry = JSON.stringify({ before, motion, viewport: page.viewportSize() });
+    expect(motion.start.left, geometry).toBeCloseTo(before.x, 0);
+    expect(motion.start.bottom, geometry).toBeCloseTo(before.y + before.height, 0);
+    expect(motion.end.bottom, geometry).toBeLessThan(motion.start.bottom - 20);
+    expect(motion.end.bottom, geometry).toBeGreaterThan(motion.start.bottom - 40);
+    expect(motion.middle.bottom, geometry).toBeGreaterThan(motion.end.bottom);
+    expect(motion.middle.bottom, geometry).toBeLessThan(motion.start.bottom);
+    expect(motion.start.width, geometry).toBeCloseTo(motion.end.width, 0);
+    expect(motion.middle.width, geometry).toBeCloseTo(motion.end.width, 0);
+    expect(motion.start.height, geometry).toBeCloseTo(motion.end.height, 0);
+    expect(motion.keyframes.some((keyframe) => keyframe.height !== undefined || keyframe.width !== undefined || keyframe.scale !== undefined), geometry).toBe(false);
+    expect(await surface.locator("[data-chat-morph-line]").evaluate((element) => element.getAnimations().length)).toBe(0);
+    await expectFrameGeometryStable(surface);
+    await finishMorph(surface);
+    await expect.poll(async () => surfaceComposer.evaluate((element) => element.getAnimations().length)).toBe(0);
+    const after = await box(surfaceComposer);
+    expect(after.y + after.height, geometry).toBeCloseTo(motion.end.bottom, 0);
+  });
+
+  test("desktop open surface hides the launcher line", async ({ page }) => {
+    await send(page, "Synthetic line visibility question");
+    await expect(page.locator("[data-entry-stroke]")).toBeHidden();
+  });
+
+  test("@webkit desktop Close at the page end restores the line until a new page-end visit", async ({ page }) => {
+    const entry = page.locator("[data-edge-entry]");
+    const input = page.getByRole("textbox", { name: "Your question" });
+    await page.evaluate(() => { window.scrollTo({ behavior: "instant", top: document.documentElement.scrollHeight }); });
+    await expect(input).toBeVisible();
+    const dialog = await send(page, "Synthetic page-end close question");
+    await emit(page, { done: true, text: "Synthetic page-end close answer." });
+
+    await page.getByRole("button", { name: "Close conversation" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(entry).toHaveAttribute("data-entry-revealed", "false");
+    await expect(page.locator("[data-entry-stroke]")).toBeVisible();
+
+    await page.evaluate(() => { window.scrollTo({ behavior: "instant", top: 0 }); });
+    await expect.poll(async () => page.evaluate(() => window.scrollY)).toBe(0);
+    await page.evaluate(() => new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); }));
+    await page.evaluate(() => { window.scrollTo({ behavior: "instant", top: document.documentElement.scrollHeight }); });
+    await expect(entry).toHaveAttribute("data-entry-revealed", "true");
+    await expect(entry.locator("[data-reopen-field]")).toBeVisible();
+  });
+
+  test("desktop Close during opening continues from the current panel frame", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.reload();
+    await readyComposer(page);
+    await page.getByRole("textbox", { name: "Your question" }).fill("Synthetic interrupted desktop opening");
+    const opening = await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Send", exact: true }));
+    const surface = page.locator('[data-chat-surface][data-mobile="false"]');
+    await expect(surface).toHaveAttribute("data-morph", "opening");
+
+    await page.getByRole("button", { name: "Close conversation" }).evaluate((element) => { (element as HTMLElement).click(); });
+    const closing = await sampleClosingStart(surface);
+    expectClipPathClose(closing.clipPath, opening.clipPath);
+    expect(closing.opacity).toBeCloseTo(opening.opacity, 3);
+
+    await trackLineHandoff(surface);
+    await finishMorph(surface);
+    await expect(surface).toBeHidden();
+    expect(await surface.evaluate((element) => (element as HTMLElement & { handoffLineVisible?: boolean }).handoffLineVisible)).toBe(true);
+    const stroke = page.locator("[data-entry-stroke]");
+    await expect(stroke).toBeVisible();
+    await expectJadeLine(stroke);
+  });
+
+  test("@webkit desktop New chat closes the surface and keeps the entry field active", async ({ page }) => {
+    const flushWarnings: string[] = [];
+    page.on("console", (message) => { if (message.text().includes("flushSync")) flushWarnings.push(message.text()); });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.reload();
+    await readyComposer(page);
+    const dialog = await send(page, "Synthetic reset-to-field question");
+    const answer = "Synthetic completed reply with enough detail to grow the reading surface. ".repeat(32).trim();
+    await emit(page, { done: true, text: answer, followUps: [{ label: "Continue", question: "Synthetic continuation question?" }] });
+    await expect(dialog.getByText(answer, { exact: true })).toBeVisible();
+    await finishMorph(dialog);
+    await expect(dialog).not.toHaveAttribute("data-morph", "opening");
+    await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Start over" }));
+    const surface = page.locator('[data-chat-surface][data-mobile="false"]');
+    await expect(surface.locator("[data-chat-frame]")).toHaveCSS("background-image", "none");
+    await expect(surface.locator("[data-chat-frame-fill]")).toHaveCSS("border-top-width", "1px");
+    await expect(surface.locator('[data-conversation-composer] [data-slot="input-group"]')).toHaveCSS("opacity", "1");
+    await expect(surface.locator("[data-chat-morph-line]")).toHaveCSS("opacity", "0");
+    await surface.evaluate((element) => {
+      const shell = element.closest("[data-conversation-shell]");
+      if (!shell) throw new Error("Expected the closing surface to belong to the shell.");
+      const observer = new MutationObserver(() => {
+        if (element.hasAttribute("data-closing")) return;
+        const input = shell.querySelector<HTMLElement>('[data-edge-entry] textarea');
+        const visible = input && input.getBoundingClientRect().width > 0 && getComputedStyle(input).visibility === "visible" && getComputedStyle(input).opacity === "1";
+        shell.setAttribute("data-field-handoff-visible", String(Boolean(visible)));
+        observer.disconnect();
+      });
+      observer.observe(element, { attributes: true, attributeFilter: ["data-closing"] });
+    });
+    const finalPaint = await surface.evaluate((element) => {
+      const animations = element.getAnimations({ subtree: true }).filter((animation) => Number.isFinite(animation.effect?.getComputedTiming().endTime));
+      const end = Math.max(...animations.map((animation) => Number(animation.effect?.getComputedTiming().endTime)));
+      for (const animation of animations) { animation.pause(); animation.currentTime = end - 0.01; }
+      const paint = element.querySelector("[data-composer-surface]");
+      if (!paint) throw new Error("Expected outgoing field paint.");
+      return paint.getBoundingClientRect().toJSON() as { x: number; y: number; width: number; height: number };
+    });
+    await finishMorph(surface);
+    await expect(page.locator("[data-conversation-shell]")).toHaveAttribute("data-field-handoff-visible", "true");
+    const replacement = await box(page.locator("[data-edge-entry] [data-composer-surface]"));
+    for (const dimension of ["x", "y", "width", "height"] as const) expect(finalPaint[dimension], dimension).toBeCloseTo(replacement[dimension], 0);
+
+    await expect(dialog).toBeHidden();
+    await expect(page.locator("[data-turn]")).toHaveCount(0);
+    await expect(page.locator("[data-edge-entry]")).toHaveAttribute("data-entry-revealed", "true");
+    await expect(page.getByRole("textbox", { name: "Your question" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
+    await expect(page.getByRole("textbox", { name: "Your question" })).toHaveValue("");
+    await expect(page.locator("[data-entry-stroke]")).toHaveCSS("opacity", "0");
+    expect(flushWarnings).toEqual([]);
+  });
+
+  test("@webkit desktop Close keeps the panel frame stable while restoring the line", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.reload();
+    await readyComposer(page);
+    const dialog = await send(page, "Synthetic closing motion question");
+    await emit(page, { done: true, text: "Synthetic closing motion answer." });
+    await expect(dialog).not.toHaveAttribute("data-morph", "opening");
+
+    const surface = page.locator('[data-chat-surface][data-mobile="false"]');
+    await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Close conversation" }));
+    await expect(surface).toHaveAttribute("data-closing", "true");
+    await expectFrameGeometryStable(surface);
+    const horizontalTravel = await surface.locator('[data-conversation-composer] [data-slot="input-group"]').evaluate((element) => {
+      const transforms = element.getAnimations().flatMap(({ effect }) => effect instanceof KeyframeEffect ? effect.getKeyframes() : [])
+        .flatMap((frame) => typeof frame.transform === "string" ? [new DOMMatrix(frame.transform).m41] : []);
+      if (transforms.length === 0) throw new Error("Expected composer closing transforms.");
+      return Math.max(...transforms.map(Math.abs));
+    });
+    expect(horizontalTravel).toBeLessThan(1);
+    await trackLineHandoff(surface);
+    await finishMorph(surface);
+    await expect(surface).toBeHidden();
+    expect(await surface.evaluate((element) => (element as HTMLElement & { handoffLineVisible?: boolean }).handoffLineVisible)).toBe(true);
+    const stroke = page.locator("[data-entry-stroke]");
+    await expect(stroke).toBeVisible();
+    await expectJadeLine(stroke);
+    await expect(page.locator("[data-edge-entry]")).toHaveAttribute("data-entry-revealed", "false");
+    await expect(stroke).toHaveCSS("opacity", "1");
+    await page.mouse.move(8, 8);
+    await page.locator("[data-edge-entry]").hover();
+    await expect(page.locator("[data-edge-entry]")).toHaveAttribute("data-entry-revealed", "true");
   });
 });

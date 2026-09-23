@@ -10,13 +10,14 @@ import {
   type RefObject,
   type ToggleEvent,
 } from "react";
+import { flushSync } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { MessageCirclePlus, Sparkle, X } from "lucide-react";
 import { clsx } from "clsx";
 import { animateMini, useReducedMotion, type AnimationPlaybackControlsWithThen } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { ConversationComposer, conversationPlaceholder } from "./conversation-composer";
+import { ConversationComposer, ConversationFieldSurface, conversationPlaceholder } from "./conversation-composer";
 import { ConversationView } from "./conversation-view";
 import { chatGrowthDuration, chatMotionEase } from "./conversation-motion";
 import { useConversation } from "./use-conversation";
@@ -61,24 +62,30 @@ function clearInlineProperties(element: HTMLElement | null, properties: readonly
  */
 function clearSurfaceMotionStyles(surface: HTMLElement) {
   const frame = surface.querySelector<HTMLElement>("[data-chat-frame]");
-  const paint = surface.querySelector<HTMLElement>("[data-chat-paint]");
+  const line = surface.querySelector<HTMLElement>("[data-chat-morph-line]");
   const composer = findComposerGroup(surface);
-  clearInlineProperties(frame, ["border-radius", "height", "transform", "width"]);
-  clearInlineProperties(paint, ["clip-path"]);
-  clearInlineProperties(composer, ["height", "overflow", "transform", "width"]);
+  clearInlineProperties(frame, ["clip-path", "opacity"]);
+  clearInlineProperties(line, ["bottom", "left", "opacity", "transform"]);
+  clearInlineProperties(composer, ["opacity", "transform"]);
+  clearInlineProperties(surface.querySelector<HTMLElement>("[data-composer-surface]"), ["width", "height", "border-color"]);
+  clearInlineProperties(surface.querySelector<HTMLElement>("[data-composer-accent]"), ["opacity"]);
+  for (const element of surface.querySelectorAll<HTMLElement>("[data-composer-content]")) element.style.removeProperty("opacity");
   for (const element of surface.querySelectorAll<HTMLElement>("[data-chat-reveal], [data-conversation-history]")) element.style.removeProperty("opacity");
   surface.style.removeProperty("height");
   delete surface.dataset.morph;
+  delete surface.dataset.morphDestination;
 }
 
-/** Releases motion paint, except while reset still owns the source until its replacement commits.
+/** Releases transient paint after the native host completes its motion.
  * @param surface - Native host whose completed paint may be released.
  * @param phase - Completed transfer direction.
  */
 function releaseSurfaceMotion(surface: HTMLElement, phase: SurfaceMorphPhase) {
-  if (phase === "closing" && surface.closest("[data-resetting]")) return;
+  if (phase === "closing") {
+    if (surface.dataset.morphDestination !== "field") surface.closest<HTMLElement>("[data-conversation-shell]")?.removeAttribute("data-morph");
+    clearClosingSurface(surface);
+  }
   clearSurfaceMotionStyles(surface);
-  if (phase === "closing") clearClosingSurface(surface);
 }
 
 /** Removes temporary semantics and paint state after a native popup has closed.
@@ -98,8 +105,8 @@ function clearClosingSemantics(surface: HTMLElement) {
   delete surface.dataset.closing;
 }
 
-/** Coordinates a frame and real-composer FLIP with native host lifecycle.
- * @param originRef - Last visible entry geometry used for object continuity.
+/** Moves the composer between the thread and its page field or line destination.
+ * @param originRef - Page field or line geometry used for the composer transfer.
  * @param completionRef - Current lifecycle continuation guarded by the morph generation.
  * @returns Native toggle handlers for preparing and revealing the popup.
  */
@@ -108,7 +115,6 @@ function useSurfaceToggleMotion(
   completionRef: RefObject<((phase: SurfaceMorphPhase) => void) | null>,
 ) {
   const reducedMotion = useReducedMotion();
-  const paintRef = useRef<HTMLDivElement>(null);
   const animationsRef = useRef<AnimationPlaybackControlsWithThen[]>([]);
   const generationRef = useRef(0);
 
@@ -123,16 +129,18 @@ function useSurfaceToggleMotion(
     cancelAnimations();
   }, [cancelAnimations]);
 
-  /** Runs one direction of the shared silhouette and composer transfer.
+  /** Runs independent panel reveal and composer transfer.
    * @param surface - Mounted native host whose natural target geometry is authoritative.
    * @param phase - Whether the target is the open panel or captured page entry.
    */
   const morphSurface = useCallback((surface: HTMLElement, phase: SurfaceMorphPhase) => {
     const frame = surface.querySelector<HTMLElement>("[data-chat-frame]");
-    const paint = paintRef.current;
+    const line = surface.querySelector<HTMLElement>("[data-chat-morph-line]");
     const composer = findComposerGroup(surface);
+    const paint = composer?.querySelector<HTMLElement>("[data-composer-surface]");
+    const accent = composer?.querySelector<HTMLElement>("[data-composer-accent]");
     const origin = originRef.current;
-    if (!frame || !paint || !composer || !origin) {
+    if (!frame || !line || !composer || !paint || !accent) {
       cancelAnimations();
       releaseSurfaceMotion(surface, phase);
       const completion = completionRef.current;
@@ -142,33 +150,36 @@ function useSurfaceToggleMotion(
     }
 
     const interrupted = animationsRef.current.length > 0;
-    const currentFrame = interrupted ? frame.getBoundingClientRect() : null;
-    const currentComposer = interrupted ? composer.getBoundingClientRect() : null;
-    const currentRadius = interrupted ? Number.parseFloat(window.getComputedStyle(frame).borderRadius) : null;
-    const currentClip = interrupted ? window.getComputedStyle(paint).clipPath : null;
+    const currentFrameOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(frame).opacity) : null;
+    const currentFrameClip = interrupted ? window.getComputedStyle(frame).clipPath : null;
+    const currentPaint = interrupted ? paint.getBoundingClientRect() : null;
+    const currentAccentOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(accent).opacity) : null;
+    const controls = Array.from(composer.querySelectorAll<HTMLElement>("[data-composer-content]"));
+    const currentControlOpacity = interrupted ? controls.map((element) => Number.parseFloat(window.getComputedStyle(element).opacity)) : [];
+    const currentComposerTransform = interrupted ? window.getComputedStyle(composer).transform : null;
     const currentRevealOpacity = interrupted
       ? Array.from(surface.querySelectorAll<HTMLElement>("[data-chat-reveal], [data-conversation-history]"), (element) => Number.parseFloat(window.getComputedStyle(element).opacity))
       : [];
     cancelAnimations();
     clearSurfaceMotionStyles(surface);
 
-    const frameTarget = frame.getBoundingClientRect();
-    const paintTarget = paint.getBoundingClientRect();
     const composerTarget = composer.getBoundingClientRect();
+    const surfaceTarget = surface.getBoundingClientRect();
     const fullClip = "polygon(0px 0px, 100% 0px, 100% 100%, 0px 100%)";
-    const originClip = rectClipPath(paintTarget, origin);
-    const startFrame = currentFrame ?? (phase === "opening" ? origin : frameTarget);
-    const endFrame = phase === "opening" ? frameTarget : origin;
-    const startComposer = currentComposer ?? (phase === "opening" ? origin : composerTarget);
-    const endComposer = phase === "opening" ? composerTarget : origin;
-    const startClip = currentClip && currentClip !== "none" ? currentClip : phase === "opening" ? originClip : fullClip;
-    const endClip = phase === "opening" ? fullClip : originClip;
-    const duration = phase === "opening" ? 0.36 : 0.28;
-    const targetRadius = Number.parseFloat(window.getComputedStyle(frame).borderRadius) || 0;
+    const lineTarget = DOMRect.fromRect({
+      x: composerTarget.left + (composerTarget.width - line.offsetWidth) / 2,
+      y: composerTarget.bottom - line.offsetHeight,
+      width: line.offsetWidth,
+      height: line.offsetHeight,
+    });
+    const returningToField = phase === "closing" && Boolean(origin && origin.width > line.offsetWidth);
+    const mobile = surface.dataset.mobile === "true";
+    const panelDuration = mobile ? (phase === "opening" ? 0.56 : 0.5) : (phase === "opening" ? 0.34 : 0.3);
+    const fieldDuration = mobile ? panelDuration + 0.14 : panelDuration;
+    const ease = mobile ? [0.4, 0, 0.2, 1] as const : chatMotionEase;
 
-    surface.style.height = `${String(frameTarget.height)}px`;
     surface.dataset.morph = phase;
-    composer.style.overflow = "hidden";
+    if (phase === "closing") surface.dataset.morphDestination = returningToField ? "field" : "line";
     const revealElements = Array.from(surface.querySelectorAll<HTMLElement>("[data-chat-reveal], [data-conversation-history]"));
 
     if (reducedMotion) {
@@ -181,36 +192,39 @@ function useSurfaceToggleMotion(
 
     const animations: AnimationPlaybackControlsWithThen[] = [];
     animationsRef.current = animations;
-    const frameAnimation = animateMini(frame, {
-      borderRadius: [currentRadius ?? (phase === "opening" ? origin.height / 2 : targetRadius), phase === "opening" ? targetRadius : origin.height / 2],
-      height: [startFrame.height, endFrame.height],
-      transform: [
-        `translate(${String(startFrame.left - frameTarget.left)}px, ${String(startFrame.top - frameTarget.top)}px)`,
-        `translate(${String(endFrame.left - frameTarget.left)}px, ${String(endFrame.top - frameTarget.top)}px)`,
-      ],
-      width: [startFrame.width, endFrame.width],
-    }, { duration, ease: chatMotionEase });
-    animations.push(frameAnimation);
-
-    const composerAnimation = animateMini(composer, {
-      height: [startComposer.height, endComposer.height],
-      transform: [
-        `translate(${String(startComposer.left - composerTarget.left)}px, ${String(startComposer.bottom - composerTarget.bottom)}px)`,
-        `translate(${String(endComposer.left - composerTarget.left)}px, ${String(endComposer.bottom - composerTarget.bottom)}px)`,
-      ],
-      width: [startComposer.width, endComposer.width],
-    }, { duration, ease: chatMotionEase });
-    animations.push(composerAnimation);
-
-    const clipAnimation = animateMini(paint, { clipPath: [startClip, endClip] }, { duration, ease: chatMotionEase });
-    animations.push(clipAnimation);
+    animations.push(animateMini(frame, {
+      opacity: [currentFrameOpacity ?? (phase === "opening" ? 0 : 1), phase === "opening" ? 1 : 0],
+      clipPath: phase === "opening"
+        ? [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : rectClipPath(surfaceTarget, composerTarget), fullClip]
+        : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, rectClipPath(surfaceTarget, composerTarget)],
+    }, { duration: panelDuration, ease }));
+    const destination = origin ?? lineTarget;
+    const openingFromLine = phase === "opening" && destination.height <= line.offsetHeight;
+    const movingToLine = phase === "closing" && !returningToField;
+    const offset = `translate(${String(destination.left + destination.width / 2 - (composerTarget.left + composerTarget.width / 2))}px, ${String(destination.bottom - composerTarget.bottom)}px)`;
+    animations.push(animateMini(composer, {
+      transform: [currentComposerTransform && currentComposerTransform !== "none" ? currentComposerTransform : phase === "opening" ? offset : "translate(0px, 0px)", phase === "opening" ? "translate(0px, 0px)" : offset],
+    }, { duration: fieldDuration, ease }));
+    animations.push(animateMini(paint, {
+      width: [currentPaint?.width ?? (phase === "opening" ? destination.width : composerTarget.width), phase === "opening" ? composerTarget.width : destination.width],
+      height: [currentPaint?.height ?? (phase === "opening" ? destination.height : composerTarget.height), phase === "opening" ? composerTarget.height : destination.height],
+    }, { duration: fieldDuration, ease }));
+    animations.push(animateMini(accent, {
+      opacity: [currentAccentOpacity ?? (openingFromLine ? 1 : 0), movingToLine ? 1 : 0],
+    }, { delay: movingToLine ? fieldDuration * 0.6 : 0, duration: movingToLine ? fieldDuration * 0.4 : 0.18, ease }));
+    controls.forEach((element, index) => {
+      const leaving = movingToLine || (returningToField && element.hasAttribute("data-mobile-suggestions"));
+      animations.push(animateMini(element, {
+        opacity: [currentControlOpacity[index] ?? (openingFromLine ? 0 : 1), leaving ? 0 : 1],
+      }, { delay: openingFromLine ? fieldDuration * 0.7 : 0, duration: openingFromLine ? fieldDuration * 0.3 : Math.min(0.12, fieldDuration), ease }));
+    });
     revealElements.forEach((element, index) => {
       animations.push(animateMini(element, {
         opacity: [currentRevealOpacity[index] ?? (phase === "opening" ? 0 : 1), phase === "opening" ? 1 : 0],
       }, {
-        delay: phase === "opening" ? duration * 0.28 : 0,
-        duration: phase === "opening" ? duration * 0.5 : duration * 0.32,
-        ease: chatMotionEase,
+        delay: phase === "opening" ? panelDuration * 0.28 : 0,
+        duration: phase === "opening" ? panelDuration * 0.65 : panelDuration * (mobile ? 0.85 : 0.32),
+        ease,
       }));
     });
     const generation = generationRef.current;
@@ -219,10 +233,16 @@ function useSurfaceToggleMotion(
     const finish = () => {
       if (generationRef.current !== generation || animationsRef.current !== animations) return;
       animationsRef.current = [];
-      releaseSurfaceMotion(surface, phase);
       const completion = completionRef.current;
       completionRef.current = null;
-      completion?.(phase);
+      if (surface.dataset.morphDestination === "field") {
+        // Mount and focus the replacement before removing the outgoing field's paint.
+        flushSync(() => { completion?.(phase); });
+        releaseSurfaceMotion(surface, phase);
+      } else {
+        releaseSurfaceMotion(surface, phase);
+        completion?.(phase);
+      }
     };
     void Promise.allSettled(animations.map((animation) => animation.then(() => undefined, () => undefined))).then(finish);
   }, [cancelAnimations, completionRef, originRef, reducedMotion]);
@@ -266,7 +286,7 @@ function useSurfaceToggleMotion(
     }
   }, [cancelAnimations, completionRef, morphSurface]);
 
-  return { cancelAnimations, collapseSurface, handleBeforeToggle, paintRef, revealSurface };
+  return { cancelAnimations, collapseSurface, handleBeforeToggle, revealSurface };
 }
 
 /** Animates content-driven height changes, releasing the surface back to intrinsic sizing after each transition.
@@ -330,45 +350,30 @@ function useSurfaceContentMotion(open: boolean, model: ReturnType<typeof useConv
   }, [surfaceRef]);
 }
 
-/** Tracks phone document-scroll intent without treating viewport motion as scrolling.
- * @param mobile - Whether the phone entry is active.
- * @param open - Whether a thread owns the composer.
- * @param entryFocused - Whether an entry control owns focus.
- * @param model - Shared draft and native validation state.
- * @param revealHistory - Reveals the retained-thread field on downward reading intent.
- * @returns Whether idle phone entry is folded.
+/** Tracks each arrival at the page end so an explicit close can leave its line resting.
+ * @returns Current end visibility and arrival number.
  */
-function useEntryFold(mobile: boolean, open: boolean, entryFocused: boolean, model: ReturnType<typeof useConversation>, revealHistory: (reveal: boolean) => void) {
-  const [folded, setFolded] = useState(false);
+function useAtPageEnd() {
+  const [position, setPosition] = useState({ atPageEnd: false, pageEndVisit: 0 });
   useEffect(() => {
-    let previous = window.scrollY;
-    let direction = 0;
-    let accumulated = 0;
-    /** Counts document movement only; viewport keyboard events do not change entry intent. */
-    function trackScroll() {
-      const next = window.scrollY;
-      const delta = next - previous;
-      previous = next;
-      if (!mobile) return;
-      if (next <= 0) { setFolded(false); accumulated = 0; direction = 0; return; }
-      if (open || (!model.expanded && (entryFocused || model.draft || model.inputRef.current?.validity.customError || model.inputRef.current?.matches(":user-invalid")))) return;
-      const nextDirection = Math.sign(delta);
-      if (!nextDirection) return;
-      if (nextDirection !== direction) accumulated = 0;
-      direction = nextDirection;
-      accumulated += Math.abs(delta);
-      if (accumulated >= 12) {
-        if (model.expanded) { if (direction > 0) revealHistory(true); }
-        else setFolded(direction > 0);
-        accumulated = 0;
-      }
+    /** Measures the actual document edge without inferring intent from scroll direction. */
+    function updatePageEnd() {
+      const root = document.documentElement;
+      const atPageEnd = window.scrollY + window.innerHeight >= root.scrollHeight - 2;
+      setPosition((current) => current.atPageEnd === atPageEnd ? current : {
+        atPageEnd, pageEndVisit: current.pageEndVisit + (atPageEnd ? 1 : 0),
+      });
     }
-    trackScroll();
-    window.addEventListener("scroll", trackScroll, { passive: true });
-    return () => { window.removeEventListener("scroll", trackScroll); };
-  }, [entryFocused, mobile, model.draft, model.expanded, model.inputRef, open, revealHistory]);
+    updatePageEnd();
+    window.addEventListener("scroll", updatePageEnd, { passive: true });
+    window.addEventListener("resize", updatePageEnd);
+    return () => {
+      window.removeEventListener("scroll", updatePageEnd);
+      window.removeEventListener("resize", updatePageEnd);
+    };
+  }, []);
 
-  return folded;
+  return position;
 }
 
 /** Pointer ownership retained while the typing handle is engaged. */
@@ -581,7 +586,6 @@ interface ConversationInteriorProps {
   model: ReturnType<typeof useConversation>;
   onAccepted: (turnId: string) => void;
   onNavigate: () => void;
-  paintRef: RefObject<HTMLDivElement | null>;
   setTyping: (typing: boolean) => void;
   surfaceRef: RefObject<HTMLElement | null>;
   titleRef: RefObject<HTMLHeadingElement | null>;
@@ -599,7 +603,6 @@ interface ConversationInteriorProps {
  * @param onAccepted - Handles an admitted question.
  * @param onNavigate - Closes before internal navigation.
  * @param restoringHistory - Defers automatic desktop scrolling during retained-thread opening.
- * @param paintRef - Interior clip and reveal target.
  * @param setTyping - Updates compact typing chrome.
  * @param surfaceRef - Active native host.
  * @param titleRef - Initial dialog focus target.
@@ -608,7 +611,7 @@ interface ConversationInteriorProps {
  */
 function ConversationInterior({
   active, anchorTurnId, dismiss, gestureRef, handleRef, mobile, model, onAccepted, restoringHistory,
-  onNavigate, paintRef, setTyping, surfaceRef, titleRef, typing,
+  onNavigate, setTyping, surfaceRef, titleRef, typing,
 }: ConversationInteriorProps) {
   return (
     <div
@@ -626,15 +629,11 @@ function ConversationInterior({
         });
       }}
       onPointerDownCapture={(event) => { if (event.target instanceof HTMLTextAreaElement && event.target === model.inputRef.current) setTyping(true); }}
-      ref={paintRef}
     >
       <h2 className="sr-only" id="portfolio-conversation-title" ref={titleRef} tabIndex={-1}>About my work</h2>
       <div className={styles.headerChrome} data-header-chrome data-typing={mobile && typing} data-chat-reveal>
         <div className={styles.headerControls} data-conversation-header inert={mobile && typing} aria-hidden={mobile && typing || undefined}>
-          {model.expanded ? <Button aria-label={mobile ? "New chat" : "Start over"} onPointerDown={(event) => { if (!mobile && event.pointerType !== "touch" && event.button === 0) event.preventDefault(); }} onClick={() => {
-            if (mobile) { model.reset(); model.inputRef.current?.focus({ preventScroll: true }); }
-            else dismiss("reset");
-          }} size="icon" type="button" variant="ghost"><MessageCirclePlus aria-hidden /></Button> : <span />}
+          {model.expanded ? <Button aria-label={mobile ? "New chat" : "Start over"} onPointerDown={(event) => { if (!mobile && event.pointerType !== "touch" && event.button === 0) event.preventDefault(); }} onClick={() => { dismiss("reset"); }} size="icon" type="button" variant="ghost"><MessageCirclePlus aria-hidden /></Button> : <span />}
           <Button aria-label="Close conversation" className={styles.closeButton} onClick={() => { dismiss(); }} size="icon" type="button" variant="ghost"><X aria-hidden /></Button>
         </div>
         {mobile ? <div className={styles.handleSlot} inert={!typing} aria-hidden={!typing || undefined}>
@@ -647,16 +646,14 @@ function ConversationInterior({
 }
 
 /** Owns page-to-host morph intent and its reset-aware completion handoff.
- * @param inputRef - Shared composer focus target.
  * @param launcherRef - Retained launcher focused after ordinary dismissal.
  * @param reset - Clears the conversation after reset collapse completes.
  * @param rootRef - Shell containing entry and retained-field destinations.
- * @param setEntryFocused - Keeps the fresh reset composer unfolded.
- * @param setRevealed - Controls the page entry's temporary close handoff.
+ * @param setEntryFocused - Restores page-field focus when a new chat begins.
+ * @param setRevealed - Controls the page entry's close handoff.
  * @returns Stable morph refs, state, and lifecycle actions.
  */
 function useConversationMorphLifecycle(
-  inputRef: RefObject<HTMLTextAreaElement | null>,
   launcherRef: RefObject<HTMLButtonElement | null>,
   reset: () => void,
   rootRef: RefObject<HTMLDivElement | null>,
@@ -665,7 +662,6 @@ function useConversationMorphLifecycle(
 ) {
   const [anchorTurnId, setAnchorTurnId] = useState<string>();
   const [dismissalCommit, setDismissalCommit] = useState(0);
-  const [focusFreshEntry, setFocusFreshEntry] = useState(false);
   const [morphPhase, setMorphPhase] = useState<SurfaceMorphPhase | null>(null);
   const entryOrigin = useRef<DOMRect | null>(null);
   const morphPhaseRef = useRef<SurfaceMorphPhase | null>(null);
@@ -691,34 +687,33 @@ function useConversationMorphLifecycle(
 
   /** Discards an in-flight visual transfer when navigation removes the native host. */
   const cancelMorph = useCallback(() => {
-    rootRef.current?.removeAttribute("data-resetting");
-    clearInlineProperties(rootRef.current, ["--reset-field-ring", "--reset-field-border"]);
     resetPendingRef.current = false;
     morphCompletionRef.current = null;
     setDismissalCommit(0);
-    setFocusFreshEntry(false);
     updateMorphPhase(null);
-  }, [rootRef, updateMorphPhase]);
+  }, [updateMorphPhase]);
 
   /** Captures the page destination and prepares one inverse surface handoff.
-   * @param shouldReset - Whether completion should replace history with the fresh entry composer.
+   * @param shouldReset - Whether completion should reset history into an active page field.
    */
   const prepareClosing = useCallback((shouldReset: boolean) => {
     if (morphPhaseRef.current === "closing") return;
     const root = rootRef.current;
-    const composer = shouldReset && root ? findComposerGroup(root) : null;
-    if (root && composer) {
-      const paint = window.getComputedStyle(composer);
-      root.style.setProperty("--reset-field-ring", paint.boxShadow);
-      root.style.setProperty("--reset-field-border", paint.borderColor);
-    }
-    root?.toggleAttribute("data-resetting", shouldReset);
-    const destination = shouldReset
-      ? root?.querySelector<HTMLElement>("[data-edge-entry]")
-      : root?.querySelector<HTMLElement>("[data-reopen-field]");
-    entryOrigin.current = destination?.getBoundingClientRect() ?? root?.querySelector<HTMLElement>("[data-entry-stroke]")?.getBoundingClientRect() ?? null;
+    const line = root?.querySelector<HTMLElement>("[data-entry-stroke]");
+    const entry = root?.querySelector<HTMLElement>("[data-edge-entry]");
+    const surface = root?.querySelector<HTMLElement>("[data-chat-surface]");
+    const composer = surface ? findComposerGroup(surface) : null;
+    const lineBounds = line?.getBoundingClientRect();
+    if (shouldReset && entry && composer && lineBounds) {
+      const entryBounds = entry.getBoundingClientRect();
+      const row = composer.querySelector<HTMLElement>("[data-composer-row]");
+      const rowHeight = row ? Number.parseFloat(window.getComputedStyle(row).minHeight) : composer.getBoundingClientRect().height - 2;
+      const lift = Number.parseFloat(window.getComputedStyle(entry).getPropertyValue("--revealed-field-lift")) || 0;
+      const bottom = lineBounds.bottom - lift;
+      entryOrigin.current = DOMRect.fromRect({ x: entryBounds.left, y: bottom - rowHeight - 2, width: entryBounds.width, height: rowHeight + 2 });
+    } else entryOrigin.current = lineBounds ?? null;
     resetPendingRef.current = shouldReset;
-    setRevealed(true);
+    if (!shouldReset) setRevealed(false);
     updateMorphPhase("closing");
     morphCompletionRef.current = (phase) => {
       if (phase !== "closing") return;
@@ -729,7 +724,6 @@ function useConversationMorphLifecycle(
         setEntryFocused(true);
         setRevealed(true);
         updateMorphPhase(null);
-        setFocusFreshEntry(true);
         return;
       }
       updateMorphPhase(null);
@@ -745,23 +739,6 @@ function useConversationMorphLifecycle(
     }
     setRevealed(false);
   }, [dismissalCommit, launcherRef, rootRef, setRevealed]);
-
-  useLayoutEffect(() => {
-    if (!focusFreshEntry) return;
-    const input = inputRef.current;
-    if (!input?.closest("[data-edge-entry]")) return;
-    input.focus({ preventScroll: true });
-    const group = input.closest<HTMLElement>('[data-slot="input-group"]');
-    // Commit native focus without cross-fading two equivalent shadow lists.
-    if (group) group.style.transition = "none";
-    rootRef.current?.removeAttribute("data-resetting");
-    clearInlineProperties(rootRef.current, ["--reset-field-ring", "--reset-field-border"]);
-    if (group) {
-      void window.getComputedStyle(group).boxShadow;
-      group.style.removeProperty("transition");
-    }
-    setFocusFreshEntry(false);
-  }, [focusFreshEntry, inputRef, rootRef]);
 
   return { anchorTurnId, cancelMorph, entryOrigin, morphCompletionRef, morphPhase, prepareClosing, prepareOpening, setAnchorTurnId };
 }
@@ -788,13 +765,16 @@ export function Conversation() {
   const [open, setOpen] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [entryFocused, setEntryFocused] = useState(false);
+  const [suppressedPageEndVisit, setSuppressedPageEndVisit] = useState(0);
   const [typing, setTyping] = useState(false);
+  const waitForPointerMoveRef = useRef(false);
+  const { atPageEnd, pageEndVisit } = useAtPageEnd();
   const gestureRef = useRef<ConversationGesture | null>(null);
   const previouslyOpen = useRef(false);
   const { anchorTurnId, cancelMorph, entryOrigin, morphCompletionRef, morphPhase, prepareClosing, prepareOpening, setAnchorTurnId } = useConversationMorphLifecycle(
-    model.inputRef, launcherRef, model.reset, rootRef, setEntryFocused, setRevealed,
+    launcherRef, model.reset, rootRef, setEntryFocused, setRevealed,
   );
-  const { cancelAnimations, collapseSurface, handleBeforeToggle, paintRef, revealSurface } = useSurfaceToggleMotion(entryOrigin, morphCompletionRef);
+  const { cancelAnimations, collapseSurface, handleBeforeToggle, revealSurface } = useSurfaceToggleMotion(entryOrigin, morphCompletionRef);
 
   /** Applies a close intent once, before native callbacks can re-enter dismissal.
    * @param intent - User dismissal restores position; navigation preserves the destination.
@@ -802,6 +782,7 @@ export function Conversation() {
    */
   const dismiss = useCallback((intent: "dismiss" | "navigate" | "reset" = "dismiss", nativeClosing = false) => {
     const current = operation.current;
+    if (intent !== "navigate") { waitForPointerMoveRef.current = true; setSuppressedPageEndVisit(pageEndVisit); }
     if (intent === "navigate") {
       cancelAnimations();
       cancelMorph();
@@ -820,16 +801,14 @@ export function Conversation() {
     scrollPosition.current = current.host.querySelector<HTMLElement>("[data-conversation-history]")?.scrollTop ?? 0;
     unlockRef.current?.(intent !== "navigate");
     unlockRef.current = null;
-    if (!nativeClosing) {
-      closeNativeHost(current.host);
-    }
+    if (!nativeClosing) closeNativeHost(current.host);
     stop();
     gestureRef.current = null;
     setTyping(false); setOpen(false);
-  }, [cancelAnimations, cancelMorph, collapseSurface, prepareClosing, stop]);
+  }, [cancelAnimations, cancelMorph, collapseSurface, pageEndVisit, prepareClosing, stop]);
 
   const dismissForShell = useCallback(() => { dismiss("navigate"); }, [dismiss]);
-  const { capability, compact: mobile, hidden, editingPage } = useConversationShell({ pathname, rootRef, dismiss: dismissForShell });
+  const { capability, compact: mobile, hidden } = useConversationShell({ pathname, rootRef, dismiss: dismissForShell });
   const recordSurfaceHeight = useSurfaceContentMotion(open && !mobile && morphPhase === null, model, surfaceRef);
 
   useLayoutEffect(() => {
@@ -881,12 +860,10 @@ export function Conversation() {
   }, [cancelAnimations]);
 
   useLayoutEffect(() => {
-    if (entryFocusCommit === 0 || open || model.expanded) return;
+    if ((entryFocusCommit === 0 && !entryFocused) || open || model.expanded) return;
     const input = model.inputRef.current;
     if (input?.closest("[data-edge-entry]")) input.focus({ preventScroll: true });
-  }, [entryFocusCommit, model.expanded, model.inputRef, open]);
-
-  const folded = useEntryFold(mobile, open, entryFocused, model, setRevealed);
+  }, [entryFocusCommit, entryFocused, model.expanded, model.inputRef, open]);
 
   useTypingRecovery(mobile, open, typing, setTyping, model.inputRef, gestureRef);
 
@@ -934,10 +911,10 @@ export function Conversation() {
     } else handleNativeClose(event.currentTarget);
   }
 
-  const entryRevealed = !editingPage && !open && (model.expanded
+  const entryRevealed = !open && ((atPageEnd && pageEndVisit !== suppressedPageEndVisit) || (model.expanded
     ? revealed
-    : entryFocused || Boolean(model.draft) || revealed || (mobile && !folded));
-  const contents = <ConversationInterior active={open} restoringHistory={morphPhase === "opening" && !anchorTurnId} anchorTurnId={anchorTurnId} dismiss={dismiss} gestureRef={gestureRef} handleRef={handleRef} mobile={mobile} model={model} onAccepted={handleAccepted} onNavigate={dismissForShell} paintRef={paintRef} setTyping={setTyping} surfaceRef={surfaceRef} titleRef={titleRef} typing={typing} />;
+    : entryFocused || Boolean(model.draft) || revealed));
+  const contents = <ConversationInterior active={open} restoringHistory={morphPhase === "opening" && !anchorTurnId} anchorTurnId={anchorTurnId} dismiss={dismiss} gestureRef={gestureRef} handleRef={handleRef} mobile={mobile} model={model} onAccepted={handleAccepted} onNavigate={dismissForShell} setTyping={setTyping} surfaceRef={surfaceRef} titleRef={titleRef} typing={typing} />;
 
   return (
     <div className={styles.shell} data-capability={capability} data-compact={mobile} data-conversation-shell data-hidden={hidden} data-morph={morphPhase ?? undefined} data-open={open} data-pointer-focus={pointerFocus} ref={rootRef}>
@@ -955,19 +932,27 @@ export function Conversation() {
               const retainsHover = !mobile && window.matchMedia("(hover: hover)").matches && event.currentTarget.matches(":hover");
               if (!retainsHover) setRevealed(false);
             }}
-            onPointerEnter={() => { if (!mobile && window.matchMedia("(hover: hover)").matches) setRevealed(true); }}
-            onPointerLeave={() => { if ((model.expanded || !entryFocused) && pointerTypeRef.current !== "touch") setRevealed(false); }}
+            onPointerEnter={() => { if (!mobile && !waitForPointerMoveRef.current && window.matchMedia("(hover: hover)").matches) setRevealed(true); }}
+            onPointerMove={() => {
+              if (mobile || !waitForPointerMoveRef.current || !window.matchMedia("(hover: hover)").matches) return;
+              waitForPointerMoveRef.current = false; setRevealed(true);
+            }}
+            onPointerLeave={() => {
+              waitForPointerMoveRef.current = false;
+              if ((model.expanded || !entryFocused) && pointerTypeRef.current !== "touch") setRevealed(false);
+            }}
           >
             <div className={styles.entryFade} data-entry-fade data-visible={entryRevealed} aria-hidden />
             {!open && !model.expanded ? <div className={styles.entryField} inert={!entryRevealed}><ConversationComposer entry mobile={mobile} model={model} onAccepted={handleAccepted} /></div> : null}
             <Button aria-controls={open || model.expanded ? "portfolio-conversation" : undefined} aria-expanded={model.expanded ? open : entryRevealed} aria-haspopup="dialog" aria-label={model.expanded ? conversationPlaceholder : "Ask about my work"} className={styles.edgeButton} data-launcher onClick={handleLauncherClick} onPointerDown={(event) => { if (!model.expanded && !open) { event.preventDefault(); handleLauncherClick(); } }} ref={launcherRef} tabIndex={entryRevealed && !model.expanded ? -1 : undefined} type="button" variant="ghost">
-              {model.expanded ? <span aria-hidden className={clsx(styles.reopenLabel, "field-surface field-control")} data-reopen-field><Sparkle /><span>{conversationPlaceholder}</span></span> : null}
+              {model.expanded ? <span aria-hidden className={clsx(styles.reopenLabel, "field-surface field-control")} data-reopen-field><ConversationFieldSurface /><Sparkle data-composer-content /><span data-composer-content>{conversationPlaceholder}</span></span> : null}
             </Button>
             <span aria-hidden className={styles.entryStroke} data-entry-stroke />
           </div>
           {open || model.expanded ? (mobile ? (
             <dialog aria-labelledby="portfolio-conversation-title" className={clsx(styles.surface, styles.mobileSurface)} data-chat-surface data-mobile="true" id="portfolio-conversation" onCancel={(event) => { event.preventDefault(); dismiss(); }} onClose={(event) => { handleNativeClose(event.currentTarget); }} ref={(node) => { surfaceRef.current = node; }}>
-              <div aria-hidden className={styles.morphFrame} data-chat-frame />
+              <div aria-hidden className={styles.morphFrame} data-chat-frame><span className={styles.morphFill} data-chat-frame-fill /></div>
+              <span aria-hidden className={styles.morphLine} data-chat-morph-line />
               {contents}
             </dialog>
           ) : (
@@ -979,7 +964,8 @@ export function Conversation() {
               handleBeforeToggle(event);
               dismiss("dismiss", true);
             }} onToggle={handleToggle} popover="auto" ref={(node) => { surfaceRef.current = node; }} role="dialog">
-              <div aria-hidden className={styles.morphFrame} data-chat-frame />
+              <div aria-hidden className={styles.morphFrame} data-chat-frame><span className={styles.morphFill} data-chat-frame-fill /></div>
+              <span aria-hidden className={styles.morphLine} data-chat-morph-line />
               {contents}
             </div>
           )) : null}

@@ -1,4 +1,11 @@
 .footer {
+  padding-bottom: calc(6.0625rem + env(safe-area-inset-bottom, 0px));
   font-size: 0.75rem;
   line-height: 1.125rem;
+}
+
+@media (min-width: 40rem) {
+  .footer {
+    padding-bottom: calc(8.0625rem + env(safe-area-inset-bottom, 0px));
+  }
 }

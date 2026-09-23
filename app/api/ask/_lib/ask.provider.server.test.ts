@@ -265,7 +265,7 @@ test("AskService sends every synthetic corpus family to the provider", async (t)
 test("AskService keeps one explicit OpenAI cache prefix across dynamic request changes", async (t) => {
   configureProvider(t, {
     baseUrl: "https://api.openai.com/v1",
-    model: "gpt-5.6-luna",
+    model: "gpt-6-luna",
   });
   const capturedBodies: Record<string, unknown>[] = [];
   t.mock.method(globalThis, "fetch", async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -347,7 +347,7 @@ test("AskService keeps one explicit OpenAI cache prefix across dynamic request c
   const dynamicMessages = requests.map((messages) => messages.at(1));
   const stableText = messageText(stableMessages[0]?.content);
   assert.deepEqual(stableMessages[0], {
-    role: "developer",
+    role: "system",
     content: [{
       type: "text",
       text: stableText,
@@ -386,7 +386,7 @@ test("AskService keeps one explicit OpenAI cache prefix across dynamic request c
 test("AskService omits OpenAI cache extensions for custom providers and older models", async (t) => {
   configureProvider(t, {
     baseUrl: "https://provider.fixture/v1",
-    model: "gpt-5.6-luna",
+    model: "gpt-6-luna",
   });
   const capturedBodies: Record<string, unknown>[] = [];
   t.mock.method(globalThis, "fetch", async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -415,10 +415,10 @@ test("AskService omits OpenAI cache extensions for custom providers and older mo
   assert.equal(parseServerSentEvents(await olderModelResponse.text()).at(-1)?.event, "done");
 
   assert.equal(capturedBodies.length, 2);
-  for (const [index, body] of capturedBodies.entries()) {
+  for (const body of capturedBodies) {
     const messages = providerMessages(body);
     assert.equal(messages.length, 3);
-    const expectedRole = index === 0 ? "developer" : "system";
+    const expectedRole = "system";
     assert.deepEqual(messages.slice(0, 2).map(({ role }) => role), [expectedRole, expectedRole]);
     assert.equal(typeof messages[0]?.content, "string");
     assert.equal(typeof messages[1]?.content, "string");

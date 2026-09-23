@@ -61,7 +61,7 @@ export default function PrivacyPage() {
 
         <section className="mt-10" data-page-motion-rows="children" data-page-motion-section>
           <h2 className="text-2xl leading-[1.875rem] font-semibold tracking-tight" data-page-motion-trigger>Contact by email</h2>
-          <p className="mt-4 leading-7 text-content-foreground">The contact form does not submit information to a portfolio server. Its fields stay in your browser until you choose to open your email application. If you then send the message, your email provider and mine handle the information you include as ordinary email.</p>
+          <p className="mt-4 leading-7 text-content-foreground">The Contact section links directly to your email application. If you send a message, your email provider and mine handle the information you include as ordinary email.</p>
           <p className="mt-4 leading-7 text-content-foreground">
             You can also email me directly at{" "}
             <a className="rounded-sm font-medium text-content-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="mailto:reshetnik.nikita@gmail.com">reshetnik.nikita@gmail.com</a>.

@@ -19,13 +19,13 @@ Set server-only values in the local platform environment or `.env.local`:
 ```dotenv
 ASK_API_KEY=...
 ASK_API_BASE_URL=https://api.openai.com/v1
-ASK_MODEL=gpt-5.6-luna
+ASK_MODEL=gpt-6-luna
 ASK_MAX_COMPLETION_TOKENS=8192
 ```
 
 `ASK_API_KEY` is required. The base URL, model, and completion limit use the shown defaults when omitted. The endpoint supports an operator-trusted OpenAI-compatible Chat Completions endpoint that implements streamed strict JSON Schema and terminal finish/refusal metadata. It fails clearly rather than switching providers or output modes.
 
-Reasoning effort is not explicitly sent; the configured provider/model default applies (currently medium for OpenAI GPT-5.6 Luna). Answer length is guided separately by the prompt.
+Reasoning effort is not explicitly sent; the configured provider/model default applies (currently medium for OpenAI GPT-6 Luna). Answer length is guided separately by the prompt.
 
 Do not use `NEXT_PUBLIC_` credentials. `LANGSMITH_TRACING`, `LANGSMITH_TRACING_V2`, `LANGCHAIN_TRACING`, `LANGCHAIN_TRACING_V2`, and `LANGCHAIN_VERBOSE` must be absent or false. Provider logging is explicitly disabled. The service logs only fixed, service-owned validation reasons or deadline expiry; unknown provider/content failures remain generic. It never logs questions, model payloads, raw provider failures, credentials, or transcripts.
 
@@ -80,7 +80,7 @@ Every request supplies validated profile/Home content and all project/article me
 
 The provider receives stable instructions and curated evidence first, then a separate message containing the canonical view hint and optional live activity/plugin labels, followed by conversation history and the current question. Live evidence references the same source IDs as the curated catalog. No per-request capture timestamp is added; changing optional availability or viewport context leaves the stable portion identical.
 
-For the exact OpenAI endpoint `https://api.openai.com/v1` and model `gpt-5.6-luna`, the stable text block carries `prompt_cache_breakpoint: { mode: "explicit" }` and the request uses `prompt_cache_options: { mode: "explicit" }`. This selects only the stable prefix for cache writes. Other endpoints and model IDs receive ordinary text messages without these provider-specific fields. See [OpenAI prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching) for eligibility and retention; stable requests do not guarantee a cache hit. Usage collection remains disabled, so actual hit rates require provider-side verification.
+For the exact OpenAI endpoint `https://api.openai.com/v1` and model `gpt-5.6-luna` or `gpt-6-luna`, the stable text block carries `prompt_cache_breakpoint: { mode: "explicit" }` and the request uses `prompt_cache_options: { mode: "explicit" }`. This selects only the stable prefix for cache writes. Other endpoints and model IDs receive ordinary text messages without these provider-specific fields. See [OpenAI prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching) for eligibility and retention; stable requests do not guarantee a cache hit. Usage collection remains disabled, so actual hit rates require provider-side verification.
 
 The assistant answers about Nikita: role fit, evidence for skills, experience, projects, writing, and portfolio exploration. It is honest and supportive, distinguishes direct evidence from transferable ability, and does not invent commercial experience. Generic technical discussions outside Nikita's work are declined briefly.
 
