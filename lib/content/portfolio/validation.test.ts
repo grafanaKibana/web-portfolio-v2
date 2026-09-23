@@ -52,7 +52,7 @@ function portfolioFixture(): Record<string, unknown> {
       certifications: [{
         title: "Fixture Certificate",
         date: "2025-03",
-        icon: "/fixture/certificate.svg",
+        icon: "/certifications/fixture-certificate.svg",
         href: "https://example.test/certificate",
       }],
       learning: [{ title: "Fixture Course", provider: "Fixture Provider" }],
@@ -93,6 +93,88 @@ test("portfolio validation accepts a complete document and derives date presenta
   ])
   assert.equal(content.profile.certifications[0]?.date, "March 2025")
   assert.deepEqual(content.home.projects.featuredSlugs, ["fixture-project"])
+})
+
+test("portfolio validation accepts exactly one supported certification visual", () => {
+  const iconContent = validatePortfolio(portfolioFixture())
+  assert.deepEqual(iconContent.profile.certifications[0], {
+    title: "Fixture Certificate",
+    date: "March 2025",
+    icon: "/certifications/fixture-certificate.svg",
+    href: "https://example.test/certificate",
+  })
+
+  for (const extension of ["svg", "png", "webp"] as const) {
+    const fixture = portfolioFixture() as {
+      profile: { certifications: Array<Record<string, unknown>> }
+    }
+    const certification = fixture.profile.certifications[0]
+    assert.ok(certification)
+    delete certification.icon
+    certification.badge = `/certifications/fixture-badge.${extension}`
+
+    assert.equal(validatePortfolio(fixture).profile.certifications[0]?.badge, certification.badge)
+  }
+})
+
+test("portfolio validation rejects ambiguous or missing certification visuals", () => {
+  const cases = [
+    {
+      /** Removes the icon to model a certification without visual metadata.
+       * @param certification - Synthetic certification record to update.
+       */
+      update: (certification: Record<string, unknown>) => { delete certification.icon },
+    },
+    {
+      /** Adds a badge alongside the icon to model ambiguous visual metadata.
+       * @param certification - Synthetic certification record to update.
+       */
+      update: (certification: Record<string, unknown>) => {
+        certification.badge = "/certifications/fixture-badge.png"
+      },
+    },
+  ]
+
+  for (const { update } of cases) {
+    const fixture = portfolioFixture() as {
+      profile: { certifications: Array<Record<string, unknown>> }
+    }
+    const certification = fixture.profile.certifications[0]
+    assert.ok(certification)
+    update(certification)
+
+    assert.throws(
+      () => validatePortfolio(fixture),
+      /content\/portfolio\.yaml: profile\.certifications\[0\] must define exactly one of icon or badge/,
+    )
+  }
+})
+
+test("portfolio validation rejects remote, unsafe, and unsupported certification assets", () => {
+  const cases = [
+    { field: "icon", value: "https://example.test/icon.svg", format: "SVG" },
+    { field: "icon", value: "/certifications/../icon.svg", format: "SVG" },
+    { field: "icon", value: "/certifications/icon.svg?version=1", format: "SVG" },
+    { field: "icon", value: "/certifications/icon.png", format: "SVG" },
+    { field: "badge", value: "//example.test/badge.png", format: "SVG, PNG, or WebP" },
+    { field: "badge", value: "/certifications/%2e%2e/badge.png", format: "SVG, PNG, or WebP" },
+    { field: "badge", value: "/certifications/badge.jpg", format: "SVG, PNG, or WebP" },
+  ] as const
+
+  for (const { field, value, format } of cases) {
+    const fixture = portfolioFixture() as {
+      profile: { certifications: Array<Record<string, unknown>> }
+    }
+    const certification = fixture.profile.certifications[0]
+    assert.ok(certification)
+    delete certification.icon
+    certification[field] = value
+
+    assert.throws(
+      () => validatePortfolio(fixture),
+      new RegExp(`content/portfolio\\.yaml: profile\\.certifications\\[0\\]\\.${field} must be a local /certifications/ ${format} path`),
+    )
+  }
 })
 
 test("portfolio validation rejects malformed and reversed calendar months", () => {

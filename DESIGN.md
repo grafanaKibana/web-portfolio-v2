@@ -89,6 +89,7 @@ Keep controls and individual icons still unless their existing behavior requires
 | Header | Quiet, sticky navigation with selected-section feedback; compact navigation feels continuous with it |
 | Editorial sections | Open rows and dividers; selectable text and independently usable links |
 | Experience | In-flow native disclosures; accent on the current role, neutral historical markers |
+| Education | Academic keeps its natural height; credentials show two full entries and a partial next entry when more exist, with the Recommendations edge fade and full-row verification links |
 | Skills | Centered semantic groups, recognizable marks, and restrained group reveals |
 | Project and article pages | Strong title, secondary metadata, focused prose, clear return navigation |
 | Contact | Paired direct links in source order, a compact form with consistent label and field gaps, native validation, and mail-app handoff |
@@ -113,6 +114,8 @@ Phone conversation prioritizes reading: user bubbles precede full-width assistan
 ## Responsive behavior
 
 Desktop has generous outer space, inline navigation, split editorial compositions, and a distinct experience date rail. Narrow layouts move toward a single reading column with metadata and actions in normal flow. About stacks its biography, chapters, and facts as space tightens.
+
+Education pairs Academic and Professional credentials at comfortable desktop widths and stacks them at narrower widths. On desktop, Credentials takes only its needed width up to a comfortable cap, and Academic fills the remainder. Credential marks may be monochrome icons or intact issuer badges. Show two full credentials and part of the next when the list overflows; short collections use one item per row. Academic has no trailing padding. Native scrolling and focus must reach every credential.
 
 Contact links use two equal columns in source order, with E-Mail as the visible email label and the address retained in its accessible name. Enlarged text may reduce that grid to one column. Keep the Contact form sized to its fields rather than stretching its message field to the adjacent links. Let other social links and skill groups wrap naturally. Keep reading order intact and use split layouts only while both columns remain comfortable. Compact navigation and conversation fit the available viewport, including the on-screen keyboard. Touch actions remain available without hover.
 

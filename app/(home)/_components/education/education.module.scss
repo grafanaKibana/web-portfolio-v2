@@ -3,130 +3,200 @@
   padding-top: 0.75rem;
 }
 
-.educationRow + .educationRow {
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
+.tracks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
 }
 
-.rowLabel {
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.125rem;
-  letter-spacing: 0.08em;
+.academicOnly {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.academic,
+.credentials {
+  min-width: 0;
 }
 
 .qualification {
-  font-size: 1.0625rem;
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1.125rem;
+  font-weight: 650;
   line-height: 1.4;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 .institution {
-  margin: 0.3125rem 0 0;
-  font-size: 0.8125rem;
+  margin: 0.75rem 0 0;
+  color: var(--content-foreground);
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 
-.location {
+.academicMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.375rem;
-  margin: 0.5rem 0 0;
+  margin: 1rem 0 0;
+  color: var(--muted-foreground);
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.75rem;
-  line-height: 1.125rem;
+  line-height: 1.5;
 }
 
-.location svg {
+.academicMeta svg {
   width: 0.75rem;
   height: 0.75rem;
   opacity: 0.65;
 }
 
-.certificationList li,
-.certificationLink {
+.credentials {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.credentialFrame {
+  flex: 0 0 auto;
   min-width: 0;
 }
 
-.certificationGlyph[data-icon="/certifications/microsoft-azure.svg"] {
-  mask-image: url("/certifications/microsoft-azure.svg");
+.credentialScrollport {
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  scrollbar-width: none;
 }
 
-.certificationGlyph[data-icon="/certifications/github-copilot.svg"] {
-  mask-image: url("/certifications/github-copilot.svg");
+.credentialScrollport.peek {
+  height: 13.5rem;
 }
 
-.certificationTitle {
+.credentialScrollport:focus-visible,
+.credentialLink:focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.credentialScrollport[data-edge-fade="start"] {
+  mask-image: linear-gradient(to bottom, transparent, #000 1.5rem);
+}
+
+.credentialScrollport[data-edge-fade="end"] {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5rem), transparent);
+}
+
+.credentialScrollport[data-edge-fade="both"] {
+  mask-image: linear-gradient(to bottom, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+}
+
+.credentialScrollport::-webkit-scrollbar {
+  display: none;
+}
+
+.credentialList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.credentialItem {
+  min-width: 0;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.credentialItem:last-child {
+  border-bottom: 0;
+}
+
+.credentialLink {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: var(--content-foreground);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.credentialLink:hover,
+.credentialLink:focus-visible {
+  color: var(--foreground);
+}
+
+.credentialMark {
+  display: grid;
+  width: 2.625rem;
+  height: 2.625rem;
+  flex: none;
+  place-items: center;
+  color: var(--content-foreground);
+  transition: color 150ms ease;
+}
+
+.credentialLink:hover .credentialMark,
+.credentialLink:focus-visible .credentialMark {
+  color: var(--foreground);
+}
+
+.credentialIcon {
   display: block;
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.45;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: currentcolor;
+  mask-image: var(--credential-icon-url);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
 }
 
-.certificationDate {
+.credentialBadge {
+  width: 2.625rem;
+  height: 2.625rem;
+  object-fit: contain;
+}
+
+.credentialCopy {
+  display: block;
+  min-width: 0;
+}
+
+.credentialTitle {
+  display: block;
+  color: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.credentialDate {
   display: block;
   margin-top: 0.3125rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.75rem;
-  line-height: 1.125rem;
-}
-
-@media (max-width: 20rem) {
-  .certificationList {
-    gap: 1rem;
-  }
+  line-height: 1.5;
 }
 
 @media (min-width: 48rem) {
-  .educationRows {
-    --education-rail-width: 8.75rem;
-
-    position: relative;
+  .credentialScrollport.peek {
+    height: 8.5rem;
   }
 
-  .educationRows::before {
-    position: absolute;
-    inset: 0 auto 0 var(--education-rail-width);
-    width: 1px;
-    background: var(--border);
-    content: "";
+  .credentialList:not(.singleColumn) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.25rem;
   }
 
-  .educationRow {
-    grid-template-columns: var(--education-rail-width) minmax(0, 1fr);
-  }
-
-  .educationRow + .educationRow {
-    padding-top: 0;
-    border-top: 0;
-  }
-
-  .rowLabel {
-    padding-right: 2rem;
-    text-align: right;
-  }
-
-  .educationRow > [data-slot="education-row-content"] {
-    min-width: 0;
-    padding-left: 2rem;
-  }
-
-  .qualification {
-    font-size: 1.125rem;
-  }
-
-  .institution {
-    font-size: 0.875rem;
-  }
-
-  .certificationList {
-    grid-template-columns: repeat(2, minmax(0, 13.75rem));
-  }
-
-  .certificationTitle {
-    margin-top: 1rem;
-    font-size: 0.9375rem;
-  }
-
-  .certificationDate {
-    margin-top: 0.375rem;
+  .credentialList:not(.singleColumn) .credentialItem:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
   }
 }
 
@@ -136,10 +206,20 @@
     padding-top: 0.875rem;
   }
 
+  .tracks:not(.academicOnly) {
+    grid-template-columns: minmax(0, 1fr) fit-content(55%);
+    grid-template-rows: auto;
+    column-gap: 3rem;
+  }
+
+  .qualification {
+    font-size: 1.25rem;
+  }
 }
 
-@media (min-width: 80rem) {
-  .educationRows {
-    --education-rail-width: 11.5rem;
+@media (prefers-reduced-motion: reduce) {
+  .credentialLink,
+  .credentialMark {
+    transition: none;
   }
 }

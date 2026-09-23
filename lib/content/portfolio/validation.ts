@@ -52,6 +52,27 @@ export interface Recommendation {
   quote: string;
 }
 
+/** A certification rendered with a monochrome SVG icon. */
+export interface IconCertification {
+  title: string;
+  date: string;
+  href: string;
+  icon: string;
+  badge?: never;
+}
+
+/** A certification rendered with a full-color issuer badge. */
+export interface BadgeCertification {
+  title: string;
+  date: string;
+  href: string;
+  badge: string;
+  icon?: never;
+}
+
+/** One validated certification with exactly one local visual asset. */
+export type Certification = IconCertification | BadgeCertification;
+
 /** Validated profile content used across portfolio routes. */
 export interface PortfolioProfile {
   name: string;
@@ -62,7 +83,7 @@ export interface PortfolioProfile {
   recommendations: readonly Recommendation[];
   experience: readonly Experience[];
   education: Education;
-  certifications: readonly { title: string; date: string; icon: string; href: string }[];
+  certifications: readonly Certification[];
   learning: readonly { title: string; provider: string }[];
   skills: readonly SkillGroup[];
   links: readonly ExternalLink[];
@@ -133,6 +154,55 @@ function string(value: unknown, path: string): string {
     throw new Error(`content/portfolio.yaml: ${path} must be a non-empty string`);
   }
   return value;
+}
+
+/**
+ * Validates a certification asset path against its visual variant.
+ *
+ * @param value - Untrusted asset path.
+ * @param path - Human-readable field path.
+ * @param variant - Certification visual variant being validated.
+ * @returns A safe local certification asset path.
+ * @throws When the path is remote, unsafe, or uses an unsupported extension.
+ */
+function certificationAsset(value: unknown, path: string, variant: "badge" | "icon"): string {
+  const asset = string(value, path);
+  const extension = variant === "icon" ? "svg" : "(?:svg|png|webp)";
+  const localAssetPattern = new RegExp(
+    `^/certifications/[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?\\.${extension}$`,
+    "i",
+  );
+  if (!localAssetPattern.test(asset)) {
+    const formats = variant === "icon" ? "SVG" : "SVG, PNG, or WebP";
+    throw new Error(`content/portfolio.yaml: ${path} must be a local /certifications/ ${formats} path`);
+  }
+  return asset;
+}
+
+/**
+ * Parses a certification with exactly one validated local visual asset.
+ *
+ * @param value - Untrusted certification record.
+ * @param path - Human-readable field path.
+ * @returns The validated certification.
+ * @throws When the record does not contain exactly one valid icon or badge.
+ */
+function certification(value: unknown, path: string): Certification {
+  const item = record(value, path);
+  const hasIcon = item.icon !== undefined;
+  const hasBadge = item.badge !== undefined;
+  if (hasIcon === hasBadge) {
+    throw new Error(`content/portfolio.yaml: ${path} must define exactly one of icon or badge`);
+  }
+
+  const common = {
+    title: string(item.title, `${path}.title`),
+    date: formatMonth(calendarMonth(item.date, `${path}.date`)),
+    href: string(item.href, `${path}.href`),
+  };
+  return hasIcon
+    ? { ...common, icon: certificationAsset(item.icon, `${path}.icon`, "icon") }
+    : { ...common, badge: certificationAsset(item.badge, `${path}.badge`, "badge") };
 }
 
 /**
@@ -307,15 +377,7 @@ function parseProfile(sourceProfile: RecordValue): PortfolioProfile {
       period: monthRange(education, "profile.education").period,
       location: string(education.location, "profile.education.location"),
     },
-    certifications: array(sourceProfile.certifications, "profile.certifications", (value, path) => {
-      const item = record(value, path);
-      return {
-        title: string(item.title, `${path}.title`),
-        date: formatMonth(calendarMonth(item.date, `${path}.date`)),
-        icon: string(item.icon, `${path}.icon`),
-        href: string(item.href, `${path}.href`),
-      };
-    }),
+    certifications: array(sourceProfile.certifications, "profile.certifications", certification),
     learning: array(sourceProfile.learning, "profile.learning", (value, path) => {
       const item = record(value, path);
       return {
