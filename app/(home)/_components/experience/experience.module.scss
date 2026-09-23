@@ -202,6 +202,18 @@
   scrollbar-width: none;
 }
 
+.recommendationTrack[data-edge-fade="start"] {
+  mask-image: linear-gradient(to right, transparent, #000 1.5rem);
+}
+
+.recommendationTrack[data-edge-fade="end"] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+}
+
+.recommendationTrack[data-edge-fade="both"] {
+  mask-image: linear-gradient(to right, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+}
+
 .recommendationTrack::-webkit-scrollbar {
   display: none;
 }

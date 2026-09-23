@@ -5,6 +5,7 @@ import { profile } from "@/lib/content/portfolio/server";
 import { clsx } from "clsx";
 import { ExperienceItem } from "./experience-item";
 import styles from "./experience.module.scss";
+import { RecommendationTrack } from "./recommendation-track";
 
 /**
  * Renders the chronological experience timeline, disclosures, and recommendations.
@@ -83,14 +84,7 @@ export function HomeExperience() {
         >
           Recommendations
         </h3>
-        <ul
-          aria-label="Recommendations"
-          className={clsx(styles.recommendationTrack, "m-0 mt-10 flex snap-x snap-mandatory list-none gap-6 overflow-x-auto overscroll-x-contain overscroll-y-auto! p-0 pb-4 pr-[12%] focus-visible:outline-2 focus-visible:outline-offset-4 md:gap-8 md:pr-[20%] lg:mt-14 lg:gap-12 lg:pr-[14%]")}
-          data-lenis-prevent-horizontal
-          data-page-motion-row
-          data-slot="recommendation-track"
-          tabIndex={0}
-        >
+        <RecommendationTrack>
           {profile.recommendations.map((recommendation) => (
             <li
               className="flex min-w-0 shrink-0 basis-[84%] snap-start md:basis-[65%] lg:basis-[48%]"
@@ -115,7 +109,7 @@ export function HomeExperience() {
               </figure>
             </li>
           ))}
-        </ul>
+        </RecommendationTrack>
       </section>
     </section>
   );
