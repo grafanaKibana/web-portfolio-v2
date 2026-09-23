@@ -21,6 +21,9 @@ const withMDX = createMDX({
 });
 
 const nextConfig: NextConfig = {
+  ...(process.env.PORTFOLIO_E2E_DIST_DIR
+    ? { distDir: process.env.PORTFOLIO_E2E_DIST_DIR }
+    : {}),
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
 };
 

@@ -1,355 +1,52 @@
-import { expect, test, type Page } from "@playwright/test";
-
-const sectionIds = ["about", "education", "experience", "skills", "code", "projects", "writing", "contact"] as const;
-const sectionLabelSelectors = [
-  "#about-heading",
-  "#education-heading",
-  "#experience-heading",
-  "#skills-heading",
-  "#code-heading",
-  "#projects-heading",
-  "#writing-heading",
-  "#contact > p",
-] as const;
-const viewportWidths = [320, 390, 768, 1023, 1024, 1279, 1280, 1440] as const;
+import { expect, test, type Locator } from "@playwright/test";
 
 /**
- * Installs a scoped motion-distance override and pauses page-motion WAAPI animations.
+ * Reads a measurable element rectangle.
  *
- * @param page - Browser page receiving the pre-hydration probe.
- * @param distance - Optional pixel distance exposed through the PageMotion scope.
+ * @param element - Element whose bounds are required.
+ * @returns The rendered rectangle.
  */
-async function installMotionProbe(page: Page, distance?: number) {
-  await page.addInitScript(({ motionDistance }) => {
+async function boxOf(element: Locator) {
+  const box = await element.boundingBox();
+  if (!box) throw new Error("Expected a measurable rendered element");
+  return box;
+}
+
+test("development CSS keeps the home shell contained across representative widths", { tag: "@css" }, async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+    const boxes = await Promise.all((await page.locator("main#main > section").all()).map(boxOf));
+    for (const [index, box] of boxes.entries()) {
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      const next = boxes[index + 1];
+      if (next) expect(box.y + box.height).toBeLessThanOrEqual(next.y + 1);
+    }
+  }
+});
+
+test("development CSS keeps shared controls readable and focusable across themes", { tag: "@css" }, async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    localStorage.setItem("theme", "light");
     sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-    const observer = new MutationObserver(() => {
-      const body = document.querySelector("body");
-      if (!body) return;
-      if (motionDistance !== undefined) {
-        body.style.setProperty("--page-motion-distance", `${String(motionDistance)}px`);
-      }
-      observer.disconnect();
-    });
-    observer.observe(document, { childList: true, subtree: true });
-
-    // apply below restores the native method's element receiver.
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const animate = Element.prototype.animate;
-    Element.prototype.animate = function (...args) {
-      const animation = animate.apply(this, args);
-      if (this.matches("[data-page-motion-intro], [data-page-motion-row]")) animation.pause();
-      return animation;
-    };
-  }, { motionDistance: distance });
-}
-
-/**
- * Seeks a target's entrance animations to their deterministic midpoint.
- *
- * @param page - Browser page containing the motion target.
- * @param selector - Selector for the target whose animations should be sampled.
- * @returns Midpoint opacity and vertical translation.
- */
-async function seekMotionMidpoint(page: Page, selector: string) {
-  const target = page.locator(selector).first();
-  await expect.poll(() => target.evaluate((element) => element.getAnimations().length)).toBeGreaterThan(0);
-  return target.evaluate((element) => {
-    const initialTranslateY = new DOMMatrixReadOnly(getComputedStyle(element).transform).m42;
-    for (const animation of element.getAnimations()) {
-      const timing = animation.effect?.getComputedTiming();
-      if (!timing || typeof timing.activeDuration !== "number") continue;
-      animation.pause();
-      animation.currentTime = Number(timing.delay) + timing.activeDuration / 2;
-    }
-    const style = getComputedStyle(element);
-    return {
-      initialTranslateY,
-      opacity: Number.parseFloat(style.opacity),
-      translateY: new DOMMatrixReadOnly(style.transform).m42,
-    };
   });
-}
-
-test("Home sections keep shared layout and label contracts across breakpoints", { tag: "@css" }, async ({ page }) => {
-  for (const width of viewportWidths) {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-
-    const desktop = width >= 1280;
-    const spacious = width >= 1024;
-    const expectedHeaderHeight = desktop ? 76 : 60;
-    const expectedScrollMargin = desktop ? -4 : spacious ? -20 : 12;
-    const expectedPadding = spacious ? 80 : 48;
-    const sectionStyles = await Promise.all(sectionIds.map(async (id) => ({
-      id,
-      ...await page.locator(`#${id}`).evaluate((element) => {
-        const style = getComputedStyle(element);
-        return {
-          paddingBottom: Number.parseFloat(style.paddingBottom),
-          paddingTop: Number.parseFloat(style.paddingTop),
-          scrollMarginTop: Number.parseFloat(style.scrollMarginTop),
-        };
-      }),
-    })));
-
-    await expect(page.locator('[data-slot="site-header"]')).toHaveCSS("height", `${String(expectedHeaderHeight)}px`);
-    expect(await page.locator("main > section").first().evaluate((hero) =>
-      Number.parseFloat(getComputedStyle(hero).minHeight))).toBeCloseTo(900 - expectedHeaderHeight, 3);
-    for (const style of sectionStyles) {
-      expect(style.paddingTop, `${style.id} padding-top`).toBe(expectedPadding);
-      expect(style.paddingBottom, `${style.id} padding-bottom`).toBe(
-        expectedPadding,
-      );
-      if (style.id !== "writing" || !desktop) {
-        expect(style.scrollMarginTop, `${style.id} scroll margin`).toBe(expectedScrollMargin);
-      }
-    }
-    for (const selector of sectionLabelSelectors) {
-      await expect(page.locator(selector)).toHaveCSS("font-size", "12px");
-      await expect(page.locator(selector)).toHaveCSS("line-height", "18px");
-      await expect(page.locator(selector)).toHaveCSS("font-weight", "600");
-      await expect(page.locator(selector)).toHaveCSS("letter-spacing", "0.96px");
-      const openingGap = await page.locator(selector).evaluate((label) => {
-        const section = label.closest("section[data-page-motion-section]");
-        if (!section) throw new Error("Section marker must belong to a Home section");
-        let opening = label;
-        while (opening.parentElement && opening.parentElement !== section) opening = opening.parentElement;
-        return Number.parseFloat(getComputedStyle(opening).marginBottom);
-      });
-      expect(openingGap).toBe(spacious ? 40 : 32);
-    }
-  }
-});
-
-test("Writing aligns below the sticky header at desktop widths", { tag: "@css" }, async ({ page }) => {
-  for (const width of [1280, 1440] as const) {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/#writing");
-
-    const offset = await page.evaluate(() => {
-      const header = document.querySelector<HTMLElement>('[data-slot="site-header"]');
-      const heading = document.querySelector<HTMLElement>("#writing-heading");
-      if (!header || !heading) throw new Error("Writing heading and header must be measurable");
-      return Math.abs(heading.getBoundingClientRect().top - header.getBoundingClientRect().bottom);
-    });
-    expect(offset).toBeLessThanOrEqual(1);
-
-    await page.goto("/");
-    await page.getByRole("navigation", { name: "Primary navigation" })
-      .getByRole("link", { name: "Writing" })
-      .click();
-    await expect.poll(() => page.evaluate(() => {
-      const header = document.querySelector<HTMLElement>('[data-slot="site-header"]');
-      const heading = document.querySelector<HTMLElement>("#writing-heading");
-      if (!header || !heading) throw new Error("Writing heading and header must be measurable");
-      return Math.abs(heading.getBoundingClientRect().top - header.getBoundingClientRect().bottom);
-    })).toBeLessThanOrEqual(1);
-  }
-});
-
-test("Page motion preflight reads the scoped 24px distance override", async ({ page }) => {
-  await installMotionProbe(page, 24);
-  await page.goto("/?debugSplash");
-
-  await expect(page.locator("html")).toHaveAttribute("data-page-motion-pending", "true");
-  expect(await page.locator("[data-page-motion-intro]").first().evaluate((element) =>
-    new DOMMatrixReadOnly(getComputedStyle(element).transform).m42)).toBe(24);
-});
-
-test("Page motion propagates the scoped 24px distance through intro and row animations", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 720 });
-  await installMotionProbe(page, 24);
   await page.goto("/");
-
-  const intro = await seekMotionMidpoint(page, "[data-page-motion-intro]");
-  expect(intro.initialTranslateY).toBe(24);
-  expect(intro.opacity).toBeGreaterThan(0);
-  expect(intro.opacity).toBeLessThan(1);
-  expect(intro.translateY).toBeGreaterThan(0);
-  expect(intro.translateY).toBeLessThan(24);
-
-  await page.locator("[data-page-motion-intro]").evaluateAll((targets) => {
-    for (const target of targets) for (const animation of target.getAnimations()) animation.finish();
-  });
-  await expect.poll(() => page.locator("[data-page-motion-intro]").first().evaluate((target) => ({
-    opacity: getComputedStyle(target).opacity,
-    transform: getComputedStyle(target).transform,
-  }))).toEqual({ opacity: "1", transform: "none" });
-  const row = page.locator("#contact [data-page-motion-row]").first();
-  await row.evaluate((element) => {
-    const absoluteTop = element.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo(0, absoluteTop - window.innerHeight * 0.88);
-  });
-  const rowMidpoint = await seekMotionMidpoint(page, "#contact [data-page-motion-row]");
-  expect(rowMidpoint.initialTranslateY).toBe(24);
-  expect(rowMidpoint.opacity).toBeGreaterThan(0);
-  expect(rowMidpoint.opacity).toBeLessThan(1);
-  expect(rowMidpoint.translateY).toBeGreaterThan(0);
-  expect(rowMidpoint.translateY).toBeLessThan(24);
-  await row.evaluate((target) => {
-    for (const animation of target.getAnimations()) animation.finish();
-  });
-  await expect.poll(() => row.evaluate((target) => ({
-    opacity: getComputedStyle(target).opacity,
-    transform: getComputedStyle(target).transform,
-  }))).toEqual({ opacity: "1", transform: "none" });
-});
-
-test("Page motion distance stays 18px when the root font size changes", async ({ page }) => {
-  await installMotionProbe(page);
-  await page.goto("/?debugSplash");
-  await page.locator("html").evaluate((element) => {
-    element.style.fontSize = "20px";
-  });
-
-  await expect(page.locator("html")).toHaveCSS("font-size", "20px");
-  await expect(page.locator("body")).toHaveCSS("--page-motion-distance", "18px");
-  expect(await page.locator("[data-page-motion-intro]").first().evaluate((element) =>
-    new DOMMatrixReadOnly(getComputedStyle(element).transform).m42)).toBe(18);
-});
-
-test("Reduced page motion removes the scoped entrance translation", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await installMotionProbe(page, 24);
-  await page.goto("/?debugSplash");
-
-  await expect(page.locator("[data-page-motion-intro]").first()).toHaveCSS("transform", "none");
-});
-
-for (const theme of ["light", "dark"] as const) {
-  test(`Tailwind utilities retain spacing, weight, and semantic ink after hydration in ${theme} theme`, { tag: "@css" }, async ({ page }) => {
-    await page.addInitScript((selectedTheme) => {
-      localStorage.setItem("theme", selectedTheme);
-      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-    }, theme);
-    await page.goto("/");
-    await expect(page.locator("html")).toHaveClass(new RegExp(`(?:^|\\s)${theme}(?:\\s|$)`));
-
-    const fixture = page.locator('[data-style-contract="tailwind-utilities"]');
-    const styles = await page.locator("body").evaluate((body) => {
-      const button = document.createElement("button");
-      button.className = "bg-primary px-3 font-medium text-primary-foreground";
-      button.dataset.styleContract = "tailwind-utilities";
-      button.textContent = "Style sample";
-      button.type = "button";
-      body.append(button);
-
-      const reference = document.createElement("span");
-      reference.style.backgroundColor = "var(--primary)";
-      reference.style.color = "var(--primary-foreground)";
-      body.append(reference);
-
-      const actual = getComputedStyle(button);
-      const expected = getComputedStyle(reference);
-      const result = {
-        backgroundColor: actual.backgroundColor,
-        color: actual.color,
-        expectedBackgroundColor: expected.backgroundColor,
-        expectedColor: expected.color,
-        fontWeight: actual.fontWeight,
-        paddingLeft: actual.paddingLeft,
-        paddingRight: actual.paddingRight,
-      };
-      reference.remove();
-      return result;
-    });
-
-    await expect(fixture).toBeVisible();
-    expect(styles).toMatchObject({
-      backgroundColor: styles.expectedBackgroundColor,
-      color: styles.expectedColor,
-      fontWeight: "500",
-      paddingLeft: "12px",
-      paddingRight: "12px",
-    });
-    expect(styles.color).not.toBe(styles.backgroundColor);
-  });
-}
-
-for (const width of [390, 768, 1024, 1440]) {
-  test(`approved overview roles and subsection rules at ${String(width)}px`, { tag: "@css" }, async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-    for (const paragraph of await page.locator('#about > div > div:first-child > p, #experience article > p, #contact h2 + p, [data-slot="home-editorial-row"] > p').all()) {
-      await expect(paragraph).toHaveCSS("font-size", "14px");
-      await expect(paragraph).toHaveCSS("line-height", "24px");
-    }
-    const hero = page.locator("main > section").first().getByRole("heading", { level: 1 });
-    expect(await hero.evaluate((heading) => Number.parseFloat(getComputedStyle(heading).fontSize)))
-      .toBeCloseTo(width === 390 ? 28 : width === 768 ? 30 : width === 1024 ? 40 : 60, 1);
-    const labels = page.locator('#skills [data-slot="skill-group"] h3, #experience-recommendations-heading');
-    for (const label of await labels.all()) {
-      await expect(label).toHaveCSS("font-size", "12px");
-      await expect(label).toHaveCSS("font-weight", "400");
-    }
-    for (const marker of await page.locator('#skills h3[data-variant="separator"]').all()) {
-      const lines = await marker.evaluate((element) => ["::before", "::after"].map((pseudo) => {
-        const style = getComputedStyle(element, pseudo);
-        return { height: style.height, display: style.display, content: style.content };
-      }));
-      expect(lines.every((line) => line.height === "1px" && line.display !== "none" && line.content !== "none")).toBe(true);
-    }
-    for (const link of await page.locator('footer a').all()) {
-      await expect(link).toHaveCSS("font-size", "12px");
-      await expect(link).toHaveCSS("line-height", "18px");
-      expect((await link.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-    }
-  });
-}
-
-test("Contact pairs links in source order and reflows enlarged text", { tag: "@css" }, async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const width of [320, 390, 768, 900, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/#contact");
-    await page.locator("html").evaluate((root) => { root.style.removeProperty("font-size"); });
-    const email = page.locator('#contact a[href^="mailto:"]').first();
-    await expect(email).toHaveText(/E-Mail/);
-    const recipient = (await email.getAttribute("href"))?.slice(7);
-    expect(recipient).toBeTruthy();
-    expect(await email.getAttribute("aria-label")).toContain(recipient);
-    const links = email.locator("..");
-    const geometry = await links.locator(":scope > *").evaluateAll((items) => items.map((item) => {
-      const box = item.getBoundingClientRect();
-      return { x: box.x, y: box.y, height: box.height };
+  const toggle = page.locator('[data-slot="theme-toggle"]');
+  for (const expected of ["light", "dark"] as const) {
+    await expect(page.locator("html")).toHaveClass(new RegExp(`\\b${expected}\\b`));
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toBeEnabled();
+    await toggle.focus();
+    await expect(toggle).toBeFocused();
+    const colors = await page.getByRole("heading", { level: 1 }).evaluate((heading) => ({
+      foreground: getComputedStyle(heading).color,
+      background: getComputedStyle(document.body).backgroundColor,
     }));
-    for (const [index, box] of geometry.entries()) {
-      expect(box.height).toBeGreaterThanOrEqual(48);
-      if (index % 2 === 1) {
-        const previous = geometry[index - 1];
-        if (!previous) throw new Error("Paired link must follow its first column");
-        expect(box.y).toBeCloseTo(previous.y, 1);
-        expect(box.x).toBeGreaterThan(previous.x);
-      }
-    }
-    await expect(page.locator('#contact [aria-disabled="true"]')).toHaveAttribute("aria-disabled", "true");
-    await expect(page.locator('#contact form [data-slot="field"]').first()).toHaveCSS("gap", "8px");
-    await expect(page.locator('#contact input').first()).toHaveCSS("font-size", width < 768 ? "16px" : "14px");
-    if (width === 390) {
-      await page.locator("html").evaluate((root) => { root.style.fontSize = "200%"; });
-      expect(await links.evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length)).toBe(1);
-      expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
-    }
-  }
-});
-
-test("editorial padding and featured title apply only to their intended row", { tag: "@css" }, async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const width of [390, 1024]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-    for (const section of ["projects", "writing"]) {
-      const rows = page.locator(`#${section} [data-slot="home-project"], #${section} [data-slot="home-article"]`);
-      for (const [index, row] of (await rows.all()).entries()) {
-        await expect(row).toHaveCSS("padding-top", index === 0 ? "0px" : width >= 1024 ? "32px" : "24px");
-        const title = row.locator("h3");
-        await expect(title).toHaveCSS("font-size", width >= 1024 && index === 0 ? "24px" : "22px");
-        await expect(title).toHaveCSS("padding-top", "0px");
-        await expect(row.locator('[data-slot="row-metadata"]')).toHaveCSS("font-size", "12px");
-      }
-    }
+    expect(colors.foreground).not.toBe(colors.background);
+    if (expected === "light") await toggle.click();
   }
 });

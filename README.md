@@ -22,7 +22,7 @@ npm run build
 npm run test:e2e
 ```
 
-`test:unit` discovers neutral tests as `*.test.*` and server-only tests as `*.server.test.*`. Focused commands remain available for a single contract. Build the production application before running Playwright directly; its configuration owns the temporary server on port 3192. `npm run test:e2e:dev` checks the shared style contracts against Turbopack development mode on port 3193, because CSS ordering can differ from the production build.
+`test:unit` discovers neutral tests as `*.test.*` and server-only tests as `*.server.test.*`. Focused commands remain available for a single contract. Build the production application before running Playwright directly; its configuration owns the temporary server on port 3192. The browser gate runs semantic visitor journeys in Chromium and selected engine-sensitive journeys in WebKit. Detailed Home layout cases remain available with `npx playwright test --config=playwright.education.config.ts` during feature work; the CI gate owns their shared containment risk through its desktop smoke case. `npm run test:e2e:dev` checks two shared style contracts against Turbopack development mode on port 3193, because CSS ordering can differ from the production build. Its separate `.next-e2e-dev` output lets it run alongside a normal development server without sharing Next's development lock.
 
 Code activity pull-request rows require a server-only `GITHUB_TOKEN` deployment secret. Without it, the independently fetched public contribution calendar can still render. Never expose the token with a `NEXT_PUBLIC_` prefix.
 

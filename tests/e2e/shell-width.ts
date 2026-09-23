@@ -10,7 +10,10 @@ export async function readShellWidthContract(page: Page) {
   return page.evaluate(() => {
     const rootStyle = getComputedStyle(document.documentElement);
 
-    /** Resolves a root width token, including ch or calc values, to CSS pixels. */
+    /** Resolves a root width token, including ch or calc values, to CSS pixels.
+     * @param name - Root CSS custom property to measure.
+     * @returns Resolved width in CSS pixels.
+     */
     function readWidthToken(name: string) {
       const probe = document.createElement("div");
       probe.style.position = "absolute";

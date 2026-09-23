@@ -43,7 +43,7 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
 
       - name: Run browser tests
-        run: npm run test:e2e
+        run: time npm run test:e2e
 
       - name: Check development CSS contracts
-        run: npm run test:e2e:dev
+        run: time npm run test:e2e:dev
