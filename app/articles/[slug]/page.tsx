@@ -69,8 +69,8 @@ export default async function ArticlePage({
             </time>
             {` · ${String(article.readingMinutes)} min read`}
           </p>
-          <h1 className="mt-3 [overflow-wrap:anywhere] text-4xl leading-[1.15] font-semibold tracking-[-0.025em] md:text-5xl" data-page-motion-intro>
-            {article.metadata.title}
+          <h1 className="mt-3 [overflow-wrap:anywhere] text-balance text-[2rem] leading-[1.1875] font-semibold tracking-[-0.025em] md:text-5xl md:leading-[1.15]" data-page-motion-intro>
+            {article.metadata.title.split(/(?<=\.)/).map((part, index) => <span key={index}>{part}<wbr /></span>)}
           </h1>
           <p className="mt-6 text-lg leading-[1.875rem] text-content-foreground" data-page-motion-intro>
             {article.metadata.description}

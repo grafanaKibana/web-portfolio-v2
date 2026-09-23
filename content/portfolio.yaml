@@ -13,7 +13,6 @@ profile:
       summary: "I build features across .NET services, plugins, and desktop applications. That also means working through slow SQL queries, reviewing code, and teaming up with QA and DevOps to get releases out and sort out deployment issues."
   facts:
     - { label: "Current role", value: "Senior AI Engineer" }
-    - { label: "Education", value: "Bachelor’s degree, Software Engineering" }
     - { label: "Languages", value: "English, Ukrainian, Russian" }
     - { label: "Based in", value: "Europe" }
   experience:

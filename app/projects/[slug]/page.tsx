@@ -70,7 +70,7 @@ export default async function ProjectPage({
       <article>
         <header className="pb-12" data-slot="project-hero">
           <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between" data-page-motion-intro data-slot="project-title-row">
-            <h1 className="min-w-0 flex-1 [overflow-wrap:anywhere] text-4xl leading-[1.15] font-semibold tracking-[-0.025em] md:text-5xl">{project.metadata.title}</h1>
+            <h1 className="min-w-0 flex-1 [overflow-wrap:anywhere] text-balance text-[2rem] leading-[1.1875] font-semibold tracking-[-0.025em] md:text-5xl md:leading-[1.15]">{project.metadata.title.split(/(?<=\.)/).map((part, index) => <span key={index}>{part}<wbr /></span>)}</h1>
             {links.length ? (
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-6" data-slot="project-actions">
                 {links.map((link) => {

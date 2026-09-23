@@ -32,14 +32,14 @@ const pullRequestGroupStyles = {
 } satisfies PullRequestGroupStyles;
 
 /**
- * Builds one month label for each contribution-calendar week.
+ * Builds week-aligned month labels, skipping a cramped opening partial month.
  *
  * @param days - Chronological GitHub contribution days beginning on Sunday.
  * @returns Week-aligned month labels.
  */
 function calendarMonthLabels(days: readonly ContributionDay[]): readonly string[] {
   let lastMonth = -1;
-  return Array.from({ length: Math.ceil(days.length / 7) }, (_, weekIndex) => {
+  const labels = Array.from({ length: Math.ceil(days.length / 7) }, (_, weekIndex) => {
     const week = days.slice(weekIndex * 7, weekIndex * 7 + 7);
     const candidate = weekIndex === 0
       ? week[0]
@@ -52,6 +52,8 @@ function calendarMonthLabels(days: readonly ContributionDay[]): readonly string[
     lastMonth = date.getUTCMonth();
     return activityMonth.format(date);
   });
+  if (labels[1]) labels[0] = "";
+  return labels;
 }
 
 /**

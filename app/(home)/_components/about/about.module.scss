@@ -39,10 +39,11 @@
 
 .facts {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   margin-top: 2rem;
   padding-top: 1.5rem;
+  text-align: center;
 }
 
 .factLabel {
@@ -55,6 +56,12 @@
 .factValue {
   margin: 0.5rem 0 0;
   font-size: 0.875rem;
+}
+
+@media (min-width: 48rem) {
+  .facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 64rem) {
@@ -73,8 +80,6 @@
   }
 
   .facts {
-    grid-template-columns: repeat(4, auto);
-    justify-content: space-between;
     margin-top: 3rem;
   }
 }

@@ -217,7 +217,8 @@ $chart-gap: 0.1875rem;
 .chartMonths {
   margin-bottom: 0.3125rem;
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
   color: var(--muted-foreground);
 }
 
