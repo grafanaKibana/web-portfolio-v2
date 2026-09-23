@@ -1,4 +1,3 @@
-import { Github } from "@thesvg/react";
 import { clsx } from "clsx";
 import { GitPullRequest, GitPullRequestDraft, MessageCircleMore } from "lucide-react";
 
@@ -63,8 +62,6 @@ function calendarMonthLabels(days: readonly ContributionDay[]): readonly string[
 export async function HomeCodeActivity() {
   const { codeActivity } = home;
   const activity = await githubActivity.load(codeActivity.username);
-  const profileHref = `https://github.com/${codeActivity.username}`;
-  const profileLabel = `github.com/${codeActivity.username}`;
   const groups = [
     { status: "under-review", label: "Under review", contributions: activity.underReview, icon: MessageCircleMore },
     { status: "draft", label: "Draft", contributions: activity.draft, icon: GitPullRequestDraft },
@@ -110,16 +107,7 @@ export async function HomeCodeActivity() {
       )) : null}
 
       {activity.calendarAvailable ? (
-        <figure className={clsx(styles.activity, "m-0 border-t pt-5")} data-page-motion-row data-slot="activity-visualization">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-            <figcaption className={clsx(styles.groupLabel, "font-mono uppercase text-muted-foreground")}>
-              GitHub activity · last 12 months
-            </figcaption>
-            <a className="action-link min-w-0 break-all" href={profileHref} rel="noreferrer" target="_blank">
-              <Github aria-hidden="true" className="size-3.5 opacity-60" variant="mono" />
-              {profileLabel}
-            </a>
-          </div>
+        <figure aria-label="GitHub activity, last 12 months" className={clsx(styles.group, "m-0")} data-page-motion-row data-slot="activity-visualization">
           <div className={styles.chartScroll}>
             <div className={styles.chart}>
               <div className={styles.chartMonths}>
@@ -131,12 +119,7 @@ export async function HomeCodeActivity() {
             </div>
           </div>
         </figure>
-      ) : (
-        <a className={clsx(styles.profileLink, "action-link border-t")} data-page-motion-row href={profileHref} rel="noreferrer" target="_blank">
-          <Github aria-hidden="true" className="size-3.5 opacity-60" variant="mono" />
-          {profileLabel}
-        </a>
-      )}
+      ) : null}
     </section>
   );
 }

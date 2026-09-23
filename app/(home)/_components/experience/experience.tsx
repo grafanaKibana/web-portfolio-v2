@@ -24,7 +24,7 @@ export function HomeExperience() {
           const [periodStart, periodEnd] = experience.period.split(" — ", 2);
 
           return (
-            <ExperienceItem className={clsx(styles.experienceItem, "relative pb-10 last:pb-0 md:grid md:pb-14")} key={`${experience.organization}-${experience.role}-${experience.period}`}>
+            <ExperienceItem className={clsx(styles.experienceItem, "relative pb-8 last:pb-0 md:grid md:pb-12")} key={`${experience.organization}-${experience.role}-${experience.period}`}>
               {index === 0 && (
                 <span aria-hidden="true" className={clsx(styles.timelineDot, styles.timelineDotCurrent, "pointer-events-none z-10")} data-slot="timeline-dot">
                   <Navigation2 className="absolute top-1/2 left-1/2 size-5 -translate-1/2 fill-background" data-slot="timeline-icon" />
