@@ -48,7 +48,7 @@ export function HomeContact() {
           <div className={styles.links}>
             <a
               aria-label={`E-Mail: ${contact.email}`}
-              className="inline-flex min-h-12 max-w-full min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:text-base"
+              className="inline-flex min-h-12 max-w-full min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               href={`mailto:${contact.email}`}
             >
               <Mail aria-hidden="true" className="size-4 opacity-65" />
@@ -57,7 +57,7 @@ export function HomeContact() {
             </a>
             {profile.links.map((link) => (
               <a
-                className="inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:text-base"
+                className="inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 href={link.href}
                 key={link.href}
                 rel="noreferrer"
@@ -68,7 +68,7 @@ export function HomeContact() {
                 <ArrowUpRight aria-hidden="true" className="size-3.5 opacity-45" />
               </a>
             ))}
-            <span aria-disabled="true" className="inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground opacity-35 lg:text-base">
+            <span aria-disabled="true" className="inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground opacity-35">
               <Calendar aria-hidden="true" className="size-4" />
               Book a call
             </span>

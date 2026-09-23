@@ -169,7 +169,7 @@ export function HomeSkills() {
             >
               {group.skills.map((skill) => (
                 <li
-                  className="inline-flex items-center gap-2 text-sm leading-snug text-content-foreground lg:gap-2.5 lg:text-base"
+                  className="inline-flex items-center gap-2 text-sm leading-6 text-content-foreground lg:gap-2.5"
                   data-slot="skill"
                   key={skill}
                 >
