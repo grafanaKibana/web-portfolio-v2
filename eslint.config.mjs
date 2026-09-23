@@ -28,6 +28,7 @@ const commonTargets = [
 ];
 const componentOwners = [
   ["conversation", ["./conversation.tsx"]],
+  ["not-found-page", ["./not-found-page.tsx"]],
   ["site-header", ["./site-header.tsx"]],
   ["site-footer", ["./site-footer.tsx"]],
   ["opening-splash", ["./opening-splash.tsx"]],
