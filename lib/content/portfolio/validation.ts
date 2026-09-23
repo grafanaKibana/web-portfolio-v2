@@ -79,7 +79,6 @@ export interface PortfolioProfile {
   headline: string;
   summary: readonly string[];
   careerChapters: readonly CareerChapter[];
-  facts: readonly { label: string; value: string }[];
   recommendations: readonly Recommendation[];
   experience: readonly Experience[];
   education: Education;
@@ -358,10 +357,6 @@ function parseProfile(sourceProfile: RecordValue): PortfolioProfile {
         `profile.careerChapters[${String(index)}]`,
       ),
     })),
-    facts: array(sourceProfile.facts, "profile.facts", (value, path) => {
-      const item = record(value, path);
-      return { label: string(item.label, `${path}.label`), value: string(item.value, `${path}.value`) };
-    }),
     recommendations: array(sourceProfile.recommendations, "profile.recommendations", (value, path) => {
       const item = record(value, path);
       return {

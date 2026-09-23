@@ -65,7 +65,6 @@ export class AskCorpusService {
         evidenceType: "portfolio about",
         summary: portfolio.profile.summary,
         careerChapters: portfolio.profile.careerChapters,
-        facts: portfolio.profile.facts,
       }) },
       { id: "home:experience", title: "Experience", href: "/#experience", text: JSON.stringify({
         evidenceType: "employment history",

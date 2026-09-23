@@ -113,7 +113,7 @@ Phone conversation prioritizes reading: user bubbles precede full-width assistan
 
 ## Responsive behavior
 
-Desktop has generous outer space, inline navigation, split editorial compositions, and a distinct experience date rail. Narrow layouts move toward a single reading column with metadata and actions in normal flow. About stacks its biography, chapters, and facts as space tightens.
+Desktop has generous outer space, inline navigation, split editorial compositions, and a distinct experience date rail. Narrow layouts move toward a single reading column with metadata and actions in normal flow. About stacks its biography and chapters as space tightens.
 
 Education pairs Academic and Professional credentials at comfortable desktop widths and stacks them at narrower widths. On desktop, Credentials takes only its needed width up to a comfortable cap, and Academic fills the remainder. Credential marks may be monochrome icons or intact issuer badges. Show two full credentials and part of the next when the list overflows; short collections use one item per row. Academic has no trailing padding. Native scrolling and focus must reach every credential.
 

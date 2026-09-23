@@ -322,7 +322,6 @@ test("AskService partitions synthetic website evidence by its rendered source co
       headline: "Synthetic headline",
       summary: ["ABOUT_SUMMARY_MARKER"],
       careerChapters: [{ id: "chapter", meta: "Synthetic period", title: "Synthetic chapter", summary: "ABOUT_CHAPTER_MARKER" }],
-      facts: [{ label: "Synthetic fact", value: "ABOUT_FACT_MARKER" }],
       recommendations: [{ author: "Synthetic author", position: "Synthetic position", quote: "EMPLOYMENT_RECOMMENDATION_MARKER" }],
       experience: [{
         organization: "Synthetic organization",
@@ -430,7 +429,6 @@ test("AskService partitions synthetic website evidence by its rendered source co
     evidenceType: "portfolio about",
     summary: syntheticPortfolio.profile.summary,
     careerChapters: syntheticPortfolio.profile.careerChapters,
-    facts: syntheticPortfolio.profile.facts,
   });
   assert.equal(JSON.stringify(byId.get("home:about")).includes("EMPLOYMENT_CAPABILITY_MARKER"), false);
   assert.equal(JSON.stringify(byId.get("home:about")).includes("SKILL_INVENTORY_MARKER"), false);

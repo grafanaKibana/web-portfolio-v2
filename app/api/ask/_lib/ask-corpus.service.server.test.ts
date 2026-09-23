@@ -7,7 +7,7 @@ import type { AskCorpusDependencies } from "./ask.models";
 /** Synthetic content independent of the current portfolio records. */
 const portfolio: NonNullable<AskCorpusDependencies["portfolio"]> = {
   profile: {
-    name: "Fixture", headline: "Fixture headline", summary: [], careerChapters: [], facts: [],
+    name: "Fixture", headline: "Fixture headline", summary: [], careerChapters: [],
     experience: [], recommendations: [],
     education: { institution: "Fixture", qualification: "Fixture", period: "Fixture", location: "Fixture" },
     certifications: [], learning: [], skills: [], links: [],

@@ -4,7 +4,7 @@ import sectionStyles from "@/app/(home)/_components/section.module.scss";
 import styles from "./about.module.scss";
 
 /**
- * Renders the portfolio summary, career chapters, and profile facts.
+ * Renders the portfolio summary and career chapters.
  *
  * @returns The Home About section.
  */
@@ -37,16 +37,6 @@ export function HomeAbout() {
           ))}
         </div>
       </div>
-      <dl className={clsx(styles.facts, "border-t")} data-page-motion-row>
-        {profile.facts.map((fact) => (
-          <div key={fact.label}>
-            <dt className={clsx(styles.factLabel, "font-mono uppercase text-muted-foreground")}>
-              {fact.label}
-            </dt>
-            <dd className={clsx(styles.factValue, "text-content-foreground")}>{fact.value}</dd>
-          </div>
-        ))}
-      </dl>
     </section>
   );
 }

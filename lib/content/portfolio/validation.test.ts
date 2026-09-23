@@ -18,7 +18,6 @@ function portfolioFixture(): Record<string, unknown> {
         { id: "current", title: "Current chapter", summary: "Current summary" },
         { id: "past", title: "Past chapter", summary: "Past summary" },
       ],
-      facts: [{ label: "Fixture fact", value: "Fixture value" }],
       recommendations: [{ author: "Fixture Author", position: "Fixture Position", quote: "Fixture quote" }],
       experience: [
         {

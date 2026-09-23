@@ -37,33 +37,6 @@
   line-height: 1.5rem;
 }
 
-.facts {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1.5rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  text-align: center;
-}
-
-.factLabel {
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.125rem;
-  letter-spacing: 0.08em;
-}
-
-.factValue {
-  margin: 0.5rem 0 0;
-  font-size: 0.875rem;
-}
-
-@media (min-width: 48rem) {
-  .facts {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 @media (min-width: 64rem) {
   .sectionLabel {
     margin-bottom: 2.5rem;
@@ -77,9 +50,5 @@
   .careerChapters {
     padding-left: 2rem;
     border-left: 1px solid var(--border);
-  }
-
-  .facts {
-    margin-top: 3rem;
   }
 }
