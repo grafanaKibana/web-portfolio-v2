@@ -1,5 +1,5 @@
 import { clsx } from "clsx";
-import type { LucideIcon } from "lucide-react";
+import { ArrowDown, type LucideIcon } from "lucide-react";
 
 import type {
   CodeContribution,
@@ -58,7 +58,7 @@ function PullRequestRow(props: PullRequestRowProps) {
   return (
     <li className="border-t first:border-t-0" data-page-motion-row={animate ? "" : undefined}>
       <a
-        className={clsx(styles.contribution, "rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
+        className={clsx(styles.contribution, "rounded-sm py-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
         data-slot="pull-request-row"
         href={contribution.href}
         rel="noreferrer"
@@ -128,14 +128,15 @@ export function PullRequestGroup(props: PullRequestGroupProps) {
         ))}
       </ul>
       {remainingContributions.length > 0 ? (
-        <details className={styles.disclosure} data-slot="pull-request-disclosure">
-          <summary className={clsx(styles.disclosureSummary, "font-mono uppercase text-muted-foreground")} data-slot="pull-request-disclosure-summary">
+        <details className={clsx(styles.disclosure, "group/disclosure")} data-slot="pull-request-disclosure">
+          <summary className={clsx(styles.disclosureSummary, "order-1 flex min-h-12 w-full cursor-pointer list-none items-center text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")} data-slot="pull-request-disclosure-summary">
             <span data-slot="show-more">
               Show more ({remainingContributions.length}) <span className="sr-only">{label} pull requests</span>
             </span>
             <span data-slot="show-less">
               Show less <span className="sr-only">{label} pull requests</span>
             </span>
+            <ArrowDown aria-hidden="true" className="ml-auto size-3.5 opacity-60 group-open/disclosure:rotate-180" />
           </summary>
           <ul
             aria-label={`More ${label} contributions`}

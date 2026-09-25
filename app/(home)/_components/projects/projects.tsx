@@ -80,7 +80,7 @@ export async function HomeProjects() {
         ))}
       </ul>
       <Link
-        className="flex min-h-12 w-full items-center border-t text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="flex min-h-12 w-full items-center text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         data-page-motion-row
         data-slot="more-projects-link"
         href="/projects"

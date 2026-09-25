@@ -14,7 +14,6 @@ $chart-gap: 0.1875rem;
   grid-template-columns: 1.1rem minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 0.625rem;
-  padding-block: 0.5rem;
   color: var(--foreground);
 }
 
@@ -95,7 +94,6 @@ $chart-gap: 0.1875rem;
 .disclosure {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--border);
 }
 
 .disclosure::details-content {
@@ -114,36 +112,8 @@ $chart-gap: 0.1875rem;
   opacity: 1;
 }
 
-.disclosureSummary {
-  display: flex;
-  min-height: 2.75rem;
-  order: 1;
-  cursor: pointer;
-  list-style: none;
-  align-items: center;
-  border-radius: 0.125rem;
-  font-size: 0.75rem;
-  line-height: 1.125rem;
-  letter-spacing: 0.08em;
-  transition: color 150ms;
-}
-
 .disclosureSummary::-webkit-details-marker {
   display: none;
-}
-
-.disclosure[open] .disclosureSummary {
-  border-top: 1px solid var(--border);
-}
-
-.disclosureSummary:is(:hover, :focus-visible),
-.disclosure[open] .disclosureSummary {
-  color: var(--foreground);
-}
-
-.disclosureSummary:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
 }
 
 .disclosure:not([open]) [data-slot="show-less"],
