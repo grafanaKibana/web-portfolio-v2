@@ -23,7 +23,7 @@ export function Subheading({ align = "start", children, className, ...props }: S
       variant="separator"
       {...props}
       className={clsx(
-        "m-0 gap-6 font-mono text-xs leading-[1.125rem] font-normal tracking-[0.08em] uppercase text-muted-foreground before:mr-0 after:ml-0",
+        "m-0 gap-6 font-mono text-xs leading-4.5 font-normal tracking-[0.08em] uppercase text-muted-foreground before:mr-0 after:ml-0",
         align === "start" && "text-left before:hidden",
         align === "center" && "text-center",
         align === "end" && "text-right after:hidden",

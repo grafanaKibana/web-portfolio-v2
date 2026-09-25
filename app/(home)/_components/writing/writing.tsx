@@ -1,15 +1,8 @@
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { clsx } from "clsx";
 
 import { HomeEditorialRow } from "@/app/(home)/_components/editorial-row/editorial-row";
-import sectionStyles from "@/app/(home)/_components/section.module.scss";
 import { loadArticles } from "@/lib/content/articles/server";
-
-const publishedDate = new Intl.DateTimeFormat("en", {
-  dateStyle: "long",
-  timeZone: "UTC",
-});
 
 /**
  * Renders validated local articles as links to their static routes.
@@ -25,14 +18,14 @@ export async function HomeWriting() {
     <section
       id="writing"
       aria-labelledby="writing-heading"
-      className={clsx(sectionStyles.section, "page-shell-gutter w-full")}
+      className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1"
       data-page-motion-section
     >
       <h2
         data-page-motion-row
         data-page-motion-trigger
         id="writing-heading"
-        className={clsx(sectionStyles.label, sectionStyles.topLevelLabel, "mb-8 border-t pt-3 font-mono uppercase text-muted-foreground lg:mb-10 lg:pt-3.5")}
+        className="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5"
       >
         Writing
       </h2>
@@ -46,18 +39,11 @@ export async function HomeWriting() {
                 key={slug}
                 actions={(
                   <Link className="action-link" data-row-link href={`/articles/${slug}`}>
-                    <ArrowUpRight aria-hidden="true" className="size-3.5 opacity-60" />
                     Read article
+                    <ArrowUpRight aria-hidden="true" className="action-icon opacity-60" />
                   </Link>
                 )}
                 description={article.description}
-                metadata={(
-                  <p>
-                    <time dateTime={article.published}>
-                      {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
-                    </time>
-                  </p>
-                )}
                 title={article.title}
               />
             ))}
@@ -69,7 +55,7 @@ export async function HomeWriting() {
             href="/articles"
           >
             See all articles
-            <ArrowUpRight aria-hidden="true" className="ml-auto size-3.5 opacity-60" />
+            <ArrowUpRight aria-hidden="true" className="ml-auto action-icon opacity-60" />
           </Link>
         </>
       ) : (

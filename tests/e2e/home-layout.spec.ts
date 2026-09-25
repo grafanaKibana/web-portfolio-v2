@@ -27,16 +27,16 @@ async function boxOf(element: Locator) {
  */
 function credentialRows(count: number) {
   return Array.from({ length: count }, (_, index) => `
-    <li class="credentialItem" data-slot="credential-item">
-      <a class="credentialLink" href="https://example.com/credential/${String(index + 1)}">
-        <span aria-hidden="true" class="credentialMark">
+    <li class="min-w-0 border-b py-3 last:border-b-0" data-slot="credential-item">
+      <a class="flex w-full min-w-0 items-start gap-3 text-content-foreground no-underline transition-colors duration-150 ease-in-out hover:text-foreground focus-visible:rounded focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none" href="https://example.com/credential/${String(index + 1)}">
+        <span aria-hidden="true" class="grid size-10.5 shrink-0 place-items-center">
           ${index % 2 === 0
-            ? '<span class="credentialIcon" data-slot="credential-icon" style="--credential-icon-url:url(\'/certifications/synthetic.svg\')"></span>'
-            : '<img alt="" class="credentialBadge" data-slot="credential-badge" height="42" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\'/%3E" width="42">'}
+            ? '<span class="credentialIcon block size-9" data-slot="credential-icon" style="--credential-icon-url:url(\'/certifications/synthetic.svg\')"></span>'
+            : '<img alt="" class="size-10.5 object-contain" data-slot="credential-badge" height="42" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\'/%3E" width="42">'}
         </span>
-        <span class="credentialCopy">
-          <span class="credentialTitle">Synthetic cloud developer associate certification ${String(index + 1)}</span>
-          <span class="credentialDate">Jan ${String(2020 + index)}</span>
+        <span class="block min-w-0">
+          <span class="block text-sm leading-[1.4] font-semibold" data-slot="credential-title">Synthetic cloud developer associate certification ${String(index + 1)}</span>
+          <span class="mt-1.25 block font-mono text-xs leading-4.5 text-muted-foreground" data-slot="credential-date">Jan ${String(2020 + index)}</span>
         </span>
       </a>
     </li>
@@ -52,40 +52,28 @@ function credentialRows(count: number) {
 async function mountEducation(page: Page, count: number) {
   const hasCredentials = count > 0;
   const singleColumn = count <= 2;
-  await page.setContent(`<!doctype html>
-    <style>
-      :root {
-        --border: #d8d8d8;
-        --content-foreground: #333333;
-        --foreground: #111111;
-        --font-geist-mono: ui-monospace;
-        --muted-foreground: #666666;
-        --ring: #111111;
-      }
-      * { box-sizing: border-box; }
-      body { margin: 0; }
-      .fixtureShell { width: min(calc(100% - 2.75rem), 54rem); margin-inline: auto; }
-      @media (min-width: 48rem) {
-        .fixtureShell { width: min(calc(100% - 8rem), 54rem); }
-      }
-      ${educationCss}
-    </style>
-    <main class="fixtureShell">
-      <section id="education">
-        <h2 class="sectionLabel">Education</h2>
-        <div class="tracks${hasCredentials ? "" : " academicOnly"}" data-slot="education-tracks">
-          <div class="academic" data-slot="education-academic">
+  if (await page.locator("html[data-education-fixture-styles]").count() === 0) {
+    await page.goto("/");
+    await page.addStyleTag({ content: educationCss });
+    await page.locator("html").evaluate((root) => { root.dataset.educationFixtureStyles = "true"; });
+  }
+  await page.locator("body").evaluate((body, markup) => { body.innerHTML = markup; }, `
+    <main>
+      <section class="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1" id="education">
+        <h2 class="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5">Education</h2>
+        <div class="grid grid-cols-[minmax(0,1fr)] gap-8 lg:data-[has-credentials=true]:grid-cols-[minmax(0,1fr)_fit-content(55%)] lg:data-[has-credentials=true]:gap-x-12" data-has-credentials="${String(hasCredentials)}" data-slot="education-tracks">
+          <div class="min-w-0" data-slot="education-academic">
             <h3 class="trackLabel">Academic</h3>
-            <p class="qualification">Bachelor of Engineering in Software Engineering</p>
-            <p class="institution">National Technical University of Ukraine</p>
-            <p class="academicMeta"><span>September 2019 — June 2023</span><span>·</span><span>Kyiv, Ukraine</span></p>
+            <p class="m-0 text-lg leading-[1.4] font-[650] tracking-[-0.015em] text-foreground lg:text-xl">Bachelor of Engineering in Software Engineering</p>
+            <p class="m-0 mt-3 text-sm leading-[1.6] text-content-foreground">National Technical University of Ukraine</p>
+            <p class="m-0 mt-4 flex flex-wrap items-center gap-1.5 font-mono text-xs leading-4.5 text-muted-foreground"><span>September 2019 — June 2023</span><span>·</span><span>Kyiv, Ukraine</span></p>
           </div>
           ${hasCredentials ? `
-            <div class="credentials" data-slot="education-credentials">
+            <div class="flex min-h-0 min-w-0 flex-col" data-slot="education-credentials">
               <h3 class="trackLabel">Professional credentials</h3>
-              <div class="credentialFrame">
-                <div class="credentialScrollport${count > 2 ? " peek" : ""}" data-slot="credential-scrollport">
-                  <ul class="credentialList${singleColumn ? " singleColumn" : ""}" data-slot="credential-list">
+              <div class="min-w-0 flex-none">
+                <div class="credentialScrollport overflow-y-auto overscroll-y-auto [scrollbar-width:none] focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [&::-webkit-scrollbar]:hidden${count > 2 ? " h-54 md:h-34" : ""}" data-slot="credential-scrollport">
+                  <ul class="m-0 grid list-none grid-cols-[minmax(0,1fr)] content-start p-0 md:data-[single-column=false]:grid-cols-2 md:data-[single-column=false]:gap-x-5" data-single-column="${String(singleColumn)}" data-slot="credential-list">
                     ${credentialRows(count)}
                   </ul>
                 </div>
@@ -113,8 +101,8 @@ async function replaceHydratedCredentials(page: Page, count: number) {
     for (let index = 0; index < rowCount; index += 1) {
       const item = template.cloneNode(true) as HTMLElement;
       const link = item.querySelector("a");
-      const title = item.querySelector('[class*="credentialTitle"]');
-      const date = item.querySelector('[class*="credentialDate"]');
+      const title = item.querySelector('[data-slot="credential-title"]');
+      const date = item.querySelector('[data-slot="credential-date"]');
       if (!link || !title || !date) throw new Error("Credential template is incomplete");
       link.setAttribute("href", `https://example.com/credential/${String(index + 1)}`);
       title.textContent = `Synthetic cloud developer associate certification ${String(index + 1)}`;
@@ -122,9 +110,7 @@ async function replaceHydratedCredentials(page: Page, count: number) {
       fragment.append(item);
     }
     element.replaceChildren(fragment);
-    for (const className of element.classList) {
-      if (className.includes("singleColumn")) element.classList.remove(className);
-    }
+    element.dataset.singleColumn = "false";
   }, count);
 }
 
@@ -182,7 +168,7 @@ test("Education lets Academic use the space left by credential content", async (
   await page.setViewportSize({ width: 1280, height: 900 });
   await mountEducation(page, 2);
 
-  const titles = page.locator(".credentialTitle");
+  const titles = page.locator('[data-slot="credential-title"]');
   await titles.evaluateAll((elements) => {
     const [first, second] = elements;
     if (!first || !second) throw new Error("Expected two credential titles");
@@ -289,7 +275,7 @@ test("Education keeps enlarged credential text readable and reachable", async ({
   });
 
   const scrollport = page.locator('[data-slot="credential-scrollport"]');
-  const titles = page.locator(".credentialTitle");
+  const titles = page.locator('[data-slot="credential-title"]');
   expect(await titles.evaluateAll((elements) =>
     elements.every((element) => element.scrollHeight <= element.clientHeight + 1),
   )).toBe(true);

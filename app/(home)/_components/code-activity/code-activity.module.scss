@@ -3,23 +3,7 @@
 $chart-column-count: 53;
 $chart-gap: 0.1875rem;
 
-.group + .group {
-  margin-top: 1.75rem;
-}
-
-.contribution {
-  display: grid;
-  min-width: 0;
-  min-height: 2.75rem;
-  grid-template-columns: 1.1rem minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 0.625rem;
-  color: var(--foreground);
-}
-
 .statusIcon {
-  width: 1rem;
-  height: 1rem;
   color: var(--success);
 }
 
@@ -35,65 +19,12 @@ $chart-gap: 0.1875rem;
   color: oklch(0.78 0.14 75);
 }
 
-.copy {
-  display: grid;
-  min-width: 0;
-  gap: 0.25rem;
-  text-align: left;
-}
-
-.title {
-  color: var(--content-foreground);
-  transition: color 150ms;
-}
-
-.period {
-  color: var(--muted-foreground);
-}
-
-.repository {
-  overflow-wrap: anywhere;
-  font-size: 0.75rem;
-  line-height: 1.125rem;
-  color: var(--muted-foreground);
-}
-
-.meta {
-  display: flex;
-  align-self: center;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  line-height: 1.125rem;
-  white-space: nowrap;
-}
-
-.diff {
-  display: inline-flex;
-  gap: 0.5rem;
-  font-variant-numeric: tabular-nums;
-}
-
 .additions {
   color: var(--success);
 }
 
 .deletions {
   color: var(--destructive);
-}
-
-.period {
-  white-space: nowrap;
-}
-
-.contribution:is(:hover, :focus-visible) .title {
-  color: var(--foreground);
-}
-
-.disclosure {
-  display: flex;
-  flex-direction: column;
 }
 
 .disclosure::details-content {
@@ -112,8 +43,10 @@ $chart-gap: 0.1875rem;
   opacity: 1;
 }
 
-.disclosureSummary::-webkit-details-marker {
-  display: none;
+.disclosureSummary {
+  &::-webkit-details-marker {
+    display: none;
+  }
 }
 
 .disclosure:not([open]) [data-slot="show-less"],
@@ -141,12 +74,6 @@ $chart-gap: 0.1875rem;
   }
 }
 
-.title {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-size: 1rem;
-}
-
 @media (prefers-color-scheme: dark) {
   :global(:root:not(.light, .dark)) .statusIcon[data-status="under-review"] {
     color: oklch(0.78 0.14 75);
@@ -154,38 +81,21 @@ $chart-gap: 0.1875rem;
 }
 
 .chartScroll {
-  overflow-x: auto;
   scrollbar-width: none;
-}
 
-.chartScroll::-webkit-scrollbar {
-  display: none;
-}
-
-.chart {
-  width: 39.625rem;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .chartMonths,
 .chartDays {
-  display: grid;
   grid-template-columns: repeat($chart-column-count, minmax(0, 1fr));
-  gap: $chart-gap;
-}
-
-.chartMonths {
-  margin-bottom: 0.3125rem;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.75rem;
-  line-height: 1.125rem;
-  color: var(--muted-foreground);
 }
 
 .chartDays {
   --chart-gradient-width: calc(#{$chart-column-count * 100%} + #{($chart-column-count - 1) * $chart-gap});
 
-  grid-template-rows: repeat(7, auto);
-  grid-auto-flow: column;
 }
 
 @for $column from 0 through ($chart-column-count - 1) {
@@ -195,34 +105,29 @@ $chart-gap: 0.1875rem;
 }
 
 .chartDay {
-  display: block;
-  aspect-ratio: 1;
-  border-radius: 0.125rem;
-  background: var(--border);
-}
+  &[data-level="1"] {
+    --chart-cover: 72%;
 
-.chartDay[data-level="1"] {
-  --chart-cover: 72%;
+    background: var(--chart-1);
+  }
 
-  background: var(--chart-1);
-}
+  &[data-level="2"] {
+    --chart-cover: 52%;
 
-.chartDay[data-level="2"] {
-  --chart-cover: 52%;
+    background: var(--chart-2);
+  }
 
-  background: var(--chart-2);
-}
+  &[data-level="3"] {
+    --chart-cover: 30%;
 
-.chartDay[data-level="3"] {
-  --chart-cover: 30%;
+    background: var(--chart-3);
+  }
 
-  background: var(--chart-3);
-}
+  &[data-level="4"] {
+    --chart-cover: 0%;
 
-.chartDay[data-level="4"] {
-  --chart-cover: 0%;
-
-  background: var(--chart-4);
+    background: var(--chart-4);
+  }
 }
 
 @media (forced-colors: none) {
@@ -233,19 +138,5 @@ $chart-gap: 0.1875rem;
     background-position: 0 0, var(--chart-gradient-position) 0;
     background-repeat: no-repeat;
     background-size: 100% 100%, var(--chart-gradient-width) 100%;
-  }
-}
-
-@media (min-width: 64rem) {
-  .group + .group {
-    margin-top: 3.5rem;
-  }
-
-  .title {
-    font-size: 1rem;
-  }
-
-  .chart {
-    width: 100%;
   }
 }

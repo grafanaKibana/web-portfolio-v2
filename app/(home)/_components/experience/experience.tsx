@@ -1,6 +1,5 @@
 import { ChevronRight, Navigation2 } from "lucide-react";
 import Image from "next/image";
-import sectionStyles from "@/app/(home)/_components/section.module.scss";
 import { Subheading } from "@/app/(home)/_components/subheading";
 import { profile } from "@/lib/content/portfolio/server";
 import { clsx } from "clsx";
@@ -15,25 +14,23 @@ import { RecommendationTrack } from "./recommendation-track";
  */
 export function HomeExperience() {
   return (
-    <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, sectionStyles.section, "page-shell-gutter w-full")} data-page-motion-section>
-      <div className={clsx(styles.experienceHeader, sectionStyles.label, sectionStyles.topLevelLabel, "border-t font-mono uppercase text-muted-foreground")} data-page-motion-row>
-        <h2 data-page-motion-trigger id="experience-heading">Experience</h2>
-      </div>
-      <ol className={clsx(styles.timeline, "relative m-0 list-none p-0 pl-5.5 md:pl-0")}>
+    <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1")} data-page-motion-section>
+      <h2 className="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5" data-page-motion-row data-page-motion-trigger id="experience-heading">Experience</h2>
+      <ol className={clsx(styles.timeline, "relative m-0 list-none p-0 pl-5.5 md:pl-0 md:[--experience-rail-width:8.75rem] xl:[--experience-rail-width:11.5rem]")}>
         {profile.experience.map((experience, index) => {
           const [periodStart, periodEnd] = experience.period.split(" — ", 2);
 
           return (
-            <ExperienceItem className={clsx(styles.experienceItem, "relative pb-8 last:pb-0 md:grid md:pb-12")} key={`${experience.organization}-${experience.role}-${experience.period}`}>
+            <ExperienceItem className={clsx(styles.experienceItem, "relative pb-8 last:pb-0 has-[details]:cursor-pointer md:grid md:grid-cols-[var(--experience-rail-width)_minmax(0,1fr)] lg:pb-12 lg:last:pb-0")} key={`${experience.organization}-${experience.role}-${experience.period}`}>
               {index === 0 && (
-                <span aria-hidden="true" className={clsx(styles.timelineDot, styles.timelineDotCurrent, "pointer-events-none z-10")} data-slot="timeline-dot">
+                <span aria-hidden="true" className={clsx(styles.timelineDot, styles.timelineDotCurrent, "pointer-events-none z-10 size-2.25 text-[color:var(--brand-accent-text)]")} data-slot="timeline-dot">
                   <Navigation2 className="absolute top-1/2 left-1/2 size-5 -translate-1/2 fill-background" data-slot="timeline-icon" />
                 </span>
               )}
-              <p className={clsx(styles.experiencePeriod, "relative mb-2.5 flex flex-wrap self-start items-center gap-x-2 gap-y-1 font-mono text-muted-foreground md:m-0 md:min-h-12 md:flex-col md:items-end md:justify-center md:gap-x-0 md:pr-8 md:text-right")} data-slot="experience-period" data-page-motion-item={index === 0 ? "" : undefined}>
+              <p className={clsx(styles.experiencePeriod, "relative mb-2.5 flex flex-wrap self-start items-center gap-x-2 gap-y-1 font-mono text-xs leading-4.5 text-muted-foreground md:m-0 md:min-h-12 md:flex-col md:items-end md:justify-center md:gap-x-0 md:pr-8 md:text-right")} data-slot="experience-period" data-page-motion-item={index === 0 ? "" : undefined}>
                 {index !== 0 && <span
                   aria-hidden="true"
-                  className={styles.timelineDot}
+                  className={clsx(styles.timelineDot, "size-2.25 rounded-full border border-muted-foreground bg-background transition-colors duration-150 motion-reduce:transition-none")}
                   data-slot="timeline-dot"
                 />}
                 <span className="whitespace-nowrap" data-slot="period-part">{periodStart}</span>
@@ -46,24 +43,24 @@ export function HomeExperience() {
                     <Image alt="" className="size-full rounded-full object-contain" height={32} src={experience.logo} width={32} />
                   </span>
                   <div data-slot="role-heading">
-                    <h3 className={clsx(styles.roleTitle, "m-0 font-semibold")}>{experience.role}</h3>
-                    <p className={clsx(styles.organization, "mt-0.75 text-muted-foreground md:mt-1")}>
+                    <h3 className="m-0 text-lg leading-6 font-semibold tracking-[-0.01em] text-foreground">{experience.role}</h3>
+                    <p className="mt-0.75 text-xs leading-normal text-muted-foreground md:mt-1 md:text-[0.8125rem]">
                       {experience.organization}
                     </p>
                   </div>
                 </div>
-                <p className={clsx(styles.roleSummary, "mt-3 text-content-foreground")}>
+                <p className={clsx(styles.roleSummary, "mt-3 text-sm leading-6 text-content-foreground transition-colors duration-150 motion-reduce:transition-none")}>
                   {experience.summary}
                 </p>
                 {experience.highlights.length > 0 && (
                   <details className={clsx(styles.roleDetails, "mt-2")}>
-                    <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-mono uppercase text-muted-foreground">
-                      <ChevronRight aria-hidden="true" className={styles.detailsIcon} />
+                    <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-mono text-xs leading-4.5 tracking-[0.08em] uppercase text-muted-foreground transition-colors duration-150 motion-reduce:transition-none">
+                      <ChevronRight aria-hidden="true" className={clsx(styles.detailsIcon, "action-icon opacity-60 transition-transform duration-150 ease-in-out motion-reduce:transition-none")} />
                       Highlights
                     </summary>
-                    <div className={styles.detailsContent} data-slot="details-content">
-                      <ul className={clsx(styles.highlights, "m-0 flex list-none flex-col gap-2.5 p-0")}>
-                        {experience.highlights.map((highlight) => <li className="gap-3" key={highlight}>{highlight}</li>)}
+                    <div className={clsx(styles.detailsContent, "min-h-0 overflow-hidden")} data-slot="details-content">
+                      <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-content-foreground">
+                        {experience.highlights.map((highlight) => <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 text-sm leading-6 before:text-muted-foreground before:content-['—']" key={highlight}>{highlight}</li>)}
                       </ul>
                     </div>
                   </details>

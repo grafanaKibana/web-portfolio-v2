@@ -10,7 +10,6 @@ interface HomeEditorialRowProps {
   askRecord: { kind: "project" | "article"; slug: string };
   dataSlot: string;
   description: ReactNode;
-  metadata: ReactNode;
   title: ReactNode;
 }
 
@@ -21,11 +20,10 @@ interface HomeEditorialRowProps {
  * @param askRecord - Stable portfolio record identity exposed for page context.
  * @param dataSlot - Route-owned identifier for the list item.
  * @param description - Summary displayed below the title.
- * @param metadata - Supporting publication or project details.
  * @param title - Entry heading.
  * @returns A semantic Home editorial row.
  */
-export function HomeEditorialRow({ actions, askRecord, dataSlot, description, metadata, title }: HomeEditorialRowProps) {
+export function HomeEditorialRow({ actions, askRecord, dataSlot, description, title }: HomeEditorialRowProps) {
   /**
    * Follows the primary link outside the action row while preserving text selection and other controls.
    *
@@ -42,18 +40,17 @@ export function HomeEditorialRow({ actions, askRecord, dataSlot, description, me
 
   return (
     <li
-      className={clsx(styles.row, "border-t lg:first:border-t-0")}
+      className={clsx(styles.row, "group/editorial has-[[data-row-link]]:cursor-pointer border-t py-4 first:border-t-0 first:pt-0 lg:py-6 lg:first:pt-0")}
       data-ask-record-kind={askRecord.kind}
       data-ask-record-slug={askRecord.slug}
       data-page-motion-row
       data-slot={dataSlot}
       onClick={followRowLink}
     >
-      <article className={styles.body} data-slot="home-editorial-row">
-        <h3 className={styles.title}>{title}</h3>
-        <p className={styles.description}>{description}</p>
-        <div className={styles.metadata} data-slot="row-metadata">{metadata}</div>
-        <div className={clsx(styles.actions, "cursor-default [&_a]:cursor-pointer")} data-slot="project-actions">{actions}</div>
+      <article className="grid gap-x-4 md:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6" data-slot="home-editorial-row">
+        <h3 className="m-0 min-w-0 text-[1.375rem] leading-7 font-medium tracking-[-0.02em] wrap-anywhere md:col-start-1 md:row-start-1 lg:group-first/editorial:text-2xl lg:group-first/editorial:leading-7.5">{title}</h3>
+        <p className="m-0 mt-3 text-sm leading-6 text-content-foreground md:col-span-2 md:row-start-2">{description}</p>
+        <div className="mt-4 flex cursor-default flex-wrap items-center justify-start gap-x-6 gap-y-4 md:col-start-2 md:row-start-1 md:mt-0 md:justify-end md:gap-x-8 lg:gap-x-6 [&_a]:cursor-pointer [&_[data-row-link]]:ms-auto" data-slot="project-actions">{actions}</div>
       </article>
     </li>
   );

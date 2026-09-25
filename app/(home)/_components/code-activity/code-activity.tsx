@@ -1,7 +1,6 @@
 import { clsx } from "clsx";
 import { GitPullRequest, GitPullRequestDraft, MessageCircleMore } from "lucide-react";
 
-import sectionStyles from "@/app/(home)/_components/section.module.scss";
 import { home } from "@/lib/content/portfolio/server";
 import { GitHubActivityService } from "@/lib/content/github-activity";
 import type { ContributionDay } from "@/lib/content/github-activity.models";
@@ -13,15 +12,7 @@ const githubActivity = new GitHubActivityService();
 const activityMonth = new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" });
 const activityDate = new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const pullRequestGroupStyles = {
-  group: styles.group,
-  contribution: styles.contribution,
   statusIcon: styles.statusIcon,
-  copy: styles.copy,
-  repository: styles.repository,
-  title: styles.title,
-  meta: styles.meta,
-  period: styles.period,
-  diff: styles.diff,
   additions: styles.additions,
   deletions: styles.deletions,
   disclosure: styles.disclosure,
@@ -75,19 +66,37 @@ export async function HomeCodeActivity() {
     label: `${day.count === 0 ? "No contributions" : `${String(day.count)} ${day.count === 1 ? "contribution" : "contributions"}`} on ${activityDate.format(new Date(`${day.date}T00:00:00Z`))}`,
   }));
 
+  const calendar = activity.calendarAvailable ? (
+    <figure aria-label="GitHub activity, last 12 months" className="mx-0 my-4 lg:my-6" data-slot="activity-visualization">
+      <div className={clsx(styles.chartScroll, "overflow-x-auto")}>
+        <div className="w-[39.625rem] lg:w-full">
+          <div className={clsx(styles.chartMonths, "mb-1.25 grid gap-[0.1875rem] font-mono text-xs leading-4.5 text-muted-foreground")}>
+            {calendarMonthLabels(activity.calendar).map((label, index) => (
+              <span key={`${String(index)}-${label}`}>{label}</span>
+            ))}
+          </div>
+          <CalendarDays days={calendarDays} />
+        </div>
+      </div>
+    </figure>
+  ) : null;
+  const visibleGroups = activity.pullRequestsAvailable
+    ? groups.filter((group) => group.contributions.length > 0)
+    : [];
+
   return (
-    <section id="code" aria-labelledby="code-heading" className={clsx(sectionStyles.section, "page-shell-gutter w-full")} data-page-motion-section>
+    <section id="code" aria-labelledby="code-heading" className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1" data-page-motion-section>
       <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-t pt-3 lg:mb-10 lg:pt-3.5" data-page-motion-row>
         <h2
           data-page-motion-trigger
           id="code-heading"
-          className={clsx(sectionStyles.label, sectionStyles.topLevelLabel, "m-0 font-mono uppercase text-muted-foreground")}
+          className="m-0 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground"
         >
           Code activity
         </h2>
         {summary ? (
           <p
-            className={clsx(sectionStyles.label, "m-0 font-mono uppercase text-muted-foreground")}
+            className="m-0 font-mono text-xs leading-4.5 font-normal tracking-[0.08em] uppercase text-muted-foreground"
             data-slot="activity-summary"
           >
             {summary}
@@ -95,31 +104,25 @@ export async function HomeCodeActivity() {
         ) : null}
       </div>
 
-      {activity.pullRequestsAvailable ? groups.map((group) => (
-        <PullRequestGroup
-          contributions={group.contributions}
-          icon={group.icon}
-          key={group.status}
-          label={group.label}
-          status={group.status}
-          styles={pullRequestGroupStyles}
-        />
-      )) : null}
-
-      {activity.calendarAvailable ? (
-        <figure aria-label="GitHub activity, last 12 months" className={clsx(styles.group, "m-0")} data-page-motion-row data-slot="activity-visualization">
-          <div className={styles.chartScroll}>
-            <div className={styles.chart}>
-              <div className={styles.chartMonths}>
-                {calendarMonthLabels(activity.calendar).map((label, index) => (
-                  <span key={`${String(index)}-${label}`}>{label}</span>
-                ))}
-              </div>
-              <CalendarDays days={calendarDays} />
-            </div>
-          </div>
-        </figure>
-      ) : null}
+      <div className="flex flex-col gap-8 lg:gap-12">
+        {visibleGroups.map((group, index) => (
+          <PullRequestGroup
+            contributions={group.contributions}
+            icon={group.icon}
+            key={group.status}
+            label={group.label}
+            status={group.status}
+            styles={pullRequestGroupStyles}
+          >
+            {index === visibleGroups.length - 1 ? calendar : null}
+          </PullRequestGroup>
+        ))}
+        {visibleGroups.length === 0 && calendar ? (
+          <PullRequestGroup contributions={[]} icon={GitPullRequest} label="GitHub" status="merged" styles={pullRequestGroupStyles}>
+            {calendar}
+          </PullRequestGroup>
+        ) : null}
+      </div>
     </section>
   );
 }

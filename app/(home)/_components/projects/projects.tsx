@@ -1,10 +1,8 @@
 import { Github, Obsidian } from "@thesvg/react";
-import { clsx } from "clsx";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 import { HomeEditorialRow } from "@/app/(home)/_components/editorial-row/editorial-row";
-import sectionStyles from "@/app/(home)/_components/section.module.scss";
 import { loadProjects } from "@/lib/content/projects/server";
 import { home } from "@/lib/content/portfolio/server";
 
@@ -26,14 +24,14 @@ export async function HomeProjects() {
     <section
       id="projects"
       aria-labelledby="projects-heading"
-      className={clsx(sectionStyles.section, "page-shell-gutter w-full last:min-h-screen")}
+      className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1 last:min-h-screen"
       data-page-motion-section
     >
       <h2
         data-page-motion-row
         data-page-motion-trigger
         id="projects-heading"
-        className={clsx(sectionStyles.label, sectionStyles.topLevelLabel, "mb-8 border-t pt-3 font-mono uppercase text-muted-foreground lg:mb-10 lg:pt-3.5")}
+        className="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5"
       >
         Selected work
       </h2>
@@ -52,29 +50,23 @@ export async function HomeProjects() {
                     key={link.href}
                     rel="noreferrer"
                     target="_blank"
+                    title={link.label}
                   >
                     {link.href.startsWith("https://obsidian.md/plugins")
-                      ? <Obsidian aria-hidden="true" className="size-3.5 opacity-60" data-slot="obsidian-icon" variant="mono" />
+                      ? <Obsidian aria-hidden="true" className="action-icon opacity-60" data-slot="obsidian-icon" variant="mono" />
                       : link.href.startsWith("https://github.com/")
-                      ? <Github aria-hidden="true" className="size-3.5 opacity-60" variant="mono" />
-                      : <ExternalLink aria-hidden="true" className="size-3.5 opacity-60" />}
-                    {link.label}
+                      ? <Github aria-hidden="true" className="action-icon opacity-60" variant="mono" />
+                      : <ExternalLink aria-hidden="true" className="action-icon opacity-60" />}
+                    <span className="sr-only lg:not-sr-only">{link.label}</span>
                   </a>
                 ))}
                 <Link className="action-link" data-row-link href={`/projects/${slug}`}>
-                  <ArrowUpRight aria-hidden="true" className="size-3.5 opacity-60" />
                   Read case study
+                  <ArrowUpRight aria-hidden="true" className="action-icon opacity-60" />
                 </Link>
               </>
             )}
             description={project.description}
-            metadata={project.tags?.length ? (
-              <ul
-                aria-label={`${project.title} technologies`}
-              >
-                {project.tags.map((tag) => <li key={tag}>{tag}</li>)}
-              </ul>
-            ) : null}
             title={project.title}
           />
         ))}
@@ -86,7 +78,7 @@ export async function HomeProjects() {
         href="/projects"
       >
         See other work
-        <ArrowUpRight aria-hidden="true" className="ml-auto size-3.5 opacity-60" />
+        <ArrowUpRight aria-hidden="true" className="ml-auto action-icon opacity-60" />
       </Link>
     </section>
   );

@@ -81,7 +81,11 @@ export function CredentialTrack({
   return (
     <div
       aria-label="Professional credentials"
-      className={clsx(styles.credentialScrollport, potentialOverflow && styles.peek)}
+      className={clsx(
+        styles.credentialScrollport,
+        "overflow-y-auto overscroll-y-auto [scrollbar-width:none] focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [&::-webkit-scrollbar]:hidden",
+        potentialOverflow && "h-54 md:h-34",
+      )}
       data-edge-fade={fade}
       data-lenis-native-scroll
       data-slot="credential-scrollport"
@@ -90,7 +94,8 @@ export function CredentialTrack({
       tabIndex={overflow ? 0 : -1}
     >
       <ul
-        className={clsx(styles.credentialList, singleColumn && styles.singleColumn)}
+        className="m-0 grid list-none grid-cols-[minmax(0,1fr)] content-start p-0 md:data-[single-column=false]:grid-cols-2 md:data-[single-column=false]:gap-x-5"
+        data-single-column={singleColumn}
         data-slot="credential-list"
         ref={listRef}
       >
