@@ -20,6 +20,60 @@
         ],
         "createdAt": "2026-09-23T11:46:26.448Z",
         "reason": "Agent: DESIGN.md specifies a brief Stop-button width transition to fit its label without scaling the text."
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "files": [
+          ".omx/previews/heading-systems-20260925/index.html"
+        ],
+        "createdAt": "2026-09-25T06:36:46.986Z",
+        "reason": "Intentional comparison constraint: existing DESIGN.md specifies Geist Sans and Geist Mono; approved heading research preserves those fonts to compare hierarchy."
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "files": [
+          ".omx/previews/heading-systems-20260925/specimen.html"
+        ],
+        "createdAt": "2026-09-25T06:36:56.924Z",
+        "reason": "Intentional comparison constraint: existing DESIGN.md specifies Geist Sans and Geist Mono; approved heading research preserves those fonts to compare hierarchy."
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "files": [
+          ".omx/previews/heading-systems-20260925/shell.css"
+        ],
+        "createdAt": "2026-09-25T06:36:57.251Z",
+        "reason": "Intentional comparison constraint: existing DESIGN.md specifies Geist Sans and Geist Mono; approved heading research preserves those fonts to compare hierarchy."
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist mono",
+        "files": [
+          ".omx/previews/heading-systems-20260925/shell.css"
+        ],
+        "createdAt": "2026-09-25T06:36:57.579Z",
+        "reason": "Intentional comparison constraint: existing DESIGN.md specifies Geist Sans and Geist Mono; approved heading research preserves those fonts to compare hierarchy."
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "files": [
+          ".omx/previews/heading-systems-20260925/specimen.css"
+        ],
+        "createdAt": "2026-09-25T06:36:57.901Z",
+        "reason": "Intentional comparison constraint: existing DESIGN.md specifies Geist Sans and Geist Mono; approved heading research preserves those fonts to compare hierarchy."
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist mono",
+        "files": [
+          ".omx/previews/heading-systems-20260925/specimen.css"
+        ],
+        "createdAt": "2026-09-25T06:36:58.229Z",
+        "reason": "Intentional comparison constraint: existing DESIGN.md specifies Geist Sans and Geist Mono; approved heading research preserves those fonts to compare hierarchy."
       }
     ]
   }

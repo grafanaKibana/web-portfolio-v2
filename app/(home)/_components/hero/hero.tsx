@@ -90,7 +90,7 @@ export function HomeHero() {
       </div>
       <h1 data-page-motion-intro="immediate" id="intro-heading" className={clsx(styles.heading, "m-0 font-medium")}>
         <span className="block">{home.hero.title}</span>
-        <span className="block text-content-foreground">{home.hero.lead}</span>
+        <span className="block text-content-foreground opacity-80">{home.hero.lead}</span>
       </h1>
       <div data-page-motion-intro="immediate" className={clsx(styles.descriptorSlot, "flex items-center justify-center")}>
         <DescriptorRotation

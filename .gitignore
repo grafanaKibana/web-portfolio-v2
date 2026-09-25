@@ -44,8 +44,10 @@ next-env.d.ts
 # agents
 /.omc/
 /.omx/
+.impeccable
 
-#ide
+
+# ide
 /.idea/
 /.playwright-cli/
 /output/playwright/
