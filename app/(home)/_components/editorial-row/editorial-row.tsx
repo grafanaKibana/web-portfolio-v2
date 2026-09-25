@@ -50,7 +50,7 @@ export function HomeEditorialRow({ actions, askRecord, dataSlot, description, ti
       <article className="grid gap-x-4 md:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6" data-slot="home-editorial-row">
         <h3 className="m-0 min-w-0 text-[1.375rem] leading-7 font-medium tracking-[-0.02em] text-balance wrap-anywhere md:col-start-1 md:row-start-1 lg:group-first/editorial:text-2xl lg:group-first/editorial:leading-7.5">{title}</h3>
         <p className="m-0 mt-3 text-sm leading-6 text-pretty text-content-foreground md:col-span-2 md:row-start-2">{description}</p>
-        <div className="mt-4 flex cursor-default flex-wrap items-center justify-start gap-x-6 gap-y-4 md:col-start-2 md:row-start-1 md:mt-0 md:justify-end md:gap-x-8 lg:gap-x-6 [&_a]:cursor-pointer [&_[data-row-link]]:ms-auto" data-slot="project-actions">{actions}</div>
+        <div className="mt-3 flex cursor-default flex-wrap items-center justify-start gap-x-2 gap-y-1 md:col-start-2 md:row-start-1 md:mt-0 md:justify-end lg:gap-x-6 [&_a]:cursor-pointer max-lg:[&_a]:min-h-11 max-lg:[&_a]:min-w-11 max-lg:[&_a]:justify-center [&_[data-row-link]]:ms-auto" data-slot="project-actions">{actions}</div>
       </article>
     </li>
   );

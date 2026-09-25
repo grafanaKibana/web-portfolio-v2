@@ -52,7 +52,7 @@ function PullRequestRow(props: PullRequestRowProps) {
   return (
     <li className="border-t first:border-t-0" data-page-motion-row={animate ? "" : undefined}>
       <a
-        className="group/pull-request grid min-h-11 min-w-0 grid-cols-[1.1rem_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-sm py-4 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="group/pull-request grid min-h-11 min-w-0 grid-cols-[1.1rem_minmax(0,1fr)] items-start gap-x-2.5 gap-y-2 rounded-sm py-4 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:grid-cols-[1.1rem_minmax(0,1fr)_auto] sm:items-center"
         data-slot="pull-request-row"
         href={contribution.href}
         rel="noreferrer"
@@ -60,7 +60,7 @@ function PullRequestRow(props: PullRequestRowProps) {
       >
         <StatusIcon
           aria-hidden="true"
-          className={clsx(styles.statusIcon, "size-4")}
+          className={clsx(styles.statusIcon, "mt-0.5 size-4 sm:mt-0")}
           data-slot="pull-request-status"
           data-status={status}
         />
@@ -72,7 +72,7 @@ function PullRequestRow(props: PullRequestRowProps) {
             {contribution.title}
           </span>
         </span>
-        <span className="flex flex-col items-end gap-1 self-center whitespace-nowrap font-mono text-xs leading-4.5" data-slot="pull-request-meta">
+        <span className="col-start-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs leading-4.5 sm:col-start-3 sm:row-start-1 sm:flex-col sm:items-end sm:self-center" data-slot="pull-request-meta">
           <time className="whitespace-nowrap text-muted-foreground" dateTime={contribution.date} data-slot="pull-request-date">
             {pullRequestPeriod.format(new Date(contribution.date))}
           </time>

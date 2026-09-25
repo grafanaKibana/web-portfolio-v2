@@ -41,7 +41,7 @@ export function HomeContact() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,max(7rem,calc(50%_-_0.75rem))),1fr))] gap-x-6 gap-y-2 min-[56.25rem]:grid-cols-[repeat(2,max-content)]" data-page-motion-row>
           <a
             aria-label={`E-Mail: ${contact.email}`}
-            className="px-3 inline-flex min-h-12 max-w-full min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="inline-flex min-h-12 max-w-full min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             href={`mailto:${contact.email}`}
           >
             <Mail aria-hidden="true" className="action-icon opacity-65" />
@@ -50,7 +50,7 @@ export function HomeContact() {
           </a>
           {profile.links.map((link) => (
             <a
-              className="px-3 inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               href={link.href}
               key={link.href}
               rel="noreferrer"
@@ -61,7 +61,7 @@ export function HomeContact() {
               <ArrowUpRight aria-hidden="true" className="ml-auto action-icon opacity-45" />
             </a>
           ))}
-          <span aria-disabled="true" className="px-3 inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground opacity-35">
+          <span aria-disabled="true" className="inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground opacity-35">
             <Calendar aria-hidden="true" className="action-icon" />
             Book a call
             <ArrowUpRight aria-hidden="true" className="ml-auto action-icon opacity-45" />

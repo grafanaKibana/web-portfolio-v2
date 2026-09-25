@@ -155,7 +155,7 @@ export function HomeSkills() {
             <SkillList
               className={clsx(
                 styles.skillList,
-                "mx-0 my-4 flex list-none flex-wrap justify-center gap-x-6 gap-y-4 p-0 md:gap-x-8 lg:my-6 lg:gap-x-10",
+                "mx-0 my-4 flex list-none flex-wrap justify-center gap-x-2 gap-y-1 p-0 md:gap-x-4 lg:my-6 lg:gap-x-10 lg:gap-y-4",
               )}
               data-page-motion-item
               skills={group.skills.map((skill) => ({ name: skill, icon: skillIcons[skill] }))}

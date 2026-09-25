@@ -91,8 +91,10 @@ export function EducationContent({
           <p className="m-0 mt-4 flex flex-wrap items-center gap-1.5 font-mono text-xs leading-4.5 text-muted-foreground [&_svg]:size-3 [&_svg]:opacity-65">
             <span>{education.period}</span>
             <span aria-hidden="true">·</span>
-            <MapPin aria-hidden="true" />
-            <span>{education.location}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin aria-hidden="true" />
+              {education.location}
+            </span>
           </p>
         </div>
 

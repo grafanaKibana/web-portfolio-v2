@@ -28,7 +28,7 @@ export function SkillList({ skills, ...props }: ComponentProps<"ul"> & {
             <Tooltip open={openSkill === index} onOpenChange={(open) => { setOpenSkill((current) => open ? index : current === index ? null : current); }}>
               <TooltipTrigger
                 type="button"
-                className={clsx(styles.skill, "inline-flex items-center gap-2 text-sm leading-6 text-content-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:gap-2.5")}
+                className={clsx(styles.skill, "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-sm text-sm leading-6 text-content-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:min-h-0 lg:min-w-0 lg:gap-2.5")}
                 data-slot="skill-trigger"
                 tabIndex={focusedSkill === index ? 0 : -1}
                 closeOnClick={false}
