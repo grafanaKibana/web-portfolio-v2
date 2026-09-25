@@ -75,7 +75,15 @@ const edgeShapes = [
   { ...edgeBase, x: 53, y: 108, scale: 158, amp: 70, rotate: -9, edgeAngle: -95, edgeWidth: 26, shift: 90 },
 ] as const;
 
-/** Clamps a shape field to its editor range, optionally rounding discrete values. */
+/**
+ * Clamps a shape field to its editor range, optionally rounding discrete values.
+ * @param value - Untrusted shape field value.
+ * @param fallback - Value used when the input is not finite.
+ * @param min - Lowest accepted value.
+ * @param max - Highest accepted value.
+ * @param integer - Whether to round the bounded result.
+ * @returns Bounded shape field value.
+ */
 function shapeNumber(
   value: unknown,
   fallback: number,
@@ -87,7 +95,12 @@ function shapeNumber(
   return integer ? Math.round(normalized) : normalized;
 }
 
-/** Converts one untrusted editor shape to a renderer line without text or asset fields. */
+/**
+ * Converts one untrusted editor shape to a renderer line without text or asset fields.
+ * @param value - Untrusted shape options.
+ * @param index - Shape position used for its identifier and diagnostics.
+ * @returns Sanitized renderer line fields.
+ */
 function normalizeShape(value: unknown, index: number): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`Glow shape ${String(index + 1)} must be an object.`);

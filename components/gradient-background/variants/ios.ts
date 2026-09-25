@@ -14,6 +14,9 @@ export const iosDefinition: VariantDefinition = {
   soften: 12,
   defaults: {},
   controls: [],
-  /** Leaves shared palette and finish controls to the facade. */
+  /**
+   * Leaves shared palette and finish controls to the facade.
+   * @returns An empty variant-specific recipe.
+   */
   normalize: () => ({}),
 };

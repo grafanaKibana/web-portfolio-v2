@@ -13,6 +13,7 @@ type SubheadingProps = Omit<ComponentProps<typeof Marker>, "children" | "render"
  *
  * @param align - Label alignment; defaults to the leading edge.
  * @param children - Subsection label.
+ * @param className - Additional heading layout classes.
  * @param props - Heading attributes and optional layout classes.
  * @returns A semantic third-level heading.
  */

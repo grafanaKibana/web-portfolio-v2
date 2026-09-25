@@ -22,7 +22,10 @@ const VENDORED_RUNTIME = new URL(
   UPSTREAM_DIRECTORY,
 );
 
-/** Builds a synthetic normalized recipe for source parity checks. */
+/** Builds a synthetic normalized recipe for source parity checks.
+ * @param type - Upstream renderer type.
+ * @returns A deterministic recipe for the selected renderer.
+ */
 function recipe(type: string): GradientRecipe {
   return {
     type,
@@ -41,7 +44,11 @@ function recipe(type: string): GradientRecipe {
   };
 }
 
-/** Runs the captured builder's `y6` CSS generator without loading its app. */
+/** Runs the captured builder's `y6` CSS generator without loading its app.
+ * @param builder - Captured builder source containing the CSS generator.
+ * @param input - Normalized recipe passed to the generator.
+ * @returns Generated CSS background string.
+ */
 function generateWithCapturedBuilder(
   builder: string,
   input: GradientRecipe,
@@ -111,17 +118,53 @@ test("Still paints one final grained frame before display without a delayed prev
   const start = vendored.indexOf("function zs(");
   const end = vendored.indexOf("var Ro=", start);
   const draws: unknown[][] = [];
-  const canvas = { width: 0, height: 0, getContext: () => ({}) };
+  const canvas = {
+    width: 0,
+    height: 0,
+    /** Supplies the context placeholder used by the mocked painter.
+     * @returns An empty drawing context.
+     */
+    getContext: () => ({}),
+  };
   const params = { positions: 76, mixing: 70, grain: 5 };
   const context = vm.createContext({
+    /** Supplies the canvas ref for the isolated renderer.
+     * @returns A ref containing the test canvas.
+     */
     ut: () => ({ current: canvas }),
+    /** Disables reduced motion in the renderer harness.
+     * @returns False to keep the default motion preference.
+     */
     ua: () => false,
+    /** Preserves initial state without scheduling rerenders.
+     * @param value - Initial state value.
+     * @returns Initial state and an inert setter.
+     */
     mn: (value: unknown) => [value, () => undefined],
+    /** Skips passive effects in the synchronous renderer harness.
+     * @returns Undefined without running an effect.
+     */
     cn: () => undefined,
+    /** Runs layout effects immediately to capture the first paint.
+     * @param effect - Layout effect to execute.
+     */
     jn: (effect: () => void) => { effect(); },
+    /** Excludes Sky and Aurora renderers from the Still harness.
+     * @returns False for the isolated rendering path.
+     */
     Tt: () => false,
+    /** Excludes Prism renderers from the Still harness.
+     * @returns False for the isolated rendering path.
+     */
     ht: () => false,
+    /** Records painter calls for frame and parameter assertions.
+     * @param args - Arguments passed to the painter.
+     * @returns The number of recorded calls.
+     */
     Hn: (...args: unknown[]) => draws.push(args),
+    /** Suppresses JSX output while testing painter effects.
+     * @returns Null instead of a rendered element.
+     */
     oe: () => null,
     Ee: 50, Vt: 50, Ut: 50, Ht: 50, ea: 50, ae: 20.75,
     ll: 640, cl: 360, pl: 320, ml: 180,

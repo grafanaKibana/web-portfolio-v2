@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { resolveHeroContrast } from "./hero-contrast";
 
-/** Independently measures WCAG contrast for a rendered, veil-composited sample. */
+/** Independently measures WCAG contrast for a rendered, veil-composited sample.
+ * @param sample - Background RGB channels in the range 0 to 255.
+ * @param foreground - Black or white foreground hex color.
+ * @param veil - Black or white overlay hex color.
+ * @param alpha - Overlay opacity in the unit interval.
+ * @returns WCAG contrast ratio against the composited background.
+ */
 function contrast(sample: number[], foreground: string, veil: string, alpha: number): number {
   const rgb = sample.map((value) => value * (1 - alpha) + (veil === "#ffffff" ? 255 : 0) * alpha);
   const luminance = rgb.reduce((sum, value, index) => {

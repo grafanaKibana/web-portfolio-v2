@@ -27,7 +27,12 @@ export const meshDefinition: VariantDefinition = {
       max: 100,
     },
   ],
-  /** Maps complete palette-ordered points; absent points keep AIR's fallback cycle. */
+  /**
+   * Maps complete palette-ordered points; absent points keep AIR's fallback cycle.
+   * @param options - Untrusted mesh options.
+   * @param colors - Palette used to validate point count.
+   * @returns Mesh-specific recipe fields.
+   */
   normalize(options: unknown, colors: readonly string[]): Partial<GradientRecipe> {
     const { points: value } = asRecord(options);
     if (value == null) {

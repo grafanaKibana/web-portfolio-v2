@@ -5,14 +5,19 @@ const variants = [
   "glow", "rings", "pixel", "radial", "conic", "mist",
 ] as const;
 
-/** Opens the preview and waits for the global decorative startup to finish. */
+/** Opens the preview and waits for the global decorative startup to finish.
+ * @param page - Browser page hosting the preview.
+ */
 async function openPreview(page: Page) {
   await page.goto("/gradient-preview");
   await expect(page.getByRole("heading", { name: "Gradient background lab" })).toBeVisible();
   await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
 }
 
-/** Returns whether the page introduces document-level horizontal overflow. */
+/** Returns whether the page introduces document-level horizontal overflow.
+ * @param page - Browser page to inspect.
+ * @returns Whether the document exceeds its viewport width.
+ */
 async function hasHorizontalOverflow(page: Page) {
   return page.locator("html").evaluate((root) => root.scrollWidth > root.clientWidth);
 }
@@ -195,7 +200,9 @@ test("clipboard failure preserves a selectable usage example", async ({ page }) 
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "clipboard", {
       value: {
-        /** Simulates a browser permission rejection. */
+        /** Simulates a browser permission rejection.
+         * @returns A promise rejected with the clipboard permission error.
+         */
         writeText: () => Promise.reject(new Error("Clipboard denied")),
       },
       configurable: true,

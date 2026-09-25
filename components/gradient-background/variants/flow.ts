@@ -29,7 +29,12 @@ export const flowDefinition: VariantDefinition = {
     { key: "speed", label: "Speed", kind: "number", min: 0, max: 100, step: 1 },
     { key: "points", label: "Points", kind: "points" },
   ],
-  /** Maps validated editor values to the source Flow renderer's recipe fields. */
+  /**
+   * Maps validated editor values to the source Flow renderer's recipe fields.
+   * @param options - Untrusted Flow options.
+   * @param colors - Palette used to validate optional point geometry.
+   * @returns Flow-specific recipe fields.
+   */
   normalize(options: unknown, colors: readonly string[]): Partial<GradientRecipe> {
     const raw = asRecord(options);
     let mesh: number[][] | null = null;

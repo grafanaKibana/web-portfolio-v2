@@ -21,12 +21,23 @@ export interface FeralGradientCssProps {
   onError?: (error: Error) => void;
 }
 
-/** Reports whether the builder exports this recipe through its CSS `b6` path. */
+/**
+ * Reports whether the builder exports this recipe through its CSS `b6` path.
+ *
+ * @param recipe - Gradient recipe to classify.
+ * @returns Whether the recipe uses the upstream CSS renderer.
+ */
 export function isFeralCssRecipe(recipe: GradientRecipe): boolean {
   return CSS_RECIPE_TYPES.has(recipe.type);
 }
 
-/** Produces center positions for each palette color from optional dividers. */
+/**
+ * Produces center positions for each palette color from optional dividers.
+ *
+ * @param count - Number of palette colors.
+ * @param divs - Optional normalized boundaries between colors.
+ * @returns Percentage center positions for the palette colors.
+ */
 function colorPositions(count: number, divs: number[]): number[] {
   const defaults = Array.from(
     { length: Math.max(0, count - 1) },
@@ -46,7 +57,12 @@ function colorPositions(count: number, divs: number[]): number[] {
   );
 }
 
-/** Converts an opaque six-digit hex color into OKLab coordinates. */
+/**
+ * Converts an opaque six-digit hex color into OKLab coordinates.
+ *
+ * @param color - Opaque six-digit hexadecimal color.
+ * @returns The color's lightness and chromatic coordinates.
+ */
 function hexToOklab(color: string): [number, number, number] {
   const linear = [1, 3, 5].map((index) => {
     const channel = Number.parseInt(color.slice(index, index + 2), 16) / 255;
@@ -72,7 +88,14 @@ function hexToOklab(color: string): [number, number, number] {
   ];
 }
 
-/** Converts OKLab coordinates into a clamped opaque six-digit hex color. */
+/**
+ * Converts OKLab coordinates into a clamped opaque six-digit hex color.
+ *
+ * @param l - Perceptual lightness coordinate.
+ * @param a - Green-to-red chromatic coordinate.
+ * @param b - Blue-to-yellow chromatic coordinate.
+ * @returns A clamped opaque six-digit hexadecimal color.
+ */
 function oklabToHex(l: number, a: number, b: number): string {
   const lCube = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
   const mCube = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
@@ -99,7 +122,14 @@ function oklabToHex(l: number, a: number, b: number): string {
     .slice(1)}`;
 }
 
-/** Interpolates two colors through OKLab using the builder's curve. */
+/**
+ * Interpolates two colors through OKLab using the builder's curve.
+ *
+ * @param start - Starting hexadecimal color.
+ * @param end - Ending hexadecimal color.
+ * @param amount - Normalized interpolation amount.
+ * @returns The interpolated hexadecimal color.
+ */
 function interpolateColor(start: string, end: string, amount: number): string {
   const startLab = hexToOklab(start);
   const endLab = hexToOklab(end);
@@ -110,7 +140,14 @@ function interpolateColor(start: string, end: string, amount: number): string {
   );
 }
 
-/** Expands adjacent colors with the builder's six eased intermediate stops. */
+/**
+ * Expands adjacent colors with the builder's eased intermediate stops.
+ *
+ * @param colors - Ordered hexadecimal palette.
+ * @param positions - Normalized positions corresponding to the palette.
+ * @param steps - Number of intermediate stops per adjacent color pair.
+ * @returns Expanded color and position pairs.
+ */
 function smoothStops(
   colors: string[],
   positions: number[],
@@ -141,7 +178,12 @@ function smoothStops(
   return result;
 }
 
-/** Recreates the exact CSS background selected by the upstream `b6` exporter. */
+/**
+ * Recreates the exact CSS background selected by the upstream `b6` exporter.
+ *
+ * @param recipe - CSS-compatible gradient recipe.
+ * @returns The complete CSS background value.
+ */
 export function getFeralCssBackground(recipe: GradientRecipe): string {
   if (!isFeralCssRecipe(recipe)) {
     throw new Error(`Feral CSS export does not support ${recipe.type}.`);
@@ -205,7 +247,11 @@ export function getFeralCssBackground(recipe: GradientRecipe): string {
   }
 }
 
-/** Creates the stable seeded grain tile used by CSS-only gradients. */
+/**
+ * Creates the stable seeded grain tile used by CSS-only gradients.
+ *
+ * @returns A data URL for the cached grain tile.
+ */
 function makeGrainTile(): string {
   if (grainTile) {
     return grainTile;
@@ -220,7 +266,11 @@ function makeGrainTile(): string {
 
   const image = context.createImageData(GRAIN_TILE_SIZE, GRAIN_TILE_SIZE);
   let seed = 1977;
-  /** Returns the next deterministic unit value for the cached grain tile. */
+  /**
+   * Returns the next deterministic unit value for the cached grain tile.
+   *
+   * @returns A deterministic value in the half-open unit interval.
+   */
   const random = (): number => {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     return seed / 4294967296;
@@ -235,7 +285,15 @@ function makeGrainTile(): string {
   return grainTile;
 }
 
-/** Renders the four variants exported by Feral through its CSS `b6` path. */
+/**
+ * Renders the four variants exported by Feral through its CSS `b6` path.
+ *
+ * @param recipe - CSS-compatible gradient recipe.
+ * @param className - Optional class applied to the renderer root.
+ * @param style - Optional inline styles merged into the renderer root.
+ * @param onError - Optional callback for grain rendering failures.
+ * @returns The CSS gradient renderer element.
+ */
 export function FeralGradientCss({
   recipe,
   className,

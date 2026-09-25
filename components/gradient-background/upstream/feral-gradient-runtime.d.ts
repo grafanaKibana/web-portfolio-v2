@@ -12,7 +12,13 @@ export interface FeralGradientRuntimeProps {
   onError?: (error: Error) => void;
 }
 
-/** Paints one recipe into an existing canvas at a controlled time. */
+/**
+ * Paints one recipe into an existing canvas at a controlled time.
+ *
+ * @param canvas - Destination canvas element.
+ * @param recipe - Gradient recipe to paint.
+ * @param time - Optional controlled animation time.
+ */
 export function paintRecipe(
   canvas: HTMLCanvasElement,
   recipe: GradientRecipe,

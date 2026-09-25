@@ -16,12 +16,25 @@ const DEFAULT_DESTINATION = resolve(
   "feral-gradient-runtime.jsx",
 );
 
-/** Returns a SHA-256 digest for reproducible source verification. */
+/**
+ * Returns a SHA-256 digest for reproducible source verification.
+ *
+ * @param value - Source bytes or text to hash.
+ * @returns The lowercase hexadecimal digest.
+ */
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-/** Replaces one exact source seam and rejects source drift. */
+/**
+ * Replaces one exact source seam and rejects source drift.
+ *
+ * @param source - Complete runtime source text.
+ * @param search - Exact source seam expected once.
+ * @param replacement - Text that replaces the source seam.
+ * @param label - Human-readable seam name for diagnostics.
+ * @returns Source text with the requested replacement.
+ */
 function replaceOnce(source, search, replacement, label) {
   const first = source.indexOf(search);
   const last = source.lastIndexOf(search);
@@ -37,7 +50,12 @@ function replaceOnce(source, search, replacement, label) {
   return source.replace(search, replacement);
 }
 
-/** Applies the reviewed per-instance, resilience, and deterministic-noise patch. */
+/**
+ * Applies the reviewed per-instance, resilience, and deterministic-noise patch.
+ *
+ * @param source - Verified upstream runtime source text.
+ * @returns Locally adapted runtime source text.
+ */
 export function adaptFeralGradientRuntime(source) {
   if (sha256(source) !== EXPECTED_SOURCE_HASH) {
     throw new Error("Feral runtime source hash does not match the reviewed snapshot.");

@@ -55,12 +55,22 @@ class EngineBoundary extends Component<
     this.state = { failed: false, resetKey: props.resetKey };
   }
 
-  /** Converts a renderer exception into a fallback-only state. */
+  /**
+   * Converts a renderer exception into a fallback-only state.
+   *
+   * @returns The boundary state that suppresses the renderer.
+   */
   public static getDerivedStateFromError(): Partial<EngineBoundaryState> {
     return { failed: true };
   }
 
-  /** Resets the boundary when the canonical visual configuration changes. */
+  /**
+   * Resets the boundary when the canonical visual configuration changes.
+   *
+   * @param props - Current boundary properties.
+   * @param state - Current boundary state.
+   * @returns Updated state when the reset key changes, otherwise null.
+   */
   public static getDerivedStateFromProps(
     props: EngineBoundaryProps,
     state: EngineBoundaryState,
@@ -70,40 +80,72 @@ class EngineBoundary extends Component<
       : { failed: false, resetKey: props.resetKey };
   }
 
-  /** Reports a captured renderer exception to the facade. */
+  /**
+   * Reports a captured renderer exception to the facade.
+   *
+   * @param error - Captured renderer error.
+   * @param _info - React component-stack diagnostics.
+   */
   public componentDidCatch(error: Error, _info: ErrorInfo): void {
     this.props.onError(error);
   }
 
-  /** Renders the engine while healthy and leaves the CSS fallback otherwise. */
+  /**
+   * Renders the engine while healthy and leaves the CSS fallback otherwise.
+   *
+   * @returns The renderer children while healthy, otherwise null.
+   */
   public render(): ReactNode {
     return this.state.failed ? null : this.props.children;
   }
 }
 
-/** Subscribes to the immutable client-hydration external store. */
+/**
+ * Subscribes to the immutable client-hydration external store.
+ *
+ * @returns A no-op unsubscribe callback.
+ */
 function subscribeToClient(): () => void {
   return () => undefined;
 }
 
-/** Reports the hydrated browser snapshot. */
+/**
+ * Reports the hydrated browser snapshot.
+ *
+ * @returns True for the browser snapshot.
+ */
 function getClientSnapshot(): boolean {
   return true;
 }
 
-/** Reports the server and pre-hydration snapshot. */
+/**
+ * Reports the server and pre-hydration snapshot.
+ *
+ * @returns False for the server and pre-hydration snapshot.
+ */
 function getServerSnapshot(): boolean {
   return false;
 }
 
-/** Creates a bounded diagnostic identity for malformed runtime input. */
+/**
+ * Creates a bounded diagnostic identity for malformed runtime input.
+ *
+ * @param props - Gradient properties that failed normalization.
+ * @returns A stable bounded identity for the malformed configuration.
+ */
 function failedConfigurationIdentity(
   props: GradientBackgroundProps,
 ): string {
   const seen = new WeakSet<object>();
   let remaining = 100;
 
-  /** Converts one value without invoking object getters. */
+  /**
+   * Converts one value without invoking object getters.
+   *
+   * @param value - Value to serialize safely.
+   * @param depth - Current traversal depth.
+   * @returns A bounded serialization-safe value.
+   */
   const visit = (value: unknown, depth: number): unknown => {
     if (remaining <= 0) return "[truncated]";
     remaining -= 1;
@@ -128,7 +170,12 @@ function failedConfigurationIdentity(
   return JSON.stringify(visit(props, 0));
 }
 
-/** Renders a decorative gradient with a stable server-safe CSS fallback. */
+/**
+ * Renders a decorative gradient with a stable server-safe CSS fallback.
+ *
+ * @param props - Gradient configuration and wrapper properties.
+ * @returns The decorative gradient background.
+ */
 export function GradientBackground(props: GradientBackgroundProps) {
   const { onError } = props;
   const reportedErrors = useRef(new Set<string>());

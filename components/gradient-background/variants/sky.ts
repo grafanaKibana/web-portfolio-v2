@@ -34,7 +34,12 @@ export const skyDefinition: VariantDefinition = {
       choices: ["up", "right", "down", "left"],
     },
   ],
-  /** Maps validated editor values to the Sky renderer's weather parameters. */
+  /**
+   * Maps validated editor values to the Sky renderer's weather parameters.
+   * @param options - Untrusted Sky options.
+   * @param _colors - Palette normalized by the shared facade.
+   * @returns Sky-specific recipe fields.
+   */
   normalize(options: unknown, _colors: readonly string[]): Partial<GradientRecipe> {
     const raw = asRecord(options);
     const direction = enumOption(

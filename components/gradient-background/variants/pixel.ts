@@ -13,7 +13,12 @@ export interface PixelOptions {
 
 const styles = ["quilt", "orbs", "glass"] as const;
 
-/** Validates a style-specific options object before reading its controls. */
+/**
+ * Validates a style-specific options object before reading its controls.
+ * @param value - Untrusted style options.
+ * @param style - Active style name used in diagnostics.
+ * @returns A record containing the style controls.
+ */
 function styleOptions(value: unknown, style: string): Record<string, unknown> {
   if (value === undefined) return {};
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -59,7 +64,14 @@ export const pixelDefinition: VariantDefinition = {
     const input = asRecord(options);
     const style = enumOption(input.style, styles, "quilt");
     const current = styleOptions(input[style], style);
-    /** Returns one rounded style control within its editor bounds. */
+    /**
+     * Returns one rounded style control within its editor bounds.
+     * @param key - Style control key.
+     * @param fallback - Value used when the control is not finite.
+     * @param min - Lowest accepted value.
+     * @param max - Highest accepted value.
+     * @returns Rounded and bounded style control value.
+     */
     const integer = (key: string, fallback: number, min: number, max: number) =>
       Math.round(numberOption(current[key], fallback, min, max));
     const common = {

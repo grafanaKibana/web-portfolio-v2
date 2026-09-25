@@ -17,7 +17,12 @@ export interface FeralGradientEngineProps extends FeralGradientRuntimeProps {
   onStillReady?: () => void;
 }
 
-/** Dispatches recipes to the same Canvas/WebGL or CSS path used by the export source. */
+/**
+ * Dispatches recipes to the same Canvas/WebGL or CSS path used by the export source.
+ *
+ * @param props - Recipe and renderer lifecycle properties.
+ * @returns The renderer selected for the recipe type.
+ */
 export default function FeralGradientEngine(props: FeralGradientEngineProps) {
   const { recipe, onStillReady } = props;
   useLayoutEffect(() => {

@@ -63,7 +63,10 @@ function luminance(rgb: number[]): number {
   return 0.2126 * (linear[0] ?? 0) + 0.7152 * (linear[1] ?? 0) + 0.0722 * (linear[2] ?? 0);
 }
 
-/** Decodes a unit sRGB channel into linear light. */
+/** Decodes a unit sRGB channel into linear light.
+ * @param value - Normalized sRGB channel.
+ * @returns Linear-light channel in the unit interval.
+ */
 function linearChannel(value: number): number {
   return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
 }

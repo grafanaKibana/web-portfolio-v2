@@ -11,12 +11,27 @@ class StillCanvas {
   height = 420;
   pixels = null;
 
-  /** Supplies only the raster operations used by the static Still painter. */
+  /** Supplies only the raster operations used by the static Still painter.
+   * @returns Minimal drawing context backed by this canvas pixel buffer.
+   */
   getContext() {
     return {
+      /** Discards previously painted pixels. */
       clearRect: () => { this.pixels = null; },
+      /** Allocates an empty RGBA raster.
+       * @param width - Raster width in pixels.
+       * @param height - Raster height in pixels.
+       * @returns Dimensions and a zero-filled pixel buffer.
+       */
       createImageData: (width, height) => ({ width, height, data: new Uint8ClampedArray(width * height * 4) }),
+      /** Stores the raster produced by the Still painter.
+       * @param image - Image data containing painted pixels.
+       */
       putImageData: (image) => { this.pixels = image.data; },
+      /** Copies pixels from an equally sized scratch canvas.
+       * @param source - Scratch canvas holding the rendered field.
+       * @throws When the scratch canvas dimensions differ from this target.
+       */
       drawImage: (source) => {
         if (source.width !== this.width || source.height !== this.height) {
           throw new Error("Still image dimensions changed; review the upstream raster path.");
@@ -54,10 +69,14 @@ async function field(colors) {
   return encodeImage(canvas.pixels, canvas.width, canvas.height, 4);
 }
 
-/** Reproduces the upstream seeded monochrome tile; CSS retains the requested noise opacity. */
+/** Reproduces the upstream seeded monochrome tile; CSS retains the requested noise opacity.
+ * @returns Encoded monochrome grain tile as WebP bytes.
+ */
 async function noiseTile() {
   let seed = 1977;
-  /** Returns the next deterministic upstream grain sample. */
+  /** Returns the next deterministic upstream grain sample.
+   * @returns Pseudorandom value in the half-open unit interval.
+   */
   const random = () => {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     return seed / 4294967296;
@@ -73,7 +92,12 @@ const directory = new URL("../app/(home)/_components/hero/", import.meta.url);
 const previousDocument = globalThis.document;
 try {
   // The upstream painter creates one scratch canvas. Keep the shim local to this build process.
-  globalThis.document = { createElement: () => new StillCanvas() };
+  globalThis.document = {
+    /** Creates the scratch canvas required by the upstream painter.
+     * @returns A fresh raster target.
+     */
+    createElement: () => new StillCanvas(),
+  };
   const light = await field(heroPalettes.light);
   const dark = await field(heroPalettes.dark);
   const noise = await noiseTile();

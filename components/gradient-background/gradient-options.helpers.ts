@@ -1,4 +1,9 @@
-/** Returns a plain record or an empty record for unsupported input. */
+/**
+ * Returns a plain record or an empty record for unsupported input.
+ *
+ * @param value - Candidate record value.
+ * @returns The plain record or an empty record.
+ */
 export function asRecord(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return {};
@@ -7,7 +12,15 @@ export function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-/** Normalizes a finite numeric option within inclusive bounds. */
+/**
+ * Normalizes a finite numeric option within inclusive bounds.
+ *
+ * @param value - Candidate numeric option.
+ * @param fallback - Value used when the candidate is not finite.
+ * @param min - Inclusive lower bound.
+ * @param max - Inclusive upper bound.
+ * @returns The fallback or bounded numeric option.
+ */
 export function numberOption(
   value: unknown,
   fallback: number,
@@ -21,7 +34,15 @@ export function numberOption(
   return Math.min(max, Math.max(min, value));
 }
 
-/** Selects an allowed string option or its fallback. */
+/**
+ * Selects an allowed string option or its fallback.
+ *
+ * @typeParam T - Allowed string option type.
+ * @param value - Candidate string option.
+ * @param choices - Allowed option values.
+ * @param fallback - Value used when the candidate is not allowed.
+ * @returns The allowed candidate or fallback.
+ */
 export function enumOption<T extends string>(
   value: unknown,
   choices: readonly T[],
@@ -32,7 +53,15 @@ export function enumOption<T extends string>(
     : fallback;
 }
 
-/** Validates and clamps a fixed-length collection of two-dimensional points. */
+/**
+ * Validates and clamps a fixed-length collection of two-dimensional points.
+ *
+ * @param value - Candidate point collection.
+ * @param count - Required number of points.
+ * @param min - Inclusive coordinate lower bound.
+ * @param max - Inclusive coordinate upper bound.
+ * @returns The bounded points, or undefined when validation fails.
+ */
 export function pointsOption(
   value: unknown,
   count: number,

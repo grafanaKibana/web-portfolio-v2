@@ -180,6 +180,10 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPa
  */
 async function expectFieldFinishesAfterThread(surface: Locator): Promise<void> {
   const timing = await surface.evaluate((element) => {
+    /** Reads the latest animation end time on a matching descendant.
+     * @param selector - Selector for the animated descendant.
+     * @returns Latest end time, or negative infinity when no animations exist.
+     */
     const endTime = (selector: string) => Math.max(...Array.from(element.querySelector(selector)?.getAnimations() ?? [], ({ effect }) => Number(effect?.getComputedTiming().endTime)));
     return { thread: endTime("[data-chat-frame]"), field: endTime('[data-conversation-composer] [data-slot="input-group"]') };
   });
@@ -211,6 +215,10 @@ async function sampleClosingStart(surface: Locator): Promise<{ clipPath: string;
  * @param expected - Interrupted opening clip polygon.
  */
 function expectClipPathClose(actual: string, expected: string): void {
+  /** Extracts numeric polygon coordinates for tolerant comparisons.
+   * @param value - Computed clip-path value.
+   * @returns Coordinates in their original order.
+   */
   const values = (value: string) => Array.from(value.matchAll(/-?\d+(?:\.\d+)?/g), ([match]) => Number(match));
   const actualValues = values(actual);
   const expectedValues = values(expected);

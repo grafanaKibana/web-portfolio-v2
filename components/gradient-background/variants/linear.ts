@@ -18,7 +18,12 @@ export const linearDefinition: VariantDefinition = {
   defaults: {},
   controls: [],
 
-  /** Leaves shared palette, balance, noise, and soften normalization to the facade. */
+  /**
+   * Leaves shared palette, balance, noise, and soften normalization to the facade.
+   * @param _options - Unused variant options.
+   * @param _colors - Palette normalized by the shared facade.
+   * @returns An empty variant-specific recipe.
+   */
   normalize(
     _options: unknown,
     _colors: readonly string[],

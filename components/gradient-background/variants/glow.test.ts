@@ -4,7 +4,11 @@ import { glowDefinition } from "./glow";
 
 const palette = ["#102030", "#80F0C0", "#F090B0"];
 
-/** Returns renderer lines after asserting the adapter produced them. */
+/**
+ * Returns renderer lines after asserting the adapter produced them.
+ * @param options - Glow options passed to the variant adapter.
+ * @returns Renderer line records produced by the adapter.
+ */
 function linesFor(options: unknown): Record<string, unknown>[] {
   const lines = glowDefinition.normalize(options, palette).lines;
   assert.ok(lines);

@@ -20,7 +20,13 @@ const omittedRecipeKeys = new Set([
   "text",
 ]);
 
-/** Expands a supported hexadecimal color to uppercase six-digit form. */
+/**
+ * Expands a supported hexadecimal color to uppercase six-digit form.
+ *
+ * @param color - Hexadecimal color to normalize.
+ * @returns The uppercase six-digit hexadecimal color.
+ * @throws When the color is not a supported three- or six-digit hex value.
+ */
 function normalizeColor(color: string): string {
   if (!hexColorPattern.test(color)) {
     throw new Error(`Invalid gradient color: ${color}`);
@@ -34,7 +40,13 @@ function normalizeColor(color: string): string {
   }`.toUpperCase();
 }
 
-/** Normalizes and validates the public palette contract. */
+/**
+ * Normalizes and validates the public palette contract.
+ *
+ * @param colors - Candidate public palette.
+ * @returns The validated normalized palette.
+ * @throws When the palette has an invalid size or contains an invalid color.
+ */
 function normalizeColors(colors: unknown): string[] {
   if (!Array.isArray(colors) || colors.length < 2 || colors.length > 6) {
     throw new Error("Gradient colors must contain between 2 and 6 hex colors.");
@@ -49,7 +61,12 @@ function normalizeColors(colors: unknown): string[] {
   });
 }
 
-/** Produces equally spaced internal palette divisions. */
+/**
+ * Produces equally spaced internal palette divisions.
+ *
+ * @param colorCount - Number of colors in the palette.
+ * @returns The default palette division positions.
+ */
 function defaultBalance(colorCount: number): number[] {
   return Array.from(
     { length: colorCount - 1 },
@@ -57,7 +74,13 @@ function defaultBalance(colorCount: number): number[] {
   );
 }
 
-/** Applies editor-compatible bounds and separation to palette divisions. */
+/**
+ * Applies editor-compatible bounds and separation to palette divisions.
+ *
+ * @param value - Candidate palette divisions.
+ * @param colorCount - Number of colors in the palette.
+ * @returns The bounded palette division positions.
+ */
 function normalizeBalance(value: unknown, colorCount: number): number[] {
   if (!Array.isArray(value)) {
     return defaultBalance(colorCount);
@@ -83,7 +106,12 @@ function normalizeBalance(value: unknown, colorCount: number): number[] {
   return normalized;
 }
 
-/** Copies recipe data while excluding upstream text and remote asset fields. */
+/**
+ * Copies recipe data while excluding upstream text and remote asset fields.
+ *
+ * @param value - Recipe fields to sanitize.
+ * @returns The recipe fields allowed by the local renderer contract.
+ */
 function sanitizeRecipeFields(
   value: Partial<GradientRecipe>,
 ): Partial<GradientRecipe> {
@@ -92,7 +120,12 @@ function sanitizeRecipeFields(
   );
 }
 
-/** Recursively orders object keys for semantic configuration identity. */
+/**
+ * Recursively orders object keys for semantic configuration identity.
+ *
+ * @param value - Value to canonicalize.
+ * @returns The value with object keys ordered recursively.
+ */
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(canonicalize);
@@ -109,12 +142,23 @@ function canonicalize(value: unknown): unknown {
   return value;
 }
 
-/** Builds a deterministic CSS fallback from the normalized palette. */
+/**
+ * Builds a deterministic CSS fallback from the normalized palette.
+ *
+ * @param colors - Normalized gradient palette.
+ * @returns A CSS linear-gradient fallback.
+ */
 function fallbackBackground(colors: readonly string[]): string {
   return `linear-gradient(135deg, ${colors.join(", ")})`;
 }
 
-/** Resolves an unknown public identifier to its registered adapter. */
+/**
+ * Resolves an unknown public identifier to its registered adapter.
+ *
+ * @param value - Candidate public variant identifier.
+ * @returns The validated variant and its registered definition.
+ * @throws When the value is not a registered gradient variant.
+ */
 function resolveDefinition(value: unknown): [GradientVariant, VariantDefinition] {
   if (
     typeof value !== "string" ||
@@ -127,7 +171,13 @@ function resolveDefinition(value: unknown): [GradientVariant, VariantDefinition]
   return [variant, gradientVariantDefinitions[variant]];
 }
 
-/** Normalizes public gradient props into an engine recipe and stable identity. */
+/**
+ * Normalizes public gradient props into an engine recipe and stable identity.
+ *
+ * @param input - Public gradient configuration to normalize.
+ * @returns The renderer recipe, playback state, identity, and CSS fallback.
+ * @throws When the configuration violates the public gradient contract.
+ */
 export function normalizeGradient(input: unknown): NormalizedGradient {
   if (input === null || typeof input !== "object") {
     throw new Error("Gradient configuration must be an object.");

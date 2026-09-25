@@ -36,7 +36,11 @@ export const ringsDefinition: VariantDefinition = {
     { key: "origin.x", label: "Origin horizontal", kind: "number", min: 0, max: 1, step: 0.01 },
     { key: "origin.y", label: "Origin vertical", kind: "number", min: 0, max: 1, step: 0.01 },
   ],
-  /** Maps public ripple controls to bounded renderer parameters. */
+  /**
+   * Maps public ripple controls to bounded renderer parameters.
+   * @param options - Untrusted ripple options.
+   * @returns Rings-specific recipe fields.
+   */
   normalize(options: unknown): Partial<GradientRecipe> {
     const values = asRecord(options);
     if (
