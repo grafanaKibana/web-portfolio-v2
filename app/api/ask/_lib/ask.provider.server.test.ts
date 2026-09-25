@@ -262,6 +262,36 @@ test("AskService sends every synthetic corpus family to the provider", async (t)
   });
 });
 
+test("AskAnswerService sends the configured token limit under the model-compatible field", async (t) => {
+  for (const { model, baseUrl, field } of [
+    { model: "gpt-6-luna", baseUrl: "https://api.openai.com/v1", field: "max_completion_tokens" },
+    { model: "gpt-6-luna", baseUrl: "https://provider.fixture/v1", field: "max_completion_tokens" },
+    { model: "gpt-5.6-luna", baseUrl: "https://api.openai.com/v1", field: "max_completion_tokens" },
+    { model: "gpt-4o", baseUrl: "https://provider.fixture/v1", field: "max_tokens" },
+  ]) {
+    await t.test(`${model} at ${baseUrl}`, async (t) => {
+      const captured: Record<string, unknown>[] = [];
+      t.mock.method(globalThis, "fetch", async (_input: RequestInfo | URL, init?: RequestInit) => {
+        captured.push(parseProviderBody(init));
+        await Promise.resolve();
+        return providerResponse([JSON.stringify({ answer: "Evidence.", sourceIds: [], followUps: [] })]);
+      });
+      const service = new AskAnswerService({
+        corpusService: { build: syntheticCorpus([{ id: "home:about", title: "About", href: "/#about", text: "Evidence." }]) },
+      });
+      const stream = service.stream(
+        { messages: [{ role: "user", content: "What does the evidence say?" }] },
+        new AbortController().signal,
+        new AskConfiguration("fixture-key", baseUrl, model, 1234),
+      );
+      for await (const text of stream) assert.equal(text, "Evidence.");
+      assert.equal(captured.length, 1);
+      assert.equal(captured[0]?.[field], 1234);
+      assert.equal(Object.hasOwn(captured[0], field === "max_tokens" ? "max_completion_tokens" : "max_tokens"), false);
+    });
+  }
+});
+
 test("AskService keeps one explicit OpenAI cache prefix across dynamic request changes", async (t) => {
   configureProvider(t, {
     baseUrl: "https://api.openai.com/v1",

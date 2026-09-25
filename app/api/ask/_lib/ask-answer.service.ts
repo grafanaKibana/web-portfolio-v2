@@ -130,16 +130,21 @@ export class AskAnswerService {
     // Cache options are enabled only for the verified OpenAI endpoint and models.
     const explicitCache = configuration.baseUrl === askServerConfig.defaultApiBaseUrl
       && ["gpt-5.6-luna", "gpt-6-luna"].includes(configuration.model);
+    // The installed LangChain model detector maps GPT-6 Luna to the unsupported max_tokens field.
+    const explicitCompletionLimit = configuration.model === "gpt-6-luna";
     const model = new ChatOpenAI({
       apiKey: configuration.apiKey,
       configuration: { baseURL: configuration.baseUrl, maxRetries: 0, logLevel: "off" },
       maxRetries: 0,
-      maxTokens: configuration.maxCompletionTokens,
+      ...(explicitCompletionLimit ? {} : { maxTokens: configuration.maxCompletionTokens }),
       model: configuration.model,
       streamUsage: false,
       useResponsesApi: false,
       __includeRawResponse: true,
-      ...(explicitCache ? { modelKwargs: { prompt_cache_options: { mode: "explicit" } } } : {}),
+      modelKwargs: {
+        ...(explicitCompletionLimit ? { max_completion_tokens: configuration.maxCompletionTokens } : {}),
+        ...(explicitCache ? { prompt_cache_options: { mode: "explicit" } } : {}),
+      },
     });
     const prompt = new AskPrompt().build(sources, AskCorpusService.resolveViewContext(input.context, sources));
     const messages = [

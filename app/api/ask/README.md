@@ -27,6 +27,8 @@ ASK_MAX_COMPLETION_TOKENS=8192
 
 Reasoning effort is not explicitly sent; the configured provider/model default applies (currently medium for OpenAI GPT-6 Luna). Answer length is guided separately by the prompt.
 
+For `gpt-6-luna`, the adapter explicitly sends the configured limit as `max_completion_tokens` and omits `max_tokens`, working around the installed LangChain model detector. Other model IDs retain LangChain's token-field mapping.
+
 Do not use `NEXT_PUBLIC_` credentials. `LANGSMITH_TRACING`, `LANGSMITH_TRACING_V2`, `LANGCHAIN_TRACING`, `LANGCHAIN_TRACING_V2`, and `LANGCHAIN_VERBOSE` must be absent or false. Provider logging is explicitly disabled. The service logs only fixed, service-owned validation reasons or deadline expiry; unknown provider/content failures remain generic. It never logs questions, model payloads, raw provider failures, credentials, or transcripts.
 
 The PoC relies on provider-platform spend controls. It adds no deployment, persistent history, trace store, application budget subsystem, vector database, or telemetry pipeline.
