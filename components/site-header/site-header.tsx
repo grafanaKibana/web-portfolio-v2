@@ -1,6 +1,7 @@
 import { home } from "@/lib/content/portfolio/server";
 import { clsx } from "clsx";
 import { MobileNavigation } from "./mobile-navigation/mobile-navigation";
+import { SiteHeaderSurface } from "./site-header-surface";
 import styles from "./site-header.module.scss";
 
 const navigationItems = [
@@ -22,6 +23,8 @@ const navigationItems = [
 export function SiteHeader() {
   return (
     <header className={clsx(styles.header, "sticky top-0 z-40")} data-slot="site-header">
+      <SiteHeaderSurface />
+      <noscript><span data-slot="site-header-noscript" hidden /></noscript>
       <MobileNavigation
         backToTopLabel="Back to top"
         closeLabel="Close navigation"

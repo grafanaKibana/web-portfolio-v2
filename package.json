@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "generate:hero-backgrounds": "node --import tsx scripts/generate-hero-backgrounds.mjs",
+    "predev": "npm run generate:hero-backgrounds",
+    "prebuild": "npm run generate:hero-backgrounds",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

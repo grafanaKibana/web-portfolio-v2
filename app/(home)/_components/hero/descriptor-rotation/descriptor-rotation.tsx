@@ -58,7 +58,7 @@ export function DescriptorRotation({ descriptors, interval }: {
           ease: reducedMotion ? [0.25, 0.1, 0.25, 1] : [0.22, 0.61, 0.36, 1],
         }}
       >
-        <span className="text-brand-gradient inline-block" data-slot="hero-descriptor">
+        <span className="inline-block" data-slot="hero-descriptor">
           {descriptors[index] ?? ""}
         </span>
       </motion.span>

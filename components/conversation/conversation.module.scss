@@ -42,6 +42,10 @@
   pointer-events: auto;
 }
 
+.shell:has(.noScriptFallback) .edgeEntry {
+  display: none;
+}
+
 .edgeButton {
   position: absolute;
   z-index: 1;
@@ -79,6 +83,32 @@
   pointer-events: none;
   transform: translateX(-50%);
   transition: opacity 0s 380ms;
+  animation: conversation-entry-stroke 520ms cubic-bezier(0.22, 1, 0.36, 1) 265ms backwards;
+}
+
+@keyframes conversation-entry-stroke {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(18px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes conversation-entry-stroke-reduced {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+:global(html[data-splash-pending="true"]) .shell .edgeEntry {
+  visibility: hidden;
+}
+
+:global(html[data-splash-pending="true"]) .shell .entryStroke {
+  animation-play-state: paused;
 }
 
 .surface {
@@ -492,6 +522,7 @@
 
 .edgeEntry[data-entry-revealed="true"] .entryStroke {
   opacity: 0;
+  visibility: hidden;
   transition-delay: 0s;
 }
 
@@ -519,6 +550,12 @@
   .reopenLabel,
   .edgeEntry [data-composer-content] {
     transition: none;
+  }
+
+  .entryStroke {
+    animation-name: conversation-entry-stroke-reduced;
+    animation-duration: 120ms;
+    animation-delay: 0ms;
   }
 }
 

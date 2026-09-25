@@ -28,7 +28,8 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
   const initialPathnameRef = useRef(pathname);
   const [capability, setCapability] = useState<ConversationCapability>("unknown");
   const [compact, setCompact] = useState(false);
-  const [splashPending, setSplashPending] = useState(true);
+  // The decorative entry is server-rendered; splash state is applied by CSS until observed.
+  const [splashPending, setSplashPending] = useState(false);
   const [sheetMounted, setSheetMounted] = useState(false);
 
   useEffect(() => {

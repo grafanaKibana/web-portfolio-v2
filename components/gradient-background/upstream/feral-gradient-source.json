@@ -1,0 +1,40 @@
+{
+  "source": {
+    "url": "https://feralui.dev/react-gradient/runtime.jsx",
+    "capturedAt": "2026-09-23",
+    "researchSnapshot": ".omx/research/gradient-source/runtime.jsx",
+    "ownedFixture": "fixtures/feral-gradient-runtime.raw.jsx.gz",
+    "ownedFixtureSha256": "200ec6e4bf08dba333e9a1436d76078176951d37ef9b31809b80f04f3cc985e7",
+    "sha256": "1e85d2e6d34994175bc5651774810f78cb5b22361daaaee0105f5a72e31e1a89",
+    "bytes": 361354
+  },
+  "builderEvidence": {
+    "url": "https://feralui.dev/assets/JapaneseGradients-eTqyj1xn.js",
+    "researchSnapshot": ".omx/research/gradient-source/builder.js",
+    "ownedCssGeneratorFixture": "fixtures/feral-css-generator.js.txt",
+    "ownedCssGeneratorFixtureSha256": "beaeb4d053e6906d070a833bcf914d107db73f7a881e8f3568b20a3d1221c32c",
+    "sha256": "8e5fea834c7cc7af5f50c061d22ebbe14ead21606324255fd76725d1ae7da69c",
+    "bytes": 842479
+  },
+  "adaptation": {
+    "decision": "The user explicitly selected adaptation of the Feral exports.",
+    "script": "adapt-feral-gradient-runtime.mjs",
+    "sha256": "ca50c43534ebc05fdf08d5fcf38fc6ee223485e2249ddbb6ee3a4c2db5df9232",
+    "changes": [
+      "replace the injected __FERAL_RECIPE__ constant with a required per-instance recipe prop",
+      "cap both raster device-pixel-ratio paths at 2",
+      "seed module-local grain and WebGL noise generation without overriding Math.random",
+      "remove the Google Fonts request and label-font loading effect",
+      "report guarded canvas and scheduled draw failures through onError",
+      "fall back to Sky's CPU renderer during WebGL loss, recover on restoration, and release Sky GPU resources after the last runtime unmounts",
+      "pause Mist CSS animation when recipe.animated is false",
+      "route LINEAR, IOS, CIRCLE and ANGULAR through the builder b6 CSS algorithm",
+      "paint Still at final detail in one layout pass without its delayed coarse preview",
+      "initialize the grain overlay before the first browser paint"
+    ]
+  },
+  "permission": {
+    "statement": "No MIT or other license grant is asserted for this runtime snapshot.",
+    "termsSnapshot": ".omx/research/gradient-source/terms.html"
+  }
+}

@@ -918,7 +918,7 @@ export function Conversation() {
 
   return (
     <div className={styles.shell} data-capability={capability} data-compact={mobile} data-conversation-shell data-hidden={hidden} data-morph={morphPhase ?? undefined} data-open={open} data-pointer-focus={pointerFocus} ref={rootRef}>
-      {capability === "supported" ? (
+      {capability !== "unsupported" ? (
         <>
           <div
             className={styles.edgeEntry}
@@ -943,10 +943,10 @@ export function Conversation() {
             }}
           >
             <div className={styles.entryFade} data-entry-fade data-visible={entryRevealed} aria-hidden />
-            {!open && !model.expanded ? <div className={styles.entryField} inert={!entryRevealed}><ConversationComposer entry mobile={mobile} model={model} onAccepted={handleAccepted} /></div> : null}
-            <Button aria-controls={open || model.expanded ? "portfolio-conversation" : undefined} aria-expanded={model.expanded ? open : entryRevealed} aria-haspopup="dialog" aria-label={model.expanded ? conversationPlaceholder : "Ask about my work"} className={styles.edgeButton} data-launcher onClick={handleLauncherClick} onPointerDown={(event) => { if (!model.expanded && !open) { event.preventDefault(); handleLauncherClick(); } }} ref={launcherRef} tabIndex={entryRevealed && !model.expanded ? -1 : undefined} type="button" variant="ghost">
+            {capability === "supported" && !open && !model.expanded ? <div className={styles.entryField} inert={!entryRevealed}><ConversationComposer entry mobile={mobile} model={model} onAccepted={handleAccepted} /></div> : null}
+            {capability === "supported" ? <Button aria-controls={open || model.expanded ? "portfolio-conversation" : undefined} aria-expanded={model.expanded ? open : entryRevealed} aria-haspopup="dialog" aria-label={model.expanded ? conversationPlaceholder : "Ask about my work"} className={styles.edgeButton} data-launcher onClick={handleLauncherClick} onPointerDown={(event) => { if (!model.expanded && !open) { event.preventDefault(); handleLauncherClick(); } }} ref={launcherRef} tabIndex={entryRevealed && !model.expanded ? -1 : undefined} type="button" variant="ghost">
               {model.expanded ? <span aria-hidden className={clsx(styles.reopenLabel, "field-surface field-control")} data-reopen-field><ConversationFieldSurface /><Sparkle data-composer-content /><span data-composer-content>{conversationPlaceholder}</span></span> : null}
-            </Button>
+            </Button> : null}
             <span aria-hidden className={styles.entryStroke} data-entry-stroke />
           </div>
           {open || model.expanded ? (mobile ? (

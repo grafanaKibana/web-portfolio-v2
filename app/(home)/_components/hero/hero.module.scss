@@ -1,19 +1,102 @@
 .hero {
+  --hero-foreground: var(--hero-light-foreground);
+  --hero-surface: var(--hero-light-surface);
+  --hero-veil: var(--hero-light-veil);
+  --hero-fade-height: 6rem;
+  --foreground: var(--hero-foreground);
+  --content-foreground: var(--hero-foreground);
+  --muted-foreground: var(--hero-foreground);
+  --primary: var(--hero-foreground);
+  --primary-foreground: var(--hero-surface);
+  --muted: var(--hero-surface);
+  --ring: var(--hero-foreground);
+
+  position: relative;
+  isolation: isolate;
   min-height: calc(100vh - var(--site-header-height));
-  padding-bottom: 3.25rem;
+  padding-bottom: var(--hero-fade-height);
+  color: var(--hero-foreground);
+
+  :global(.dark) & {
+    --hero-foreground: var(--hero-dark-foreground);
+    --hero-surface: var(--hero-dark-surface);
+    --hero-veil: var(--hero-dark-veil);
+  }
+
+  & ::selection {
+    color: var(--hero-surface);
+    background: var(--hero-foreground);
+  }
+}
+
+.hero > .background {
+  position: absolute;
+  z-index: -1;
+  top: calc(-1 * var(--site-header-height));
+  bottom: -8rem;
+  inset-inline: 0;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: none;
+  background-position: center;
+  background-size: cover;
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 18%,
+    rgb(0 0 0 / 97%) 30%,
+    rgb(0 0 0 / 87%) 44%,
+    rgb(0 0 0 / 67%) 58%,
+    rgb(0 0 0 / 40%) 72%,
+    rgb(0 0 0 / 15%) 86%,
+    rgb(0 0 0 / 3%) 95%,
+    transparent 100%
+  );
+
+  &::before {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    background-image: var(--hero-noise-image);
+    background-size: 256px 256px;
+    image-rendering: pixelated;
+    mix-blend-mode: overlay;
+    opacity: var(--hero-noise-opacity);
+    content: "";
+  }
+
+  &::after {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    background: var(--hero-surface);
+    opacity: var(--hero-veil);
+    content: "";
+  }
+}
+
+.lightBackground {
+  background-image: var(--hero-light-image);
+
+  :global(.dark) & {
+    display: none;
+  }
+}
+
+.darkBackground {
+  display: none;
+  background-image: var(--hero-dark-image);
+
+  :global(.dark) & {
+    display: block;
+  }
 }
 
 .availability {
   gap: 0.5625rem;
   margin-bottom: 1.625rem;
   padding-inline: 0.6875rem 0.8125rem;
-  background: color-mix(in oklab, var(--brand-accent) 9%, transparent);
-  background-image: linear-gradient(
-    90deg in oklab,
-    color-mix(in oklab, var(--brand-accent-start) 9%, var(--background)),
-    color-mix(in oklab, var(--brand-accent) 9%, var(--background)) 58%,
-    color-mix(in oklab, var(--brand-accent-end) 9%, var(--background))
-  );
+  background: color-mix(in srgb, var(--hero-surface) 25%, transparent);
 }
 
 .availabilityDot {
@@ -42,6 +125,11 @@
 
   > a {
     width: 100%;
+
+    &:focus-visible {
+      outline: 2px solid var(--hero-foreground);
+      outline-offset: 4px;
+    }
   }
 }
 
@@ -77,7 +165,9 @@
 
 @media (min-width: 64rem) {
   .hero {
-    padding-block: 6.25rem 12.25rem;
+    --hero-fade-height: 12.25rem;
+
+    padding-block: 6.25rem var(--hero-fade-height);
   }
 
   .availability {
@@ -115,5 +205,52 @@
     &::after {
       content: none;
     }
+  }
+}
+
+/* Match the page intro cadence without waiting for its hydrated controller. */
+.hero > [data-page-motion-intro="immediate"] {
+  animation: hero-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--hero-reveal-delay, 40ms);
+
+  &:nth-child(2 of [data-page-motion-intro="immediate"]) {
+    --hero-reveal-delay: 115ms;
+  }
+
+  &:nth-child(3 of [data-page-motion-intro="immediate"]) {
+    --hero-reveal-delay: 190ms;
+  }
+
+  &:nth-child(4 of [data-page-motion-intro="immediate"]) {
+    --hero-reveal-delay: 265ms;
+  }
+
+  :global(html[data-splash-pending="true"]) & {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes hero-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--page-motion-distance));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hero-reveal-reduced {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero > [data-page-motion-intro="immediate"] {
+    animation-name: hero-reveal-reduced;
+    animation-duration: 120ms;
+    animation-delay: 0ms;
   }
 }

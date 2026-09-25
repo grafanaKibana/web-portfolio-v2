@@ -27,6 +27,7 @@ const commonTargets = [
   "./mdx-components.tsx",
 ];
 const componentOwners = [
+  ["gradient-background", ["./index.ts"]],
   ["conversation", ["./conversation.tsx"]],
   ["not-found-page", ["./not-found-page.tsx"]],
   ["site-header", ["./site-header.tsx"]],
@@ -319,6 +320,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Reviewed generated upstream export; authored adapters and wrappers remain linted.
+    "components/gradient-background/upstream/feral-gradient-runtime.jsx",
   ]),
 ]);
 

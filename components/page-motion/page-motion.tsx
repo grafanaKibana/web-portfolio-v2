@@ -10,7 +10,8 @@ import {
   type AnimationPlaybackControlsWithThen,
 } from "motion/react";
 
-const INTRO_SELECTOR = "[data-page-motion-intro]";
+// CSS-owned introductions start before hydration and must never be concealed again.
+const INTRO_SELECTOR = '[data-page-motion-intro]:not([data-page-motion-intro="immediate"])';
 const ITEM_SELECTOR = "[data-page-motion-item]";
 const LEAD_SELECTOR = "[data-page-motion-lead]";
 const ROW_SELECTOR = "[data-page-motion-row]";

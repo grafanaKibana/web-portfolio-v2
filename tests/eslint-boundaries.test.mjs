@@ -100,6 +100,9 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
   }));
   await Promise.all([
     writeFixture(root, "components/site-header/site-header.tsx"),
+    writeFixture(root, "components/gradient-background/index.ts"),
+    writeFixture(root, "components/gradient-background/gradient-background.tsx"),
+    writeFixture(root, "components/gradient-background/upstream/feral-gradient-runtime.jsx"),
     writeFixture(root, "components/site-header/mobile-navigation/helper.ts"),
     writeFixture(root, "components/site-footer/site-footer.tsx"),
     writeFixture(root, "components/site-footer/format-time.ts", "export type Format = string;\nexport const format = true;\n"),
@@ -140,6 +143,9 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
   ]);
 
   const cases = [
+    ["app/(home)/page.tsx", 'import "@/components/gradient-background";', 0],
+    ["components/site-header/site-header.tsx", 'import "@/components/gradient-background/gradient-background";', 1],
+    ["components/site-header/site-header.tsx", 'import "@/components/gradient-background/upstream/feral-gradient-runtime";', 1],
     ["app/layout.tsx", 'import "@/components/conversation/conversation";', 0],
     ["components/conversation/conversation.tsx", 'import "./conversation.service";', 0],
     ["components/conversation/conversation.tsx", 'import "./conversation.models";', 0],
@@ -208,7 +214,7 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
   for (const [index, zone] of companionZones.entries()) {
     assert.equal(typeof zone.from, "string");
     const owner = zone.from.replace(/^\.\//, "");
-    const entry = zone.except?.find((candidate) => candidate.endsWith(".tsx"));
+    const entry = zone.except?.find((candidate) => /\.tsx?$/.test(candidate));
     assert.ok(entry);
     const entryPath = `${owner}/${entry.replace(/^\.\//, "")}`;
     const helperPath = `${owner}/private-helper.ts`;

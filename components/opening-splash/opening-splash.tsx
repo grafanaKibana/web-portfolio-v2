@@ -31,6 +31,7 @@ function publishCompletion(owner: SplashLifecycle) {
   if (!owner.active || owner.published) return;
 
   owner.published = true;
+  delete document.documentElement.dataset.splashPending;
   document.documentElement.dataset.splashComplete = "true";
   window.dispatchEvent(new Event("opening-splash-complete"));
 }
@@ -128,7 +129,6 @@ export function OpeningSplash({ role }: { role: string }) {
         if (!owner.active) return;
 
         observer?.disconnect();
-        delete document.documentElement.dataset.splashPending;
         setPhase("exiting");
       });
     });

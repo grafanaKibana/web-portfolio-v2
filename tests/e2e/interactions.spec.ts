@@ -150,6 +150,106 @@ test("reduced motion leaves home and collection content visible and usable", asy
   }
 });
 
+for (const theme of ["light", "dark"] as const) {
+  test(`hero, header, and chat reveal before assets load without replaying (${theme})`, { tag: "@webkit" }, async ({ page }) => {
+    await page.addInitScript((theme) => {
+      localStorage.setItem("theme", theme);
+      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+      document.addEventListener("animationstart", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement) || !target.matches('[data-slot="hero"] > [data-page-motion-intro], [data-slot="site-header"] > nav, [data-entry-stroke]')) return;
+        target.dataset.revealForeground = getComputedStyle(target).color;
+        target.dataset.revealStarts = String(Number(target.dataset.revealStarts ?? 0) + 1);
+        target.dataset.revealBeforeHydration = String(!document.querySelector("[data-theme-root]"));
+        /** Records a real intermediate reveal frame before the animation finishes. */
+        const sample = () => {
+          const css = getComputedStyle(target);
+          if (Number(css.opacity) > 0 && Number(css.opacity) < 1 && css.visibility === "visible"
+            && (target.matches('[data-slot="site-header"] > nav') || css.transform !== "none")) {
+            target.dataset.revealProgressed = "true";
+          } else if (css.opacity !== "1") {
+            requestAnimationFrame(sample);
+          }
+        };
+        requestAnimationFrame(sample);
+      });
+    }, theme);
+    let releaseAssets = false;
+    const pending: VoidFunction[] = [];
+    await page.route(/\.(?:js|woff2?|webp)(?:\?.*)?$/, async (route) => {
+      if (!releaseAssets) await new Promise<void>((resolve) => pending.push(resolve));
+      await route.continue();
+    });
+
+    const content = page.locator('[data-slot="hero"] > [data-page-motion-intro], [data-slot="site-header"] > nav, [data-entry-stroke]');
+    try {
+      await page.goto("/", { waitUntil: "commit" });
+      await expect(content).toHaveCount(6);
+      for (const target of await content.all()) {
+        await expect(target).toHaveAttribute("data-reveal-before-hydration", "true");
+        await expect(target).toHaveAttribute("data-reveal-progressed", "true");
+        await expect(target).toHaveCSS("opacity", "1");
+        await expect(target).toBeVisible();
+        if (await target.getAttribute("data-entry-stroke") === null) await expect(target).toHaveCSS("transform", "none");
+      }
+      await expect(page.locator("[data-theme-root]")).toHaveCount(0);
+      const heroColor = await page.locator('[data-slot="hero"]').evaluate((hero) => getComputedStyle(hero).color);
+      const header = page.locator('[data-slot="site-header"]');
+      await expect(header).toHaveCSS("color", heroColor);
+      await expect(header.locator("nav")).toHaveAttribute("data-reveal-foreground", heroColor);
+      expect(await header.evaluate((element) => getComputedStyle(element, "::before").opacity)).toBe("0");
+    } finally {
+      releaseAssets = true;
+      for (const release of pending) release();
+    }
+    await expect(page.locator("[data-theme-root]")).toHaveCount(1);
+    await expect(page.locator("html")).not.toHaveAttribute("data-page-motion-pending");
+    for (const target of await content.all()) {
+      await expect(target).toHaveAttribute("data-reveal-starts", "1");
+      await expect(target).toHaveCSS("opacity", "1");
+      if (await target.getAttribute("data-entry-stroke") === null) await expect(target).toHaveCSS("transform", "none");
+    }
+  });
+}
+
+test("first-visit hero reveal waits for the splash handoff", { tag: "@webkit" }, async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator('[data-slot="opening-splash"]')).toHaveAttribute("data-state", "visible");
+  const content = page.locator('[data-slot="hero"] > [data-page-motion-intro], [data-slot="site-header"] > nav, [data-entry-stroke]');
+  await expect(content).toHaveCount(6);
+  for (const target of await content.all()) {
+    await expect(target).toHaveCSS("animation-play-state", "paused");
+    await expect(target).toHaveCSS("opacity", "0");
+  }
+  await expect(page.locator("html")).toHaveAttribute("data-splash-complete", "true");
+  for (const target of await content.all()) {
+    await expect(target).toHaveCSS("animation-play-state", "running");
+    await expect(target).toHaveCSS("opacity", "1");
+    if (await target.getAttribute("data-entry-stroke") === null) await expect(target).toHaveCSS("transform", "none");
+  }
+});
+
+test("chat entry keeps a usable fallback without JavaScript or native popup support", { tag: "@webkit" }, async ({ browser, baseURL }) => {
+  if (!baseURL) throw new Error("Browser tests require a configured base URL");
+  for (const javaScriptEnabled of [false, true]) {
+    const context = await browser.newContext({ baseURL, javaScriptEnabled, reducedMotion: "reduce" });
+    try {
+      await context.addInitScript(() => {
+        sessionStorage.setItem("portfolio-opening-splash-seen", "true");
+        Object.defineProperty(HTMLElement.prototype, "showPopover", { value: undefined, configurable: true });
+      });
+      const page = await context.newPage();
+      await page.goto("/");
+      const shell = page.locator("[data-conversation-shell]");
+      await expect(shell.getByRole("link", { name: "Contact me" })).toBeVisible();
+      await expect(shell.locator("[data-entry-stroke]")).toBeHidden();
+      await expect(shell.locator("button[data-launcher]")).toHaveCount(0);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
 test("readiness failure leaves visible usable content", { tag: "@webkit" }, async ({ page }) => {
   await page.addInitScript(() => {
     // eslint-disable-next-line @typescript-eslint/no-deprecated, @typescript-eslint/unbound-method -- Exercise the splash fail-open path.

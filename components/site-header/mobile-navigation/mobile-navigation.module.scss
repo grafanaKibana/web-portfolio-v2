@@ -58,6 +58,11 @@
 }
 
 :global(body):has(.popup) :global([data-slot="site-header"]) {
+  --foreground: var(--popover-foreground);
+  --muted-foreground: var(--popover-foreground);
+  --ring: var(--popover-foreground);
+
+  color: var(--popover-foreground);
   background: var(--mobile-navigation-background);
   backdrop-filter: blur(1rem);
 }

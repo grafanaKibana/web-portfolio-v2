@@ -14,7 +14,7 @@ The portfolio feels personal, calm, precise, and technically credible. Typograph
 
 Use the shared [N/R mark](public/brand/mark.svg) for the Home identity and decorative opening treatment. Keep the name “Nikita Reshetnik” consistent. Build trust through readable experience, project evidence, writing, and direct links.
 
-Avoid promotional slogans, decorative dashboards, bento layouts, glass effects, and boxing every section into a card. Keep broad marketing gradients out of page backgrounds; existing accent and icon treatments have specific roles below.
+Avoid promotional slogans, decorative dashboards, bento layouts, glass effects, and boxing every section into a card. The Home hero is the background-gradient exception: a theme-aware Still field follows Matcha Cream: warm ivory, soft sage, and forest greens shifted gently toward the jade accent, with emerald, jade, and teal tones drawn from the dark-theme accents in dark mode. The static hero field is generated from its palette and Still settings before development and production builds, then preloaded as small cached images from the server HTML so it does not wait for hydration or canvas rendering. Its lightly grained field fades early and gradually into the page, extending slightly into About, and continues behind the transparent header. The header uses the hero foreground from the first styled frame and restores its ordinary surface after the hero has passed. Derive solid foreground colors from the palette, adding a neutral veil only when needed for readable contrast. Keep broad gradients out of other page backgrounds; existing accent and icon treatments have specific roles below.
 
 ## Product goals
 
@@ -34,7 +34,7 @@ Support desktop review, mobile scanning, and focused long-form reading. Keyboard
 
 Home progresses through **Hero → About → Experience → Education → Skills → Selected work → Code activity → Writing → Contact**.
 
-The hero introduces Nikita and offers direct contact, résumé, and experience actions. About provides the personal overview and career chapters; Experience carries the detailed timeline and recommendations. Projects and writing provide deeper evidence before Contact.
+The hero introduces Nikita and offers direct contact, résumé, and experience actions. Its server-rendered text, descriptor, and actions retain their staggered fade-and-rise reveal. The reveal starts from the first styled frame without waiting for background assets or hydration; on the first visit, it follows the opening splash handoff. The header and AI entry line join the opening reveal without waiting for hydration. Reduced motion uses a short fade without translation. About provides the personal overview and career chapters; Experience carries the detailed timeline and recommendations. Projects and writing provide deeper evidence before Contact.
 
 | Surface | Role |
 | --- | --- |

@@ -1,0 +1,24 @@
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.fallback,
+.engine {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.fallback {
+  z-index: 0;
+  background-size: cover;
+}
+
+.engine {
+  z-index: 1;
+}
