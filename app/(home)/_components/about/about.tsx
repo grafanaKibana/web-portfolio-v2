@@ -18,7 +18,7 @@ export function HomeAbout() {
       </h2>
       <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-0" data-page-motion-row>
         <div className="flex flex-col gap-4 text-content-foreground lg:pr-8">
-          {profile.summary.map((paragraph) => <p className="m-0 text-sm leading-6" key={paragraph}>{paragraph}</p>)}
+          {profile.summary.map((paragraph) => <p className="m-0 text-sm leading-6 text-pretty" key={paragraph}>{paragraph}</p>)}
         </div>
         <div className="flex flex-col gap-8 lg:gap-12 lg:border-l lg:pl-8">
           {profile.careerChapters.map((chapter) => (
@@ -26,8 +26,8 @@ export function HomeAbout() {
               <p className="m-0 font-mono text-xs leading-4.5 text-muted-foreground">
                 {chapter.meta}
               </p>
-              <h3 className="m-0 mt-2 text-lg leading-6 font-semibold tracking-[-0.01em]">{chapter.title}</h3>
-              <p className="m-0 mt-2 text-sm leading-6 text-content-foreground">
+              <h3 className="m-0 mt-2 text-lg leading-6 font-semibold text-balance tracking-[-0.01em]">{chapter.title}</h3>
+              <p className="m-0 mt-2 text-sm leading-6 text-pretty text-content-foreground">
                 {chapter.summary}
               </p>
             </div>

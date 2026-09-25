@@ -86,8 +86,8 @@ export function EducationContent({
       >
         <div className="min-w-0" data-page-motion-row data-slot="education-academic">
           <Subheading className="mb-6">Academic</Subheading>
-          <p className="m-0 text-lg leading-[1.4] font-[650] tracking-[-0.015em] text-foreground lg:text-xl">{education.qualification}</p>
-          <p className="m-0 mt-3 text-sm leading-[1.6] text-content-foreground">{education.institution}</p>
+          <p className="m-0 text-lg leading-[1.4] font-[650] tracking-[-0.015em] text-balance text-foreground lg:text-xl">{education.qualification}</p>
+          <p className="m-0 mt-3 text-sm leading-[1.6] text-pretty text-content-foreground">{education.institution}</p>
           <p className="m-0 mt-4 flex flex-wrap items-center gap-1.5 font-mono text-xs leading-4.5 text-muted-foreground [&_svg]:size-3 [&_svg]:opacity-65">
             <span>{education.period}</span>
             <span aria-hidden="true">·</span>

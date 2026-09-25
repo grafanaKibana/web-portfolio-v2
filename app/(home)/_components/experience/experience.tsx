@@ -43,13 +43,13 @@ export function HomeExperience() {
                     <Image alt="" className="size-full rounded-full object-contain" height={32} src={experience.logo} width={32} />
                   </span>
                   <div data-slot="role-heading">
-                    <h3 className="m-0 text-lg leading-6 font-semibold tracking-[-0.01em] text-foreground">{experience.role}</h3>
+                    <h3 className="m-0 text-lg leading-6 font-semibold text-balance tracking-[-0.01em] text-foreground">{experience.role}</h3>
                     <p className="mt-0.75 text-xs leading-normal text-muted-foreground md:mt-1 md:text-[0.8125rem]">
                       {experience.organization}
                     </p>
                   </div>
                 </div>
-                <p className={clsx(styles.roleSummary, "mt-3 text-sm leading-6 text-content-foreground transition-colors duration-150 motion-reduce:transition-none")}>
+                <p className={clsx(styles.roleSummary, "mt-3 text-sm leading-6 text-pretty text-content-foreground transition-colors duration-150 motion-reduce:transition-none")}>
                   {experience.summary}
                 </p>
                 {experience.highlights.length > 0 && (
@@ -88,7 +88,7 @@ export function HomeExperience() {
                   <span aria-hidden="true" className="block text-[2rem] font-bold leading-none text-border">
                     “
                   </span>
-                  <p className="m-0 mt-4 text-sm leading-6 text-content-foreground">
+                  <p className="m-0 mt-4 text-sm leading-6 text-pretty text-content-foreground">
                     {recommendation.quote}
                   </p>
                 </blockquote>

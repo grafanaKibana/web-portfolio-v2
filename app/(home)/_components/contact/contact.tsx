@@ -34,7 +34,7 @@ export function HomeContact() {
       <div className="grid items-start gap-8 min-[56.25rem]:grid-cols-[minmax(0,1fr)_max-content] lg:gap-12">
         <div data-page-motion-row>
           <h2 className="m-0 text-[1.625rem] leading-[1.2] font-medium tracking-tight min-[56.25rem]:text-[2rem]" data-page-motion-trigger id="contact-heading">Let&apos;s talk</h2>
-          <p className="mt-3 max-w-md text-sm leading-6 text-content-foreground lg:mt-4">
+          <p className="mt-3 max-w-md text-sm leading-6 text-pretty text-content-foreground lg:mt-4">
             {contact.description}
           </p>
         </div>
