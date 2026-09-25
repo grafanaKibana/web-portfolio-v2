@@ -74,11 +74,11 @@ export default async function ProjectPage({
             {links.length ? (
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-6" data-slot="project-actions">
                 {links.map((link) => {
-                  let icon = <ExternalLink aria-hidden="true" className="size-3.5 opacity-60" />;
+                  let icon = <ExternalLink aria-hidden="true" className="action-icon opacity-60" />;
                   if (link.href.startsWith("https://obsidian.md/plugins")) {
-                    icon = <Obsidian aria-hidden="true" className="size-3.5 opacity-60" data-slot="obsidian-icon" variant="mono" />;
+                    icon = <Obsidian aria-hidden="true" className="action-icon opacity-60" data-slot="obsidian-icon" variant="mono" />;
                   } else if (link.href.startsWith("https://github.com/")) {
-                    icon = <Github aria-hidden="true" className="size-3.5 opacity-60" variant="mono" />;
+                    icon = <Github aria-hidden="true" className="action-icon opacity-60" variant="mono" />;
                   }
 
                   return (

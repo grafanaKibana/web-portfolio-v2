@@ -115,9 +115,13 @@
     font-size: 0.8125rem;
   }
 
+  .action-icon {
+    @apply size-5 shrink-0;
+  }
+
   .action-link,
   .action-link:visited {
-    @apply inline-flex min-h-11 items-center gap-2 text-sm font-normal text-muted-foreground transition-colors;
+    @apply inline-flex items-center gap-2 text-sm font-normal text-muted-foreground transition-colors;
   }
 
   .action-link:is(:hover, :focus-visible) {
