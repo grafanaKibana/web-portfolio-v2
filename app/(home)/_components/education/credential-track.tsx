@@ -83,8 +83,8 @@ export function CredentialTrack({
       aria-label="Professional credentials"
       className={clsx(
         styles.credentialScrollport,
-        "overflow-y-auto overscroll-y-auto [scrollbar-width:none] focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [&::-webkit-scrollbar]:hidden",
-        potentialOverflow && "h-54 md:h-34",
+        "overflow-y-auto overscroll-y-auto focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+        potentialOverflow && "h-54 md:h-44",
       )}
       data-edge-fade={fade}
       data-lenis-native-scroll

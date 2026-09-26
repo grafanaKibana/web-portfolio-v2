@@ -27,17 +27,18 @@ async function boxOf(element: Locator) {
  */
 function credentialRows(count: number) {
   return Array.from({ length: count }, (_, index) => `
-    <li class="min-w-0 border-b py-3 last:border-b-0" data-slot="credential-item">
-      <a class="flex w-full min-w-0 items-start gap-3 text-content-foreground no-underline transition-colors duration-150 ease-in-out hover:text-foreground focus-visible:rounded focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none" href="https://example.com/credential/${String(index + 1)}">
+    <li class="min-w-0 border-b last:border-b-0" data-slot="credential-item">
+      <a aria-label="Verify credential: Synthetic cloud developer associate certification ${String(index + 1)}" class="group flex min-h-16.5 w-full min-w-0 items-center gap-3 py-3 text-content-foreground no-underline transition-colors duration-150 ease-in-out hover:text-foreground focus-visible:rounded focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none" href="https://example.com/credential/${String(index + 1)}">
         <span aria-hidden="true" class="grid size-10.5 shrink-0 place-items-center">
           ${index % 2 === 0
             ? '<span class="credentialIcon block size-9" data-slot="credential-icon" style="--credential-icon-url:url(\'/certifications/synthetic.svg\')"></span>'
             : '<img alt="" class="size-10.5 object-contain" data-slot="credential-badge" height="42" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\'/%3E" width="42">'}
         </span>
         <span class="block min-w-0">
-          <span class="block text-sm leading-[1.4] font-semibold" data-slot="credential-title">Synthetic cloud developer associate certification ${String(index + 1)}</span>
+          <span class="block text-base leading-6 font-medium text-foreground wrap-anywhere" data-slot="credential-title">Synthetic cloud developer associate certification ${String(index + 1)}</span>
           <span class="mt-1.25 block font-mono text-xs leading-4.5 text-muted-foreground" data-slot="credential-date">Jan ${String(2020 + index)}</span>
         </span>
+        <span aria-hidden="true" class="ml-auto grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground" data-slot="credential-link-cue">↗</span>
       </a>
     </li>
   `).join("");
@@ -60,19 +61,19 @@ async function mountEducation(page: Page, count: number) {
   await page.locator("body").evaluate((body, markup) => { body.innerHTML = markup; }, `
     <main>
       <section class="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1" id="education">
-        <h2 class="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5">Education</h2>
+        <h2 class="m-0 mb-8 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground lg:mb-10">Education</h2>
         <div class="grid grid-cols-[minmax(0,1fr)] gap-8 lg:data-[has-credentials=true]:grid-cols-[minmax(0,1fr)_fit-content(55%)] lg:data-[has-credentials=true]:gap-x-12" data-has-credentials="${String(hasCredentials)}" data-slot="education-tracks">
           <div class="min-w-0" data-slot="education-academic">
             <h3 class="trackLabel">Academic</h3>
-            <p class="m-0 text-lg leading-[1.4] font-[650] tracking-[-0.015em] text-foreground lg:text-xl">Bachelor of Engineering in Software Engineering</p>
+            <p class="m-0 text-base leading-6 font-medium text-foreground">Bachelor of Engineering in Software Engineering</p>
             <p class="m-0 mt-3 text-sm leading-[1.6] text-content-foreground">National Technical University of Ukraine</p>
-            <p class="m-0 mt-4 flex flex-wrap items-center gap-1.5 font-mono text-xs leading-4.5 text-muted-foreground"><span>September 2019 — June 2023</span><span>·</span><span>Kyiv, Ukraine</span></p>
+            <p class="m-0 mt-4 font-mono text-xs leading-4.5 text-muted-foreground">September 2019 — June 2023</p>
           </div>
           ${hasCredentials ? `
             <div class="flex min-h-0 min-w-0 flex-col" data-slot="education-credentials">
-              <h3 class="trackLabel">Professional credentials</h3>
+              <h3 class="trackLabel mb-3">Professional credentials</h3>
               <div class="min-w-0 flex-none">
-                <div class="credentialScrollport overflow-y-auto overscroll-y-auto [scrollbar-width:none] focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [&::-webkit-scrollbar]:hidden${count > 2 ? " h-54 md:h-34" : ""}" data-slot="credential-scrollport">
+                <div class="credentialScrollport overflow-y-auto overscroll-y-auto focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring${count > 2 ? " h-54 md:h-44" : ""}" data-slot="credential-scrollport">
                   <ul class="m-0 grid list-none grid-cols-[minmax(0,1fr)] content-start p-0 md:data-[single-column=false]:grid-cols-2 md:data-[single-column=false]:gap-x-5" data-single-column="${String(singleColumn)}" data-slot="credential-list">
                     ${credentialRows(count)}
                   </ul>
@@ -105,7 +106,9 @@ async function replaceHydratedCredentials(page: Page, count: number) {
       const date = item.querySelector('[data-slot="credential-date"]');
       if (!link || !title || !date) throw new Error("Credential template is incomplete");
       link.setAttribute("href", `https://example.com/credential/${String(index + 1)}`);
-      title.textContent = `Synthetic cloud developer associate certification ${String(index + 1)}`;
+      const syntheticTitle = `Synthetic cloud developer associate certification ${String(index + 1)}`;
+      link.setAttribute("aria-label", `Verify credential: ${syntheticTitle}`);
+      title.textContent = syntheticTitle;
       date.textContent = `Jan ${String(2020 + index)}`;
       fragment.append(item);
     }
@@ -225,12 +228,18 @@ test("Education keeps height bounded when credentials overflow", async ({ page }
       const scrollport = page.locator('[data-slot="credential-scrollport"]');
       const items = page.locator('[data-slot="credential-item"]');
       const viewport = await boxOf(scrollport);
+      const firstItem = await boxOf(items.first());
+      const firstLink = await boxOf(items.first().locator("a"));
       const secondItem = await boxOf(items.nth(1));
       const height = (await boxOf(page.locator('[data-slot="education-tracks"]'))).height;
       const earlierHeight = measuredHeights.get(width);
 
       if (earlierHeight === undefined) measuredHeights.set(width, height);
       else expect(Math.abs(earlierHeight - height)).toBeLessThanOrEqual(1);
+      expect(Math.abs(firstItem.y - firstLink.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(firstItem.height - firstLink.height)).toBeLessThanOrEqual(1);
+      await expect(items.first().locator("a")).toHaveCSS("padding-top", "12px");
+      await expect(scrollport).toHaveCSS("scrollbar-width", "auto");
       expect(secondItem.y + secondItem.height).toBeLessThanOrEqual(viewport.y + viewport.height + 1);
       expect(await scrollport.evaluate((element) => element.scrollHeight > element.clientHeight + 1)).toBe(true);
     }
@@ -262,6 +271,11 @@ test("Education keeps icon masks and badge artwork inside the shared mark slot",
   expect(await icon.evaluate((element) => getComputedStyle(element).maskImage)).toContain("synthetic.svg");
   await expect(badge).toHaveCSS("object-fit", "contain");
   expect(await badge.getAttribute("alt")).toBe("");
+  await expect(page.locator('[data-slot="credential-link-cue"]').first()).toBeVisible();
+  await expect(page.locator('[data-slot="credential-item"] a').first()).toHaveAttribute(
+    "aria-label",
+    /^Verify credential:/,
+  );
   const badgeBox = await boxOf(badge);
   expect(badgeBox.width).toBeCloseTo(42, 0);
   expect(badgeBox.height).toBeCloseTo(42, 0);
@@ -273,20 +287,44 @@ test("Education keeps enlarged credential text readable and reachable", async ({
   await page.locator("html").evaluate((root) => {
     root.style.fontSize = "200%";
   });
+  const period = page.locator('[data-slot="education-academic"] p:last-child');
+  await period.evaluate((element) => {
+    element.textContent = "September 2019 — June 2023";
+    (element as HTMLElement).style.width = "13ch";
+  });
 
   const scrollport = page.locator('[data-slot="credential-scrollport"]');
   const titles = page.locator('[data-slot="credential-title"]');
   expect(await titles.evaluateAll((elements) =>
     elements.every((element) => element.scrollHeight <= element.clientHeight + 1),
   )).toBe(true);
+  expect(await period.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+
+  const viewport = await boxOf(scrollport);
+  const finalItem = page.locator('[data-slot="credential-item"]').last();
+  const finalLink = finalItem.locator("a");
+  await expect(finalLink).toHaveAttribute(
+    "href",
+    "https://example.com/credential/20",
+  );
+  await finalItem.evaluate((element) => {
+    const viewportElement = element.closest('[data-slot="credential-scrollport"]');
+    if (!(viewportElement instanceof HTMLElement)) throw new Error("Expected credential scrollport");
+    viewportElement.scrollTop += element.getBoundingClientRect().top - viewportElement.getBoundingClientRect().top;
+  });
+  const finalItemAtTop = await boxOf(finalItem);
+  expect(Math.abs(finalItemAtTop.y - viewport.y)).toBeLessThanOrEqual(1);
+  await finalLink.focus();
+  await expect(finalLink).toBeFocused();
 
   await scrollport.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  const viewport = await boxOf(scrollport);
-  const finalItem = await boxOf(page.locator('[data-slot="credential-item"]').last());
-  expect(finalItem.y).toBeGreaterThanOrEqual(viewport.y - 1);
-  expect(finalItem.y + finalItem.height).toBeLessThanOrEqual(viewport.y + viewport.height + 1);
+  const finalItemAtBottom = await boxOf(finalItem);
+  expect(finalItemAtBottom.y + finalItemAtBottom.height).toBeLessThanOrEqual(
+    viewport.y + viewport.height + 1,
+  );
+  expect(finalItemAtBottom.y + finalItemAtBottom.height).toBeGreaterThan(viewport.y);
 });
 
 test("hydrated Education preserves the approved partial-row geometry", async ({ page }) => {

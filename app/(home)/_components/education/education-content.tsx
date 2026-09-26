@@ -1,5 +1,5 @@
 import { clsx } from "clsx";
-import { MapPin } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import type { PortfolioProfile } from "@/lib/content/portfolio/validation";
@@ -21,10 +21,10 @@ function CertificationItem({ certification }: { certification: Certification }) 
     : undefined;
 
   return (
-    <li className="min-w-0 border-b py-3 last:border-b-0" data-slot="credential-item">
+    <li className="min-w-0 border-b last:border-b-0" data-slot="credential-item">
       <a
-        aria-label={certification.title}
-        className="flex w-full min-w-0 items-start gap-3 text-content-foreground no-underline transition-colors duration-150 ease-in-out hover:text-foreground focus-visible:rounded focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+        aria-label={`Verify credential: ${certification.title}`}
+        className="group flex min-h-16.5 w-full min-w-0 items-center gap-3 py-3 text-content-foreground no-underline transition-colors duration-150 ease-in-out hover:text-foreground focus-visible:rounded focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
         href={certification.href}
       >
         <span aria-hidden="true" className="grid size-10.5 shrink-0 place-items-center" data-slot="credential-mark">
@@ -43,8 +43,15 @@ function CertificationItem({ certification }: { certification: Certification }) 
           )}
         </span>
         <span className="block min-w-0">
-          <span className="block text-sm leading-[1.4] font-semibold" data-slot="credential-title">{certification.title}</span>
+          <span className="block text-base leading-6 font-medium text-foreground wrap-anywhere" data-slot="credential-title">{certification.title}</span>
           <span className="mt-1.25 block font-mono text-xs leading-4.5 text-muted-foreground" data-slot="credential-date">{certification.date}</span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="ml-auto grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors duration-150 group-hover:text-foreground group-focus-visible:text-foreground motion-reduce:transition-none"
+          data-slot="credential-link-cue"
+        >
+          <ArrowUpRight className="action-icon" />
         </span>
       </a>
     </li>
@@ -72,7 +79,7 @@ export function EducationContent({
       id="education"
     >
       <h2
-        className="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5"
+        className="m-0 mb-8 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground lg:mb-10"
         data-page-motion-row
         data-page-motion-trigger
         id="education-heading"
@@ -86,21 +93,14 @@ export function EducationContent({
       >
         <div className="min-w-0" data-page-motion-row data-slot="education-academic">
           <Subheading className="mb-6">Academic</Subheading>
-          <p className="m-0 text-lg leading-[1.4] font-[650] tracking-[-0.015em] text-balance text-foreground lg:text-xl">{education.qualification}</p>
+          <p className="m-0 text-base leading-6 font-medium text-foreground">{education.qualification}</p>
           <p className="m-0 mt-3 text-sm leading-[1.6] text-pretty text-content-foreground">{education.institution}</p>
-          <p className="m-0 mt-4 flex flex-wrap items-center gap-1.5 font-mono text-xs leading-4.5 text-muted-foreground [&_svg]:size-3 [&_svg]:opacity-65">
-            <span>{education.period}</span>
-            <span aria-hidden="true">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin aria-hidden="true" />
-              {education.location}
-            </span>
-          </p>
+          <p className="m-0 mt-4 font-mono text-xs leading-4.5 text-muted-foreground">{education.period}</p>
         </div>
 
         {hasCredentials && (
           <div className="flex min-h-0 min-w-0 flex-col" data-page-motion-row data-slot="education-credentials">
-            <Subheading className="mb-5">Professional credentials</Subheading>
+            <Subheading className="mb-3">Professional credentials</Subheading>
             <div className="min-w-0 flex-none">
               <CredentialTrack potentialOverflow={certifications.length > 2} singleColumn={certifications.length <= 2}>
                 {certifications.map((certification) => (
