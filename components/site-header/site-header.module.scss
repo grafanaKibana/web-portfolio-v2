@@ -61,6 +61,13 @@
   display: none;
 }
 
+@media (any-pointer: coarse) {
+  .navigation :is(a, button) {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .header::before {
     transition-duration: 0.01ms;

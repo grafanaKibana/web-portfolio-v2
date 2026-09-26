@@ -279,7 +279,7 @@ export function MobileNavigation({
           </summary>
           <nav
             aria-label={compactNavigationLabel}
-            className={clsx(styles.floatingMenuShadow, "rounded-md border bg-popover p-1.5")}
+            className={clsx(styles.floatingMenuShadow, styles.noScriptMenu, "rounded-md border bg-popover p-1.5")}
           >
             {items.map((item) => (
               <a

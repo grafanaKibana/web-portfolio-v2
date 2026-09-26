@@ -53,6 +53,12 @@
   max-height: calc(100dvh - var(--site-header-height));
 }
 
+.noScriptMenu {
+  max-height: calc(100dvh - var(--site-header-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 :global(body):has(.popup) {
   --mobile-navigation-background: var(--popover);
 }
