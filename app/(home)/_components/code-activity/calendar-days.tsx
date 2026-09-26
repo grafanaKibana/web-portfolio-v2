@@ -26,10 +26,11 @@ export function CalendarDays({ days }: {
           <Tooltip key={day.date} open={openDay === index} onOpenChange={(open) => { setOpenDay((current) => open ? index : current === index ? null : current); }}>
             <TooltipTrigger
               type="button"
-              className={clsx(styles.chartDay, "block aspect-square rounded-sm border-0 bg-border p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1")}
+              className={clsx(styles.chartDay, "block aspect-square border-0 bg-border p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1")}
               data-level={day.level}
               data-slot="contribution-day"
               aria-label={day.label}
+              title={day.label}
               tabIndex={focusedDay === index ? 0 : -1}
               closeOnClick={false}
               onFocus={() => { setFocusedDay(index); }}

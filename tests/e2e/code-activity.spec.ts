@@ -46,7 +46,7 @@ const renderer = `
   const { firstItems, secondItems, styles } = JSON.parse(chunks.join(""));
   process.stdout.write(renderToStaticMarkup(createElement(Fragment, null,
     createElement(PullRequestGroup, { status: "merged", label: "First", contributions: firstItems, icon: GitPullRequest, styles }),
-    createElement(PullRequestGroup, { status: "draft", label: "Second", contributions: secondItems, icon: GitPullRequestDraft, styles },
+    createElement(PullRequestGroup, { status: "draft", label: "Second", contributions: secondItems, icon: GitPullRequestDraft, styles, additionalContentLabel: "contribution calendar" },
       createElement("figure", { "data-slot": "activity-visualization", className: "mx-0 my-4 lg:my-6", "aria-label": "Synthetic calendar" },
         createElement("button", { type: "button" }, "Synthetic contribution day"))),
   )));
@@ -90,6 +90,13 @@ test("synthetic contribution disclosures remain independent, keyboard operable, 
   await page.keyboard.press("Enter");
   const expandedRows = first.locator('[data-slot="pull-request-row"]:visible');
   expect(await expandedRows.count()).toBeGreaterThan(initiallyVisible);
+  const summaryBox = await firstSummary.boundingBox();
+  const firstRevealedBox = await expandedRows.nth(initiallyVisible).boundingBox();
+  expect(summaryBox).not.toBeNull();
+  expect(firstRevealedBox).not.toBeNull();
+  if (summaryBox && firstRevealedBox) {
+    expect(firstRevealedBox.y).toBeGreaterThanOrEqual(summaryBox.y + summaryBox.height);
+  }
   await expect(second.locator('[data-slot="pull-request-row"]:visible')).toHaveCount(secondInitiallyVisible);
   expect(await expandedRows.evaluateAll((rows) => new Set(rows.map((row) => row.getAttribute("href"))).size))
     .toBe(firstItems.length);
@@ -133,11 +140,15 @@ for (const count of [0, 2, 5]) {
         const calendar = group.locator('[data-slot="activity-visualization"]');
         const summary = group.locator("summary");
         await expect(calendar).toBeHidden();
-        await expect(summary).toHaveAccessibleName(count > 3 ? /Show more.*Second pull requests/ : /Show more Second activity/);
+        await expect(summary).toContainText("More activity");
+        await expect(summary).toHaveAccessibleName(count > 3
+          ? "Show more 2 more Second pull requests and contribution calendar"
+          : "Show more Second activity: contribution calendar");
         await summary.focus();
         await page.keyboard.press("Enter");
         await expect(calendar).toBeVisible();
         await expect(group.locator('[data-slot="pull-request-row"]:visible')).toHaveCount(count);
+        await expect(summary).toContainText("Less activity");
         if (count > 0) {
           const row = await group.locator('[data-slot="pull-request-row"]').last().boundingBox();
           const chart = await calendar.boundingBox();

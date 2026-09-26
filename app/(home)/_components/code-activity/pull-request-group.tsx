@@ -30,6 +30,7 @@ export interface PullRequestGroupProps {
   icon: LucideIcon;
   styles: PullRequestGroupStyles;
   children?: ReactNode;
+  additionalContentLabel?: string;
 }
 
 /** Props for one compact pull-request row. */
@@ -100,39 +101,42 @@ function PullRequestRow(props: PullRequestRowProps) {
  * @returns The status group, or null when it has neither contributions nor expandable content.
  */
 export function PullRequestGroup(props: PullRequestGroupProps) {
-  const { status, label, contributions, icon, styles, children } = props;
+  const { status, label, contributions, icon, styles, children, additionalContentLabel = "activity" } = props;
   if (contributions.length === 0 && !children) return null;
 
   const visibleContributions = contributions.slice(0, visibleContributionCount);
   const remainingContributions = contributions.slice(visibleContributionCount);
+  const remainingDescription = remainingContributions.length > 0
+    ? `${String(remainingContributions.length)} more ${label} pull ${remainingContributions.length === 1 ? "request" : "requests"}${children ? ` and ${additionalContentLabel}` : ""}`
+    : `${label} activity: ${additionalContentLabel}`;
 
   return (
     <section data-slot="pull-request-group">
+      <Subheading data-page-motion-row>{label}</Subheading>
       {contributions.length > 0 ? (
-        <>
-          <Subheading data-page-motion-row>{label}</Subheading>
-          <ul aria-label={`${label} contributions`} className="m-0 mt-4 list-none p-0">
-            {visibleContributions.map((contribution) => (
-              <PullRequestRow
-                animate
-                contribution={contribution}
-                icon={icon}
-                key={contribution.href}
-                status={status}
-                styles={styles}
-              />
-            ))}
-          </ul>
-        </>
+        <ul aria-label={`${label} contributions`} className="m-0 mt-4 list-none p-0">
+          {visibleContributions.map((contribution) => (
+            <PullRequestRow
+              animate
+              contribution={contribution}
+              icon={icon}
+              key={contribution.href}
+              status={status}
+              styles={styles}
+            />
+          ))}
+        </ul>
       ) : null}
       {remainingContributions.length > 0 || children ? (
         <details className={clsx(styles.disclosure, "group/disclosure flex flex-col")} data-slot="pull-request-disclosure">
-          <summary className={clsx(styles.disclosureSummary, "order-1 flex min-h-12 w-full cursor-pointer list-none items-center text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")} data-slot="pull-request-disclosure-summary">
+          <summary className={clsx(styles.disclosureSummary, "flex min-h-12 w-full cursor-pointer list-none items-center whitespace-nowrap text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")} data-slot="pull-request-disclosure-summary">
             <span data-slot="show-more">
-              Show more{remainingContributions.length > 0 ? ` (${String(remainingContributions.length)})` : ""} <span className="sr-only">{label} {remainingContributions.length > 0 ? "pull requests" : "activity"}</span>
+              <span aria-hidden="true">More activity</span>
+              <span className="sr-only">Show more {remainingDescription}</span>
             </span>
             <span data-slot="show-less">
-              Show less <span className="sr-only">{label} {remainingContributions.length > 0 ? "pull requests" : "activity"}</span>
+              <span aria-hidden="true">Less activity</span>
+              <span className="sr-only">Show less {remainingDescription}</span>
             </span>
             <ArrowDown aria-hidden="true" className="ml-auto action-icon opacity-60 group-open/disclosure:rotate-180" />
           </summary>

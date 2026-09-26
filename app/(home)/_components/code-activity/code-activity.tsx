@@ -5,6 +5,11 @@ import { home } from "@/lib/content/portfolio/server";
 import { GitHubActivityService } from "@/lib/content/github-activity";
 import type { ContributionDay } from "@/lib/content/github-activity.models";
 import { CalendarDays } from "./calendar-days";
+import {
+  codeActivityState,
+  contributionCalendarContext,
+  pullRequestSummary,
+} from "./code-activity.model";
 import styles from "./code-activity.module.scss";
 import { PullRequestGroup, type PullRequestGroupStyles } from "./pull-request-group";
 
@@ -53,21 +58,45 @@ function calendarMonthLabels(days: readonly ContributionDay[]): readonly string[
 export async function HomeCodeActivity() {
   const { codeActivity } = home;
   const activity = await githubActivity.load(codeActivity.username);
+  const state = codeActivityState(activity);
   const groups = [
-    { status: "under-review", label: "Under review", contributions: activity.underReview, icon: MessageCircleMore },
+    { status: "under-review", label: "Open", contributions: activity.underReview, icon: MessageCircleMore },
     { status: "draft", label: "Draft", contributions: activity.draft, icon: GitPullRequestDraft },
     { status: "merged", label: "Merged", contributions: activity.merged, icon: GitPullRequest },
   ] as const;
-  const summary = activity.pullRequestsAvailable
-    ? `${String(activity.merged.length)} merged · ${String(activity.underReview.length)} under review · ${String(activity.draft.length)} draft`
-    : null;
+  const summary = pullRequestSummary(activity);
+  const calendarContext = contributionCalendarContext(activity.calendar);
   const calendarDays = activity.calendar.map((day) => ({
     ...day,
     label: `${day.count === 0 ? "No contributions" : `${String(day.count)} ${day.count === 1 ? "contribution" : "contributions"}`} on ${activityDate.format(new Date(`${day.date}T00:00:00Z`))}`,
   }));
 
-  const calendar = activity.calendarAvailable ? (
-    <figure aria-label="GitHub activity, last 12 months" className="mx-0 my-4 lg:my-6" data-slot="activity-visualization">
+  const calendar = activity.calendarAvailable && calendarContext ? (
+    <figure
+      aria-label={`GitHub contribution calendar, ${calendarContext.range}`}
+      className="mx-0 my-4 lg:my-6"
+      data-slot="activity-visualization"
+    >
+      <figcaption className={styles.calendarContext} data-slot="activity-calendar-context">
+        <span className={styles.calendarContextPrimary}>Contributions ({calendarContext.total})</span>
+        <span
+          aria-label="Contribution intensity from less to more"
+          className={styles.calendarLegend}
+          data-slot="activity-calendar-legend"
+          role="img"
+        >
+          <span aria-hidden="true">Less</span>
+          {[0, 1, 2, 3, 4].map((level) => (
+            <span
+              aria-hidden="true"
+              className={styles.calendarLegendSwatch}
+              data-level={level}
+              key={level}
+            />
+          ))}
+          <span aria-hidden="true">More</span>
+        </span>
+      </figcaption>
       <div className={clsx(styles.chartScroll, "overflow-x-auto")}>
         <div className="w-[39.625rem] lg:w-full">
           <div className={clsx(styles.chartMonths, "mb-1.25 grid gap-[0.1875rem] font-mono text-xs leading-4.5 text-muted-foreground")}>
@@ -86,11 +115,11 @@ export async function HomeCodeActivity() {
 
   return (
     <section id="code" aria-labelledby="code-heading" className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1" data-page-motion-section>
-      <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-t pt-3 lg:mb-10 lg:pt-3.5" data-page-motion-row>
+      <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 lg:mb-10" data-page-motion-row>
         <h2
           data-page-motion-trigger
           id="code-heading"
-          className="m-0 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground"
+          className="m-0 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground"
         >
           Code activity
         </h2>
@@ -113,14 +142,34 @@ export async function HomeCodeActivity() {
             label={group.label}
             status={group.status}
             styles={pullRequestGroupStyles}
+            additionalContentLabel="contribution calendar"
           >
             {index === visibleGroups.length - 1 ? calendar : null}
           </PullRequestGroup>
         ))}
         {visibleGroups.length === 0 && calendar ? (
-          <PullRequestGroup contributions={[]} icon={GitPullRequest} label="GitHub" status="merged" styles={pullRequestGroupStyles}>
+          <PullRequestGroup
+            additionalContentLabel="contribution calendar"
+            contributions={[]}
+            icon={GitPullRequest}
+            label="Contribution calendar"
+            status="merged"
+            styles={pullRequestGroupStyles}
+          >
             {calendar}
           </PullRequestGroup>
+        ) : null}
+        {state === "unavailable" ? (
+          <div className={styles.unavailable} data-slot="activity-unavailable">
+            <p>Recent GitHub activity is temporarily unavailable.</p>
+            <a
+              href={`https://github.com/${encodeURIComponent(codeActivity.username)}`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              View GitHub profile
+            </a>
+          </div>
         ) : null}
       </div>
     </section>
