@@ -1,8 +1,10 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { HomeEditorialRow } from "@/app/(home)/_components/editorial-row/editorial-row";
 import { loadArticles } from "@/lib/content/articles/server";
+
+const publishedDate = new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
 /**
  * Renders validated local articles as links to their static routes.
@@ -25,7 +27,7 @@ export async function HomeWriting() {
         data-page-motion-row
         data-page-motion-trigger
         id="writing-heading"
-        className="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5"
+        className="m-0 mb-8 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground lg:mb-10"
       >
         Writing
       </h2>
@@ -39,23 +41,24 @@ export async function HomeWriting() {
                 key={slug}
                 actions={(
                   <Link className="action-link" data-row-link href={`/articles/${slug}`}>
-                    Read article
-                    <ArrowUpRight aria-hidden="true" className="action-icon opacity-60" />
+                    <span className="sr-only">Read article</span>
+                    <ArrowRight aria-hidden="true" className="action-icon opacity-60" />
                   </Link>
                 )}
                 description={article.description}
+                metadata={<time dateTime={article.published}>{publishedDate.format(new Date(`${article.published}T00:00:00Z`))}</time>}
                 title={article.title}
               />
             ))}
           </ul>
           <Link
-            className="flex min-h-12 w-full items-center text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="mt-2 inline-flex min-h-12 items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             data-page-motion-row
             data-slot="more-articles-link"
             href="/articles"
           >
             See all articles
-            <ArrowUpRight aria-hidden="true" className="ml-auto action-icon opacity-60" />
+            <ArrowRight aria-hidden="true" className="action-icon opacity-60" />
           </Link>
         </>
       ) : (

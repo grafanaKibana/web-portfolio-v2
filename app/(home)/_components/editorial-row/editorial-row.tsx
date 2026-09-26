@@ -10,6 +10,7 @@ interface HomeEditorialRowProps {
   askRecord: { kind: "project" | "article"; slug: string };
   dataSlot: string;
   description: ReactNode;
+  metadata?: ReactNode;
   title: ReactNode;
 }
 
@@ -20,10 +21,11 @@ interface HomeEditorialRowProps {
  * @param askRecord - Stable portfolio record identity exposed for page context.
  * @param dataSlot - Route-owned identifier for the list item.
  * @param description - Summary displayed below the title.
+ * @param metadata - Optional publication metadata beneath the title.
  * @param title - Entry heading.
  * @returns A semantic Home editorial row.
  */
-export function HomeEditorialRow({ actions, askRecord, dataSlot, description, title }: HomeEditorialRowProps) {
+export function HomeEditorialRow({ actions, askRecord, dataSlot, description, metadata, title }: HomeEditorialRowProps) {
   /**
    * Follows the primary link outside the action row while preserving text selection and other controls.
    *
@@ -47,10 +49,11 @@ export function HomeEditorialRow({ actions, askRecord, dataSlot, description, ti
       data-slot={dataSlot}
       onClick={followRowLink}
     >
-      <article className="grid gap-x-4 md:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6" data-slot="home-editorial-row">
-        <h3 className="m-0 min-w-0 text-[1.375rem] leading-7 font-medium tracking-[-0.02em] text-balance wrap-anywhere md:col-start-1 md:row-start-1 lg:group-first/editorial:text-2xl lg:group-first/editorial:leading-7.5">{title}</h3>
-        <p className="m-0 mt-3 text-sm leading-6 text-pretty text-content-foreground md:col-span-2 md:row-start-2">{description}</p>
-        <div className="mt-3 flex cursor-default flex-wrap items-center justify-start gap-x-2 gap-y-1 md:col-start-2 md:row-start-1 md:mt-0 md:justify-end lg:gap-x-6 [&_a]:cursor-pointer max-lg:[&_a]:min-h-11 max-lg:[&_a]:min-w-11 max-lg:[&_a]:justify-center [&_[data-row-link]]:ms-auto" data-slot="project-actions">{actions}</div>
+      <article className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 lg:gap-x-6" data-slot="home-editorial-row">
+        <h3 className="col-start-1 row-start-1 m-0 min-w-0 text-xl leading-7 font-medium tracking-[-0.02em] text-balance wrap-anywhere">{title}</h3>
+        {metadata && <div className="col-span-2 row-start-2 mt-2 font-mono text-xs leading-4.5 text-muted-foreground">{metadata}</div>}
+        <p className={clsx("col-span-2 m-0 mt-3 text-sm leading-6 text-pretty text-content-foreground", metadata ? "row-start-3" : "row-start-2")}>{description}</p>
+        <div className="col-start-2 row-start-1 flex cursor-default items-start justify-end [&_a]:min-h-7 [&_a]:min-w-7 [&_a]:cursor-pointer [&_a]:justify-end" data-slot="project-actions">{actions}</div>
       </article>
     </li>
   );
