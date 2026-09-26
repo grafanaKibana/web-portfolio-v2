@@ -1,5 +1,8 @@
 .header {
   isolation: isolate;
+
+  /* Keep compact navigation clear of Safari's solid viewport-edge extension. */
+  top: var(--site-header-top);
   height: var(--site-header-height);
   color: var(--foreground);
 

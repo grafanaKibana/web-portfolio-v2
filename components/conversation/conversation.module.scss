@@ -374,7 +374,9 @@
   position: absolute;
   z-index: 0;
   top: -3rem;
-  bottom: -2rem;
+
+  /* Keep even the hidden fade out of Safari's viewport-edge sampling strip. */
+  bottom: 0;
   left: 50%;
   width: min(calc(100% + 6rem), var(--viewport-width));
   transform: translateX(-50%);

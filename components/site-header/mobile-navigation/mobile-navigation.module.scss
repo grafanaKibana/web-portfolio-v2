@@ -32,8 +32,8 @@
 }
 
 .popup {
-  inset: var(--site-header-height) 0 auto;
-  max-height: calc(100dvh - var(--site-header-height));
+  inset: calc(var(--site-header-top) + var(--site-header-height)) 0 auto;
+  max-height: calc(100dvh - var(--site-header-top) - var(--site-header-height));
 }
 
 .popup::before {
@@ -50,11 +50,11 @@
 }
 
 .menu {
-  max-height: calc(100dvh - var(--site-header-height));
+  max-height: calc(100dvh - var(--site-header-top) - var(--site-header-height));
 }
 
 .noScriptMenu {
-  max-height: calc(100dvh - var(--site-header-height));
+  max-height: calc(100dvh - var(--site-header-top) - var(--site-header-height));
   overflow-y: auto;
   overscroll-behavior: contain;
 }

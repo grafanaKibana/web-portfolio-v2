@@ -143,6 +143,7 @@
 
 :root {
   --site-header-height: 3.75rem;
+  --site-header-top: 0.5rem;
 
   /* Editorial width controls: Home, lists, detail pages, and footer share this frame. */
   --page-shell-max-width: 54rem; /* Increase for wider content and longer lines on large screens. */
@@ -213,6 +214,7 @@
 @media (min-width: 80rem) {
   :root {
     --site-header-height: 4.75rem;
+    --site-header-top: 0rem;
   }
 }
 
