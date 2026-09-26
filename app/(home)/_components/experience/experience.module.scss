@@ -68,7 +68,7 @@
 }
 
 .experienceItem:has(.roleDetails):is(:hover, :has(.roleDetails summary:focus-visible))
-  :is(.roleSummary, .roleDetails summary) {
+  .roleDetails summary {
   color: var(--foreground);
 }
 

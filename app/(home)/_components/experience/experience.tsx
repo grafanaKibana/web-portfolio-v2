@@ -15,7 +15,7 @@ import { RecommendationTrack } from "./recommendation-track";
 export function HomeExperience() {
   return (
     <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1")} data-page-motion-section>
-      <h2 className="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5" data-page-motion-row data-page-motion-trigger id="experience-heading">Experience</h2>
+      <h2 className="m-0 mb-8 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground lg:mb-10" data-page-motion-row data-page-motion-trigger id="experience-heading">Experience</h2>
       <ol className={clsx(styles.timeline, "relative m-0 list-none p-0 pl-5.5 md:pl-0 md:[--experience-rail-width:8.75rem] xl:[--experience-rail-width:11.5rem]")}>
         {profile.experience.map((experience, index) => {
           const [periodStart, periodEnd] = experience.period.split(" — ", 2);
@@ -33,28 +33,29 @@ export function HomeExperience() {
                   className={clsx(styles.timelineDot, "size-2.25 rounded-full border border-muted-foreground bg-background transition-colors duration-150 motion-reduce:transition-none")}
                   data-slot="timeline-dot"
                 />}
-                <span className="whitespace-nowrap" data-slot="period-part">{periodStart}</span>
+                <time className="whitespace-nowrap" data-slot="period-part" dateTime={experience.start}>{periodStart}</time>
+                <span className="sr-only"> to </span>
                 <span aria-hidden="true" className={clsx(styles.periodSeparator, "md:hidden")} data-slot="period-separator">—</span>
-                <span className="whitespace-nowrap" data-slot="period-part">{periodEnd}</span>
+                {experience.end ? <time className="whitespace-nowrap" data-slot="period-part" dateTime={experience.end}>{periodEnd}</time> : <span className="whitespace-nowrap" data-slot="period-part">{periodEnd}</span>}
               </p>
               <article className="relative md:pl-8" data-page-motion-item={index === 0 ? "" : undefined}>
                 <div className="flex items-center gap-3 lg:gap-3.5">
                   <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border bg-white" data-slot="company-logo">
                     <Image alt="" className="size-full rounded-full object-contain" height={32} src={experience.logo} width={32} />
                   </span>
-                  <div data-slot="role-heading">
+                  <div className="min-w-0 wrap-anywhere" data-slot="role-heading">
                     <h3 className="m-0 text-lg leading-6 font-semibold text-balance tracking-[-0.01em] text-foreground">{experience.role}</h3>
                     <p className="mt-0.75 text-xs leading-normal text-muted-foreground md:mt-1 md:text-[0.8125rem]">
                       {experience.organization}
                     </p>
                   </div>
                 </div>
-                <p className={clsx(styles.roleSummary, "mt-3 text-sm leading-6 text-pretty text-content-foreground transition-colors duration-150 motion-reduce:transition-none")}>
+                <p className="mt-3 text-sm leading-6 text-pretty text-content-foreground">
                   {experience.summary}
                 </p>
                 {experience.highlights.length > 0 && (
                   <details className={clsx(styles.roleDetails, "mt-2")}>
-                    <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-mono text-xs leading-4.5 tracking-[0.08em] uppercase text-muted-foreground transition-colors duration-150 motion-reduce:transition-none">
+                    <summary aria-label={`Highlights for ${experience.role} at ${experience.organization}`} className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-mono text-xs leading-4.5 tracking-[0.08em] uppercase text-muted-foreground transition-colors duration-150 motion-reduce:transition-none">
                       <ChevronRight aria-hidden="true" className={clsx(styles.detailsIcon, "action-icon opacity-60 transition-transform duration-150 ease-in-out motion-reduce:transition-none")} />
                       Highlights
                     </summary>
@@ -72,11 +73,10 @@ export function HomeExperience() {
       </ol>
       <section
         aria-labelledby="experience-recommendations-heading"
-        className="mt-16 lg:mt-32"
+        className="mt-14 lg:mt-20"
         data-slot="experience-recommendations"
       >
-        <Subheading data-page-motion-row id="experience-recommendations-heading">Recommendations</Subheading>
-        <RecommendationTrack>
+        <RecommendationTrack heading={<Subheading className="min-w-0 max-w-full flex-1 basis-48" id="experience-recommendations-heading">Recommendations</Subheading>}>
           {profile.recommendations.map((recommendation) => (
             <li
               className="flex min-w-0 shrink-0 basis-[84%] snap-start md:basis-[65%] lg:basis-[48%]"
@@ -93,7 +93,7 @@ export function HomeExperience() {
                   </p>
                 </blockquote>
                 <figcaption className="mt-auto pt-5 text-sm">
-                  <span className="block font-medium" data-slot="recommendation-author">{recommendation.author}</span>
+                  <span className="block text-base leading-6 font-medium" data-slot="recommendation-author">{recommendation.author}</span>
                   <span className="mt-1 block text-xs text-muted-foreground" data-slot="recommendation-position">
                     {recommendation.position}
                   </span>
