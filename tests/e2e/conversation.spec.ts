@@ -191,22 +191,49 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPa
   });
 }
 
-/** Reads the first frame of an interrupted desktop close animation.
- * @param surface - Closing desktop surface.
+/** Triggers an interrupted desktop close and reads its first frame without a protocol delay.
+ * @param control - Close control inside the opening desktop surface.
  * @returns Closing frame's initial clip and opacity.
  */
-async function sampleClosingStart(surface: Locator): Promise<{ clipPath: string; opacity: number }> {
-  await expect(surface).toHaveAttribute("data-closing", "true");
-  return surface.locator("[data-chat-frame]").evaluate((element) => {
-    const animation = element.getAnimations().find(({ effect }) =>
-      effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.clipPath !== undefined));
-    if (!(animation?.effect instanceof KeyframeEffect)) throw new Error("Expected an active desktop closing frame animation.");
-    for (const current of element.getAnimations()) {
-      current.pause();
-      current.currentTime = 0;
+async function triggerAndSampleClosingStart(control: Locator): Promise<{ clipPath: string; opacity: number }> {
+  return control.evaluate(async (element) => {
+    (element as HTMLElement).click();
+    for (let frame = 0; frame < 10; frame += 1) {
+      const surface = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="false"][data-closing="true"]');
+      const target = surface?.querySelector<HTMLElement>("[data-chat-frame]");
+      const animation = target?.getAnimations().find(({ effect }) =>
+        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.clipPath !== undefined));
+      if (target && animation?.effect instanceof KeyframeEffect) {
+        for (const current of target.getAnimations()) {
+          current.pause();
+          current.currentTime = 0;
+        }
+        const style = getComputedStyle(target);
+        return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
+      }
+      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
     }
-    const style = getComputedStyle(element);
-    return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
+    throw new Error("Expected an active desktop closing frame animation.");
+  });
+}
+
+/** Captures the entry fade as soon as hover starts its opacity transition.
+ * @param fade - Decorative entry fade beside the expanding composer.
+ * @returns Mid-transition opacity.
+ */
+async function sampleEntryFade(fade: Locator): Promise<number> {
+  return fade.evaluate(async (element) => {
+    for (let frame = 0; frame < 10; frame += 1) {
+      const animation = element.getAnimations().find(({ effect }) =>
+        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.opacity !== undefined));
+      if (animation?.effect instanceof KeyframeEffect) {
+        animation.pause();
+        animation.currentTime = Number(animation.effect.getTiming().duration) / 2;
+        return Number.parseFloat(getComputedStyle(element).opacity);
+      }
+      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+    }
+    throw new Error("Expected an active entry fade transition.");
   });
 }
 
@@ -344,6 +371,7 @@ test.describe("conversation smoke", () => {
     const fade = entry.locator("[data-entry-fade]");
     await expect(page.getByRole("textbox", { name: "Your question" })).toBeHidden();
     await entry.hover();
+    const fadeOpacity = await sampleEntryFade(fade);
     const revealSample = await sampleEntryResize(field);
     expect(revealSample.clip).toBe("none");
     expect(revealSample.width).toBeGreaterThan(120);
@@ -364,13 +392,6 @@ test.describe("conversation smoke", () => {
     const jadeOpacity = Number(revealSample.accent);
     expect(jadeOpacity).toBe(0);
 
-    const fadeOpacity = await fade.evaluate((element) => {
-      const animation = element.getAnimations()[0];
-      if (!animation?.effect) throw new Error("Expected an active entry fade transition.");
-      animation.pause();
-      animation.currentTime = Number(animation.effect.getTiming().duration) / 2;
-      return Number.parseFloat(getComputedStyle(element).opacity);
-    });
     expect(fadeOpacity).toBeGreaterThan(0);
     expect(fadeOpacity).toBeLessThan(1);
 
@@ -421,7 +442,12 @@ test.describe("conversation smoke", () => {
   });
 
   test("follow-up prefills focus and the next request carries context and completed history", async ({ page }) => {
-    await page.locator("#projects").scrollIntoViewIfNeeded();
+    const projects = page.locator("#projects");
+    await projects.evaluate((element) => { element.scrollIntoView({ behavior: "instant", block: "start" }); });
+    await expect.poll(() => projects.evaluate((element) => {
+      const headerBottom = document.querySelector<HTMLElement>('[data-slot="site-header"]')?.getBoundingClientRect().bottom ?? 0;
+      return element.getBoundingClientRect().top <= headerBottom + 1;
+    })).toBe(true);
     await send(page, "Synthetic context question");
     await emit(page, {
       done: true,
@@ -613,8 +639,8 @@ test.describe("conversation smoke", () => {
     const surface = page.locator('[data-chat-surface][data-mobile="false"]');
     await expect(surface).toHaveAttribute("data-morph", "opening");
 
-    await page.getByRole("button", { name: "Close conversation" }).evaluate((element) => { (element as HTMLElement).click(); });
-    const closing = await sampleClosingStart(surface);
+    const closing = await triggerAndSampleClosingStart(page.getByRole("button", { name: "Close conversation" }));
+    await expect(surface).toHaveAttribute("data-closing", "true");
     expectClipPathClose(closing.clipPath, opening.clipPath);
     expect(closing.opacity).toBeCloseTo(opening.opacity, 3);
 
