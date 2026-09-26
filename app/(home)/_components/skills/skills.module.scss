@@ -12,9 +12,19 @@
   transition: filter 160ms ease-out;
 }
 
+.skill [data-slot="skill-label"] {
+  transition: color 160ms ease-out;
+}
+
 .skill:hover [data-slot="skill-icon"] > *,
 .skill[data-popup-open] [data-slot="skill-icon"] > * {
   filter: grayscale(0) var(--icon-filter, contrast(1));
+}
+
+.skill:hover [data-slot="skill-label"],
+.skill:focus-visible [data-slot="skill-label"],
+.skill[data-popup-open] [data-slot="skill-label"] {
+  color: var(--foreground);
 }
 
 .monoBrandIcon {

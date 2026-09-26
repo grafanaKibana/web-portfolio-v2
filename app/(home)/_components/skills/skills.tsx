@@ -38,12 +38,13 @@ import type { ReactNode } from "react";
 import { Subheading } from "../subheading";
 import { profile } from "@/lib/content/portfolio/server";
 import { clsx } from "clsx";
+import { populatedSkillGroups } from "./populated-skill-groups";
 import { SkillList } from "./skill-list";
 import styles from "./skills.module.scss";
 
 const semanticIconProps = { absoluteStrokeWidth: true, size: 20, strokeWidth: 2 } as const;
 const brandIconClass = "size-5";
-const dotnetBadgeClass = "grid size-5 place-items-center rounded-xs text-[0.4375rem] leading-none font-bold text-white";
+const dotnetBadgeClass = "grid size-5.5 place-items-center rounded-xs text-[0.5rem] leading-none font-bold tracking-[-0.015em] text-white";
 
 /**
  * Renders a Lucide mark with the shared two-tone semantic gradient.
@@ -117,6 +118,8 @@ const skillIcons: Readonly<Record<string, ReactNode>> = {
  * @returns The Home Skills section.
  */
 export function HomeSkills() {
+  const groups = populatedSkillGroups(profile.skills);
+
   return (
     <section
       id="skills"
@@ -137,31 +140,37 @@ export function HomeSkills() {
         data-page-motion-row
         data-page-motion-trigger
         id="skills-heading"
-        className="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5"
+        className="m-0 mb-8 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground lg:mb-10"
       >
         Skills
       </h2>
       <div className="flex flex-col">
-        {profile.skills.map((group) => (
-          <section
-            data-page-motion-cascade="0.062"
-            data-page-motion-duration="0.34"
-            data-page-motion-row
-            data-page-motion-stagger="0.082"
-            data-slot="skill-group"
-            key={group.title}
-          >
-            <Subheading align="center" className={styles.groupLabel} data-page-motion-lead>{group.title}</Subheading>
-            <SkillList
-              className={clsx(
-                styles.skillList,
-                "mx-0 my-4 flex list-none flex-wrap justify-center gap-x-2 gap-y-1 p-0 md:gap-x-4 lg:my-6 lg:gap-x-10 lg:gap-y-4",
-              )}
-              data-page-motion-item
-              skills={group.skills.map((skill) => ({ name: skill, icon: skillIcons[skill] }))}
-            />
-          </section>
-        ))}
+        {groups.length === 0 ? (
+          <p className="m-0 text-sm leading-6 text-muted-foreground" data-page-motion-row data-slot="skills-empty">
+            No skills are listed.
+          </p>
+        ) : (
+          groups.map((group) => (
+            <section
+              data-page-motion-cascade="0.062"
+              data-page-motion-duration="0.34"
+              data-page-motion-row
+              data-page-motion-stagger="0.082"
+              data-slot="skill-group"
+              key={group.title}
+            >
+              <Subheading align="center" className={styles.groupLabel} data-page-motion-lead>{group.title}</Subheading>
+              <SkillList
+                className={clsx(
+                  styles.skillList,
+                  "mx-0 my-4 flex list-none flex-wrap justify-center gap-x-2 gap-y-1 p-0 md:gap-x-4 lg:my-6 lg:gap-x-10 lg:gap-y-4",
+                )}
+                data-page-motion-item
+                skills={group.skills.map((skill) => ({ name: skill, icon: skillIcons[skill] }))}
+              />
+            </section>
+          ))
+        )}
       </div>
     </section>
   );
