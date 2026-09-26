@@ -116,7 +116,7 @@
   }
 
   .action-icon {
-    @apply size-5 shrink-0;
+    @apply size-4 shrink-0;
   }
 
   .action-link,

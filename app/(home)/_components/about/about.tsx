@@ -8,21 +8,14 @@ import { profile } from "@/lib/content/portfolio/server";
 export function HomeAbout() {
   return (
     <section id="about" aria-labelledby="about-heading" className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1" data-page-motion-section>
-      <h2
-        data-page-motion-row
-        data-page-motion-trigger
-        id="about-heading"
-        className="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5"
-      >
-        About
-      </h2>
-      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-0" data-page-motion-row>
-        <div className="flex flex-col gap-4 text-content-foreground lg:pr-8">
+      <h2 id="about-heading" className="sr-only">About</h2>
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-0">
+        <div className="flex flex-col gap-4 text-content-foreground lg:pr-8" data-page-motion-row data-page-motion-trigger>
           {profile.summary.map((paragraph) => <p className="m-0 text-sm leading-6 text-pretty" key={paragraph}>{paragraph}</p>)}
         </div>
         <div className="flex flex-col gap-8 lg:gap-12 lg:border-l lg:pl-8">
           {profile.careerChapters.map((chapter) => (
-            <div key={chapter.id}>
+            <div data-page-motion-row key={chapter.id}>
               <p className="m-0 font-mono text-xs leading-4.5 text-muted-foreground">
                 {chapter.meta}
               </p>

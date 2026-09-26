@@ -25,12 +25,6 @@ export function HomeContact() {
       data-page-motion-section
       id="contact"
     >
-      <p
-        className="m-0 mb-8 border-t pt-3 font-mono text-xs leading-4.5 font-semibold tracking-[0.08em] uppercase text-muted-foreground lg:mb-10 lg:pt-3.5"
-        data-page-motion-row
-      >
-        Contact
-      </p>
       <div className="grid items-start gap-8 min-[56.25rem]:grid-cols-[minmax(0,1fr)_max-content] lg:gap-12">
         <div data-page-motion-row>
           <h2 className="m-0 text-[1.625rem] leading-[1.2] font-medium tracking-tight min-[56.25rem]:text-[2rem]" data-page-motion-trigger id="contact-heading">Let&apos;s talk</h2>

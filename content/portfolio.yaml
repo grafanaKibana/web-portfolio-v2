@@ -2,15 +2,14 @@ profile:
   name: "Nikita Reshetnik"
   headline: "I make things. Some talk back."
   summary:
-    - "AI Engineer with 5 years of experience building enterprise software, combining production AI delivery with a strong C#/.NET and backend engineering foundation."
-    - "Experienced in taking features through design, implementation, testing, evaluation, release, and observability while coordinating delivery across cross-functional teams."
+    - "I’m an AI engineer with 5 years of experience building enterprise software, grounded in C#/.NET and backend engineering."
   careerChapters:
     - id: ai
       title: "AI Engineering"
-      summary: "I build AI services and the evaluation pipelines that help us see how prompt changes affect quality. I also keep an eye on how those services behave in production, coordinate work across the team, and help fellow engineers put AI tools to use."
+      summary: "I build AI services and evaluation pipelines, and help fellow engineers put AI tools to use."
     - id: software
       title: "Software Engineering"
-      summary: "I build features across .NET services, plugins, and desktop applications. That also means working through slow SQL queries, reviewing code, and teaming up with QA and DevOps to get releases out and sort out deployment issues."
+      summary: "I build features across .NET services, plugins, and desktop applications, with a focus on SQL performance, code quality, and release support."
   experience:
     - organization: "ELEKS"
       logo: /companies/eleks.svg
