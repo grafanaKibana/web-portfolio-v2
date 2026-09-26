@@ -18,9 +18,13 @@ import noiseImage from "./hero-noise.generated.webp";
 /** Palette-derived colors are available before hydration and switch atomically with the theme. */
 const heroColors = {
   "--hero-light-foreground": heroContrast.light.foreground,
+  "--hero-light-content-foreground": heroContrast.light.contentForeground,
+  "--hero-light-muted-foreground": heroContrast.light.mutedForeground,
   "--hero-light-surface": heroContrast.light.surface,
   "--hero-light-veil": heroContrast.light.veilOpacity,
   "--hero-dark-foreground": heroContrast.dark.foreground,
+  "--hero-dark-content-foreground": heroContrast.dark.contentForeground,
+  "--hero-dark-muted-foreground": heroContrast.dark.mutedForeground,
   "--hero-dark-surface": heroContrast.dark.surface,
   "--hero-dark-veil": heroContrast.dark.veilOpacity,
   "--hero-light-image": `url("${lightImage.src}")`,
@@ -65,8 +69,6 @@ export function HomeHero() {
       style={heroColors}
       className={clsx(styles.hero, "page-shell-gutter box-border flex w-full flex-col items-center justify-center pt-8 text-center")}
     >
-      <link rel="preload" as="image" href={lightImage.src} fetchPriority="high" />
-      <link rel="preload" as="image" href={darkImage.src} fetchPriority="high" />
       <div
         aria-hidden="true"
         data-hero-background="light"
@@ -90,7 +92,7 @@ export function HomeHero() {
       </div>
       <h1 data-page-motion-intro="immediate" id="intro-heading" className={clsx(styles.heading, "m-0 font-medium")}>
         <span className="block">{home.hero.title}</span>
-        <span className="block text-content-foreground opacity-80">{home.hero.lead}</span>
+        <span className="block text-content-foreground">{home.hero.lead}</span>
       </h1>
       <div data-page-motion-intro="immediate" className={clsx(styles.descriptorSlot, "flex items-center justify-center")}>
         <DescriptorRotation
@@ -99,9 +101,10 @@ export function HomeHero() {
         />
       </div>
       <div data-page-motion-intro="immediate" className={clsx(styles.actions, "w-full lg:w-auto")} data-slot="hero-actions">
-        <a className={clsx(buttonVariants(), styles.resumeButton)} download href={home.hero.resumeHref}>
+        <a aria-label="Open résumé PDF" className={clsx(buttonVariants(), styles.resumeButton)} href={home.hero.resumeHref}>
           <Icon name="download" />
           Résumé
+          <span aria-hidden="true" className={styles.resumeFormat}>PDF</span>
         </a>
         <a className={buttonVariants({ variant: "ghost" })} href="#contact">
           <Icon name="contact" />
@@ -109,7 +112,7 @@ export function HomeHero() {
         </a>
         <a className={buttonVariants({ variant: "ghost" })} href="#experience">
           <Icon name="experience" />
-          Explore Experience
+          Explore experience
         </a>
       </div>
     </section>

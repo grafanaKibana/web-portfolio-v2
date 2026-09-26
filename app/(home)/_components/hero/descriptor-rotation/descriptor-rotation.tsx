@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { clsx } from "clsx";
-import { nextDescriptorIndex } from "./descriptor-sequence";
+import { nextDescriptorIndex, resolveDescriptorMotion } from "./descriptor-sequence";
 import styles from "./descriptor-rotation.module.scss";
 
 /**
@@ -45,23 +45,24 @@ export function DescriptorRotation({ descriptors, interval }: {
     };
   }, [descriptors.length, interval]);
 
+  const descriptorMotion = resolveDescriptorMotion(reducedMotion);
+
   return (
-    <AnimatePresence key={String(reducedMotion)} initial={false} mode="wait">
-      <motion.span
-        key={index}
-        className={clsx(styles.rotation, "inline-block font-mono text-xs font-medium uppercase")}
-        initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: "0.875rem" }}
-        animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: "0rem" }}
-        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: "-0.875rem" }}
-        transition={{
-          duration: reducedMotion ? 0.5 : 0.58,
-          ease: reducedMotion ? [0.25, 0.1, 0.25, 1] : [0.22, 0.61, 0.36, 1],
-        }}
-      >
-        <span className="inline-block" data-slot="hero-descriptor">
-          {descriptors[index] ?? ""}
-        </span>
-      </motion.span>
-    </AnimatePresence>
+    <span className={styles.stage}>
+      <AnimatePresence key={String(reducedMotion)} initial={false} mode="sync">
+        <motion.span
+          animate={descriptorMotion.animate}
+          className={clsx(styles.rotation, "inline-block font-mono text-xs font-medium uppercase")}
+          exit={descriptorMotion.exit}
+          initial={descriptorMotion.initial}
+          key={index}
+          transition={descriptorMotion.transition}
+        >
+          <span className="inline-block" data-slot="hero-descriptor">
+            {descriptors[index] ?? ""}
+          </span>
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 }

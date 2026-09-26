@@ -10,7 +10,7 @@ export const heroPalettes = {
 /** Shared grain overlay strength, expressed as a percentage. */
 export const heroNoise = 7;
 
-/** Derived foregrounds account for the palette and grain overlay in both themes. */
+/** Derived foreground roles account for the palette and grain overlay in both themes. */
 export const heroContrast = {
   light: resolveHeroContrast(heroPalettes.light, heroNoise),
   dark: resolveHeroContrast(heroPalettes.dark, heroNoise),

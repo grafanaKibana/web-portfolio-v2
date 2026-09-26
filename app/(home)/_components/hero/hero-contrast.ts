@@ -1,10 +1,27 @@
 /** Foreground and optional neutral veil that protect text over an sRGB palette. */
 export interface HeroContrastResult {
+  contentForeground: string;
   foreground: "#000000" | "#ffffff";
+  minimumContrast: number;
+  mutedForeground: string;
   surface: "#ffffff" | "#000000";
   veilOpacity: number;
-  minimumContrast: number;
 }
+
+const heroInks = {
+  black: {
+    contentForeground: "#080808",
+    foreground: "#000000" as const,
+    mutedForeground: "#141414",
+    surface: "#ffffff" as const,
+  },
+  white: {
+    contentForeground: "#f7f7f7",
+    foreground: "#ffffff" as const,
+    mutedForeground: "#ebebeb",
+    surface: "#000000" as const,
+  },
+};
 
 /**
  * Selects black or white text and the smallest protective veil needed for AA contrast.
@@ -37,20 +54,64 @@ export function resolveHeroContrast(colors: readonly string[], noise = 0): HeroC
 
   for (let step = 0; step <= 100; step += 1) {
     const alpha = step / 100;
-    const blackContrast = (luminance(lower.map((value) => value * (1 - alpha) + alpha)) + 0.05) / 0.05;
-    const whiteContrast = 1.05 / (luminance(upper.map((value) => value * (1 - alpha))) + 0.05);
+    const blackBackground = lower.map((value) => value * (1 - alpha) + alpha);
+    const whiteBackground = upper.map((value) => value * (1 - alpha));
+    const blackContrast = minimumInkContrast(heroInks.black, blackBackground);
+    const whiteContrast = minimumInkContrast(heroInks.white, whiteBackground);
     // A small margin protects against browser rounding at the AA boundary.
     if (Math.max(blackContrast, whiteContrast) >= 4.6) {
       const black = blackContrast >= whiteContrast;
+      const inks = black ? heroInks.black : heroInks.white;
       return {
-        foreground: black ? "#000000" : "#ffffff",
-        surface: black ? "#ffffff" : "#000000",
+        ...inks,
         veilOpacity: alpha,
         minimumContrast: black ? blackContrast : whiteContrast,
       };
     }
   }
   throw new Error("Unable to establish hero contrast.");
+}
+
+/**
+ * Finds the weakest contrast among one hero ink hierarchy.
+ *
+ * @param inks - Solid foreground roles sharing one light or dark polarity.
+ * @param background - Worst-case composited hero background channels.
+ * @returns The lowest contrast ratio in the hierarchy.
+ */
+function minimumInkContrast(
+  inks: { contentForeground: string; foreground: string; mutedForeground: string },
+  background: number[],
+) {
+  return Math.min(
+    ...[inks.foreground, inks.contentForeground, inks.mutedForeground]
+      .map((ink) => contrast(hexChannels(ink), background)),
+  );
+}
+
+/**
+ * Parses a six-digit hexadecimal color into normalized sRGB channels.
+ *
+ * @param value - Six-digit hexadecimal color.
+ * @returns Red, green, and blue channels in the unit interval.
+ */
+function hexChannels(value: string) {
+  return [1, 3, 5].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16) / 255);
+}
+
+/**
+ * Calculates the WCAG contrast ratio between two normalized sRGB colors.
+ *
+ * @param foreground - Foreground RGB channels in the unit interval.
+ * @param background - Background RGB channels in the unit interval.
+ * @returns WCAG contrast ratio.
+ */
+function contrast(foreground: number[], background: number[]) {
+  const foregroundLuminance = luminance(foreground);
+  const backgroundLuminance = luminance(background);
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+  const darker = Math.min(foregroundLuminance, backgroundLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
 }
 
 /**
