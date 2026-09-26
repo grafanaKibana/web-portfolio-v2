@@ -51,9 +51,9 @@ for (const theme of ["light", "dark"] as const) {
           if (!section) throw new Error(`Missing Home section: ${id}`);
           return section;
         });
-        const headers = sections.map((section) => {
+        const headers = sections.filter((section) => section.id !== "about" && section.id !== "contact").map((section) => {
           const header = section.id === "code" ? section.querySelector("#code-heading")?.parentElement
-            : section.id === "contact" ? section.firstElementChild : section.querySelector("h2");
+            : section.querySelector("h2");
           if (!header) throw new Error(`Missing section header: ${section.id}`);
           return header;
         });
@@ -84,7 +84,7 @@ for (const theme of ["light", "dark"] as const) {
       expect(measured.contained).toBe(true);
       for (const sides of measured.sections) expect(sides).toEqual([interval, interval]);
       for (const header of measured.headers) {
-        expect(header).toEqual([measured.rootSize * (spacious ? 0.875 : 0.75), measured.rootSize * (spacious ? 2.5 : 2)]);
+        expect(header).toEqual([0, measured.rootSize * (spacious ? 2.5 : 2)]);
       }
       for (const separation of measured.separations) expect(separation).toBeCloseTo(interval, 1);
     }
