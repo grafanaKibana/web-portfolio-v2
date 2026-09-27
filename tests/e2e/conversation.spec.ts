@@ -86,13 +86,14 @@ async function transport(page: Page): Promise<AskFixtureWindow["askFixture"]> {
   return page.evaluate(() => (window as unknown as AskFixtureWindow).askFixture);
 }
 
-/** Reveals the desktop composer without opening a conversation.
+/** Settles page-entry motion, then reveals the desktop composer without opening a conversation.
  * @param page - Active portfolio page.
  * @returns Stable launcher used for focus restoration checks.
  */
 async function readyComposer(page: Page): Promise<Locator> {
   await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
   await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
+  await expect.poll(async () => page.locator("[data-entry-stroke]").evaluate((element) => element.getAnimations().length)).toBe(0);
   const launcher = page.locator("button[data-launcher]");
   const input = page.getByRole("textbox", { name: "Your question" });
   await expect.poll(async () => await input.isVisible() || await launcher.isVisible()).toBe(true);
@@ -132,23 +133,6 @@ async function box(locator: Locator): Promise<NonNullable<Awaited<ReturnType<Loc
   const bounds = await locator.boundingBox();
   if (!bounds) throw new Error("Expected rendered conversation geometry.");
   return bounds;
-}
-
-/** Pauses the first document-timeline animation inside the desktop surface.
- * @param page - Page containing the conversation surface.
- */
-async function pauseSurfaceMotion(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    for (let frame = 0; frame < 10; frame += 1) {
-      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
-      const surface = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="false"]');
-      const animations = surface?.getAnimations({ subtree: true }).filter(({ timeline }) => timeline === document.timeline) ?? [];
-      if (animations.length === 0) continue;
-      for (const animation of animations) animation.pause();
-      return;
-    }
-    throw new Error("Expected desktop surface motion to start within ten animation frames.");
-  });
 }
 
 /** Verifies that panel motion never changes the panel frame's dimensions.
@@ -561,8 +545,7 @@ test.describe("conversation smoke", () => {
     await page.getByRole("textbox", { name: "Your question" }).fill("Synthetic moving composer question");
     await expect.poll(async () => entryField.evaluate((element) => element.getAnimations().length)).toBe(0);
     const before = await box(entryComposer);
-    await page.getByRole("button", { name: "Send", exact: true }).click();
-    await pauseSurfaceMotion(page);
+    await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Send", exact: true }));
 
     const surface = page.locator('[data-chat-surface][data-mobile="false"]');
     const surfaceComposer = surface.locator('[data-conversation-composer] [data-slot="input-group"]');

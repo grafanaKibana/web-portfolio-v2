@@ -78,13 +78,14 @@ async function transport(page: Page): Promise<AskFixtureWindow["askFixture"]> {
   return page.evaluate(() => (window as unknown as AskFixtureWindow).askFixture);
 }
 
-/** Waits for the supported mobile entry point.
+/** Waits for the supported mobile entry point and its settled page-entry motion.
  * @param page - Active portfolio page.
  * @returns Stable launcher used for focus restoration checks.
  */
 async function readyEntry(page: Page): Promise<Locator> {
   await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
   await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
+  await expect.poll(async () => page.locator("[data-entry-stroke]").evaluate((element) => element.getAnimations().length)).toBe(0);
   const launcher = page.locator("button[data-launcher]");
   const input = page.getByRole("textbox", { name: "Your question" });
   await expect.poll(async () => await input.isVisible() || await launcher.isVisible()).toBe(true);
