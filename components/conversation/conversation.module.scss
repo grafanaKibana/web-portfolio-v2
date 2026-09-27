@@ -375,7 +375,7 @@
   z-index: 0;
   top: -3rem;
 
-  /* Keep even the hidden fade out of Safari's viewport-edge sampling strip. */
+  /* Keep the existing fade above the entry's viewport gutter. */
   bottom: 0;
   left: 50%;
   width: min(calc(100% + 6rem), var(--viewport-width));
@@ -388,6 +388,31 @@
 
 .entryFade[data-visible="true"] {
   opacity: 1;
+}
+
+@media (any-pointer: coarse) {
+  .entryFade {
+    visibility: hidden;
+    transform: translate(-50%, calc(100% + var(--edge-gutter)));
+    transition: transform 380ms cubic-bezier(0.4, 0, 0.2, 1), opacity 380ms cubic-bezier(0.55, 0, 0.25, 1), visibility 0s 380ms;
+  }
+
+  .entryFade::after {
+    position: absolute;
+    top: calc(100% + var(--edge-gutter));
+    left: 50%;
+    width: var(--viewport-width);
+    height: 100svh;
+    background: var(--background);
+    transform: translateX(-50%);
+    content: "";
+  }
+
+  .entryFade[data-visible="true"] {
+    visibility: visible;
+    transform: translate(-50%, 0);
+    transition-delay: 0s;
+  }
 }
 
 .reopenLabel {
