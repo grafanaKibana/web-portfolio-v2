@@ -147,28 +147,8 @@ for (const viewport of touchViewports) {
 }
 
 for (const viewport of touchViewports) {
-  test(`touch Ask preserves its radial fade while its neutral strip stays below the ${viewport.label} viewport`, { tag: "@webkit" }, async ({ browser, baseURL }) => {
+  test(`touch Ask uses the revealed field shadow on ${viewport.label}`, { tag: "@webkit" }, async ({ browser, baseURL }) => {
     if (!baseURL) throw new Error("Expected the Playwright project to provide a base URL");
-    const baselineContext = await browser.newContext({
-      baseURL,
-      colorScheme: "light",
-      hasTouch: false,
-      reducedMotion: "reduce",
-      viewport: { height: viewport.height, width: viewport.width },
-    });
-    await baselineContext.addInitScript(() => {
-      localStorage.setItem("theme", "light");
-      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-    });
-    const baselinePage = await openHome(baselineContext);
-    const baselineFade = baselinePage.locator("[data-entry-fade]");
-    const baselineBounds = await baselineFade.boundingBox();
-    if (!baselineBounds) throw new Error("Expected the fine-pointer Ask fade to have measurable geometry");
-    const baselineExtents = await readDocumentExtents(baselinePage);
-    await baselineContext.close();
-
-    const stripPaints: string[] = [];
-
     for (const theme of themes) {
       const context = await newTouchContext(browser, baseURL, {
         ...viewport,
@@ -178,118 +158,41 @@ for (const viewport of touchViewports) {
       try {
         const page = await openHome(context);
         const entry = page.locator("[data-edge-entry]");
-        const fade = entry.locator("[data-entry-fade]");
+        const surface = entry.locator("[data-composer-surface]");
         await expect(entry).toHaveAttribute("data-entry-revealed", "false");
-        await expect(fade).toHaveCSS("visibility", "hidden");
-        await expect(fade).toHaveCSS("opacity", "0");
-        await expect(fade).toHaveCSS("pointer-events", "none");
-        const idleBounds = await fade.boundingBox();
-        if (!idleBounds) throw new Error("Expected the hidden touch edge surface to have measurable geometry");
-        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe("none");
-        expect(idleBounds.y).toBeGreaterThanOrEqual(viewport.height - 0.5);
-        expect(idleBounds.y + idleBounds.height).toBeGreaterThan(viewport.height);
-        expect(idleBounds.width).toBeCloseTo(baselineBounds.width, 0);
-        expect(idleBounds.height).toBeCloseTo(baselineBounds.height, 0);
+        await expect(surface).toHaveCSS("box-shadow", "none");
         const idleExtents = await readDocumentExtents(page);
         expect(idleExtents.scrollWidth).toBe(idleExtents.clientWidth);
-        expect(idleExtents).toEqual(baselineExtents);
-
-        await fade.evaluate((element) => {
-          const owner = window as typeof window & {
-            touchFadeMotion?: { duration: number; earlyStripTop: number; earlyTop: number; lateStripTop: number; lateTop: number };
-          };
-          delete owner.touchFadeMotion;
-          element.addEventListener("transitionrun", (event) => {
-            if (!(event instanceof TransitionEvent) || event.propertyName !== "transform" || owner.touchFadeMotion) return;
-            const animation = element.getAnimations().find(({ effect }) => effect instanceof KeyframeEffect
-              && effect.getKeyframes().some((frame) => typeof frame.transform === "string" && frame.transform !== "none"));
-            if (!animation || !(animation.effect instanceof KeyframeEffect)) return;
-            const duration = Number(animation.effect.getTiming().duration);
-            animation.pause();
-            animation.currentTime = duration * 0.1;
-            const earlyBounds = element.getBoundingClientRect();
-            const stripTop = Number.parseFloat(getComputedStyle(element, "::after").top);
-            animation.currentTime = duration * 0.9;
-            const lateBounds = element.getBoundingClientRect();
-            owner.touchFadeMotion = {
-              duration,
-              earlyStripTop: earlyBounds.top + stripTop,
-              earlyTop: earlyBounds.top,
-              lateStripTop: lateBounds.top + stripTop,
-              lateTop: lateBounds.top,
-            };
-            animation.play();
-          });
-        });
 
         await page.getByRole("button", { name: "Ask about my work" }).tap();
         await expect(entry).toHaveAttribute("data-entry-revealed", "true");
         const input = entry.getByRole("textbox", { name: "Your question" });
         await expect(input).toBeFocused();
-        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe('""');
-        await expect.poll(() => fade.evaluate(() => Boolean((window as typeof window & { touchFadeMotion?: unknown }).touchFadeMotion))).toBe(true);
-        const motion = await fade.evaluate(() => (window as typeof window & {
-          touchFadeMotion: { duration: number; earlyStripTop: number; earlyTop: number; lateStripTop: number; lateTop: number };
-        }).touchFadeMotion);
-        expect(motion.duration).toBeGreaterThan(0);
-        expect(motion.duration).toBeLessThanOrEqual(1_000);
-        expect(motion.earlyTop).toBeGreaterThan(motion.lateTop);
-        expect(motion.earlyStripTop).toBeGreaterThanOrEqual(viewport.height - 0.5);
-        expect(motion.lateStripTop).toBeGreaterThanOrEqual(viewport.height - 0.5);
-
-        await expect(fade).toHaveCSS("visibility", "visible");
-        await expect(fade).toHaveCSS("opacity", "1");
-        const surface = await fade.evaluate((element) => {
-          const bounds = element.getBoundingClientRect();
-          const field = element.parentElement?.querySelector<HTMLElement>('[data-slot="input-group"]')?.getBoundingClientRect();
-          return {
-            afterBackground: getComputedStyle(element, "::after").backgroundColor,
-            afterTop: bounds.top + Number.parseFloat(getComputedStyle(element, "::after").top),
-            backgroundImage: getComputedStyle(element).backgroundImage,
-            bottom: bounds.bottom,
-            fieldTop: field?.top ?? Number.NaN,
-            left: bounds.left,
-            top: bounds.top,
-            width: bounds.width,
-          };
-        });
-        expect(surface.backgroundImage).toMatch(/^radial-gradient/);
-        expect(surface.width).toBeCloseTo(baselineBounds.width, 0);
-        expect(surface.bottom).toBeLessThan(viewport.height);
-        expect(surface.afterTop).toBeCloseTo(viewport.height, 0);
-        expect(surface.afterBackground).not.toBe("rgba(0, 0, 0, 0)");
-        expect(surface.top).toBeLessThan(surface.fieldTop);
+        await expect(surface).not.toHaveCSS("box-shadow", "none");
         expect(await readDocumentExtents(page)).toEqual(idleExtents);
-        stripPaints.push(surface.afterBackground);
 
         await input.fill("Synthetic retained draft");
         await page.getByRole("link", { name: "Back to top" }).tap();
         await expect(input).not.toBeFocused();
         await expect(entry).toHaveAttribute("data-entry-revealed", "true");
-        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe("none");
+        await expect(surface).not.toHaveCSS("box-shadow", "none");
 
         await input.tap();
         await expect(input).toBeFocused();
-        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe('""');
         await input.fill("");
         await page.getByRole("link", { name: "Back to top" }).tap();
         await expect(entry).toHaveAttribute("data-entry-revealed", "false");
-        await expect(fade).toHaveCSS("visibility", "hidden");
-        const restingBounds = await fade.boundingBox();
-        if (!restingBounds) throw new Error("Expected the resting touch edge surface to have measurable geometry");
-        expect(restingBounds.y).toBeGreaterThanOrEqual(viewport.height - 0.5);
+        await expect(surface).toHaveCSS("box-shadow", "none");
         expect(await readDocumentExtents(page)).toEqual(idleExtents);
 
         await page.evaluate(() => { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }); });
         await expect(entry).toHaveAttribute("data-entry-revealed", "true");
         await expect(input).not.toBeFocused();
-        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe("none");
+        await expect(surface).not.toHaveCSS("box-shadow", "none");
       } finally {
         await context.close();
       }
     }
-
-    expect(stripPaints[0]).not.toBe(stripPaints[1]);
   });
 }
 
@@ -351,7 +254,7 @@ test("touch section selector surface fills the gap above the header", { tag: "@w
   }
 });
 
-test("touch edge surfaces remove transitions when reduced motion is requested", { tag: "@webkit" }, async ({ browser, baseURL }) => {
+test("touch header and field shadow remove transitions when reduced motion is requested", { tag: "@webkit" }, async ({ browser, baseURL }) => {
   if (!baseURL) throw new Error("Expected the Playwright project to provide a base URL");
   const context = await newTouchContext(browser, baseURL, {
     height: 844,
@@ -362,7 +265,7 @@ test("touch edge surfaces remove transitions when reduced motion is requested", 
   try {
     const page = await openHome(context);
     await page.getByRole("button", { name: "Ask about my work" }).tap();
-    await expect(page.locator("[data-entry-fade]")).toHaveCSS("transition-duration", "0s");
+    await expect(page.locator("[data-edge-entry] [data-composer-surface]")).toHaveCSS("transition-duration", "0s");
     const headerDuration = await page.locator('[data-slot="site-header"]').evaluate((header) => Number.parseFloat(getComputedStyle(header, "::before").transitionDuration));
     expect(headerDuration).toBeLessThanOrEqual(0.001);
   } finally {
@@ -370,7 +273,7 @@ test("touch edge surfaces remove transitions when reduced motion is requested", 
   }
 });
 
-test("fine-pointer desktop retains a transparent hero header and radial Ask fade", { tag: "@webkit" }, async ({ page }) => {
+test("fine-pointer desktop retains a transparent hero header and revealed Ask shadow", { tag: "@webkit" }, async ({ page }) => {
   await page.setViewportSize({ height: 900, width: 1440 });
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await page.addInitScript(() => {
@@ -384,6 +287,9 @@ test("fine-pointer desktop retains a transparent hero header and radial Ask fade
   expect(await header.evaluate((element) => getComputedStyle(element, "::before").opacity)).toBe("0");
 
   const entry = page.locator("[data-edge-entry]");
+  const surface = entry.locator("[data-composer-surface]");
+  await expect(surface).toHaveCSS("box-shadow", "none");
   await entry.hover();
-  await expect(entry.locator("[data-entry-fade]")).toHaveCSS("background-image", /^radial-gradient/);
+  await expect(entry).toHaveAttribute("data-entry-revealed", "true");
+  await expect(surface).not.toHaveCSS("box-shadow", "none");
 });

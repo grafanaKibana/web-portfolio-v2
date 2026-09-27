@@ -217,26 +217,6 @@ async function triggerAndSampleClosingStart(control: Locator): Promise<{ clipPat
   });
 }
 
-/** Captures the entry fade as soon as hover starts its opacity transition.
- * @param fade - Decorative entry fade beside the expanding composer.
- * @returns Mid-transition opacity.
- */
-async function sampleEntryFade(fade: Locator): Promise<number> {
-  return fade.evaluate(async (element) => {
-    for (let frame = 0; frame < 10; frame += 1) {
-      const animation = element.getAnimations().find(({ effect }) =>
-        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.opacity !== undefined));
-      if (animation?.effect instanceof KeyframeEffect) {
-        animation.pause();
-        animation.currentTime = Number(animation.effect.getTiming().duration) / 2;
-        return Number.parseFloat(getComputedStyle(element).opacity);
-      }
-      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
-    }
-    throw new Error("Expected an active entry fade transition.");
-  });
-}
-
 /** Compares computed clip polygons while tolerating engine rounding.
  * @param actual - Closing clip polygon.
  * @param expected - Interrupted opening clip polygon.
@@ -368,10 +348,10 @@ test.describe("conversation smoke", () => {
 
     const entry = page.locator("[data-edge-entry]");
     const field = entry.locator("[data-conversation-composer]").locator("..");
-    const fade = entry.locator("[data-entry-fade]");
+    const paint = entry.locator("[data-composer-surface]");
     await expect(page.getByRole("textbox", { name: "Your question" })).toBeHidden();
+    await expect(paint).toHaveCSS("box-shadow", "none");
     await entry.hover();
-    const fadeOpacity = await sampleEntryFade(fade);
     const revealSample = await sampleEntryResize(field);
     expect(revealSample.clip).toBe("none");
     expect(revealSample.width).toBeGreaterThan(120);
@@ -391,9 +371,7 @@ test.describe("conversation smoke", () => {
     expect(await entry.locator("[data-entry-stroke]").evaluate((element) => getComputedStyle(element).opacity)).toBe("0");
     const jadeOpacity = Number(revealSample.accent);
     expect(jadeOpacity).toBe(0);
-
-    expect(fadeOpacity).toBeGreaterThan(0);
-    expect(fadeOpacity).toBeLessThan(1);
+    await expect(paint).not.toHaveCSS("box-shadow", "none");
 
     await finishMorph(entry);
     await page.mouse.move(8, 8);
@@ -412,14 +390,14 @@ test.describe("conversation smoke", () => {
   test("desktop hover reveal honors reduced motion", async ({ page }) => {
     const entry = page.locator("[data-edge-entry]");
     const field = entry.locator("[data-conversation-composer]").locator("..");
-    const fade = entry.locator("[data-entry-fade]");
+    const paint = entry.locator("[data-composer-surface]");
     await page.mouse.move(8, 8);
     await entry.hover();
 
     await expect(field).toHaveCSS("transition-duration", "0s");
-    await expect(fade).toHaveCSS("transition-duration", "0s");
+    await expect(paint).toHaveCSS("transition-duration", "0s");
     await expect(field).toHaveCSS("visibility", "visible");
-    await expect(fade).toHaveCSS("opacity", "1");
+    await expect(paint).not.toHaveCSS("box-shadow", "none");
     const strokeBounds = await box(entry.locator("[data-entry-stroke]"));
     const fieldBounds = await box(entry.locator('[data-slot="input-group"]'));
     expect(strokeBounds.y + strokeBounds.height - fieldBounds.y - fieldBounds.height).toBeCloseTo(8, 0);
