@@ -75,7 +75,8 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
       const width = viewport?.width ?? window.innerWidth;
       const top = viewport?.offsetTop ?? 0;
       const left = viewport?.offsetLeft ?? 0;
-      const values = { height, width, top, left, bottom: Math.max(0, window.innerHeight - height - top) };
+      // Preserve the visible bottom edge even when keyboard overscroll reports bounds beyond the layout viewport.
+      const values = { height, width, top, left, bottom: window.innerHeight - height - top };
       for (const [name, value] of Object.entries(values)) root?.style.setProperty(`--viewport-${name}`, `${String(value)}px`);
     }
     updateViewport();
