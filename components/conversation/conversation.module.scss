@@ -32,7 +32,7 @@
   align-items: center;
 }
 
-.shell[data-hidden="true"] :is(.edgeEntry, .entryField, .entryFade, .fallback) {
+.shell[data-hidden="true"] :is(.edgeEntry, .entryField, .fallback) {
   visibility: hidden;
   pointer-events: none;
 }
@@ -208,7 +208,7 @@
   overflow: visible;
 }
 
-.shell[data-morph] .edgeEntry :is(.entryField, .reopenLabel, .entryStroke, .entryFade),
+.shell[data-morph] .edgeEntry :is(.entryField, .reopenLabel, .entryStroke),
 .shell[data-morph] .edgeEntry,
 .shell[data-open="true"] .edgeEntry {
   visibility: hidden;
@@ -292,7 +292,7 @@
   }
 }
 
-// The entry shares the transcript composer; its semantic fade protects page text without blur.
+// The entry shares the transcript composer and lifts its surface with a local shadow.
 .edgeButton:focus-visible + .entryStroke {
   outline: 2px solid var(--ring);
   outline-offset: 3px;
@@ -311,9 +311,10 @@
   width: 7.5rem;
   height: var(--launcher-line-height);
   border-color: transparent;
+  box-shadow: none;
 
   // Isolated paint resizes without reflowing or scaling the field's controls.
-  transition: width 380ms cubic-bezier(0.4, 0, 0.2, 1), height 380ms cubic-bezier(0.4, 0, 0.2, 1), border-color 160ms 220ms;
+  transition: width 380ms cubic-bezier(0.4, 0, 0.2, 1), height 380ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 380ms cubic-bezier(0.4, 0, 0.2, 1), border-color 160ms 220ms;
 }
 
 .edgeEntry [data-composer-accent] {
@@ -331,6 +332,7 @@
   width: calc(100% + 2px);
   height: calc(100% + 2px);
   border-color: var(--border);
+  box-shadow: 0 0.25rem 1.25rem rgb(0 0 0 / 20%);
   transition-delay: 0s;
 }
 
@@ -368,26 +370,6 @@
 
 .shell[data-hidden="true"] .edgeEntry :is(.entryField, .reopenLabel) {
   visibility: hidden;
-}
-
-.entryFade {
-  position: absolute;
-  z-index: 0;
-  top: -3rem;
-
-  /* Keep even the hidden fade out of Safari's viewport-edge sampling strip. */
-  bottom: 0;
-  left: 50%;
-  width: min(calc(100% + 6rem), var(--viewport-width));
-  transform: translateX(-50%);
-  background: radial-gradient(ellipse at 50% 60%, color-mix(in oklab, var(--background) 80%, transparent) 20%, transparent 72%);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 380ms cubic-bezier(0.55, 0, 0.25, 1);
-}
-
-.entryFade[data-visible="true"] {
-  opacity: 1;
 }
 
 .reopenLabel {
@@ -553,7 +535,6 @@
   .edgeEntry [data-composer-surface],
   .edgeEntry [data-composer-accent],
   .entryStroke,
-  .entryFade,
   .reopenLabel,
   .edgeEntry [data-composer-content] {
     transition: none;

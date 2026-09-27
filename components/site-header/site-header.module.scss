@@ -1,7 +1,7 @@
 .header {
   isolation: isolate;
 
-  /* Keep compact navigation clear of Safari's solid viewport-edge extension. */
+  /* Keep compact controls inset while touch backgrounds reach the viewport edge. */
   top: var(--site-header-top);
   height: var(--site-header-height);
   color: var(--foreground);
@@ -22,10 +22,6 @@
   }
 }
 
-:global(body):has([data-slot="hero"]) .header:where(:not([data-surface-visible="true"]))::before {
-  opacity: 0;
-}
-
 :global(html:not(.dark) body):has([data-hero-light-foreground="#000000"]) .header,
 :global(html.dark body):has([data-hero-dark-foreground="#000000"]) .header {
   --site-header-hero-foreground: #000;
@@ -36,10 +32,16 @@
   --site-header-hero-foreground: #fff;
 }
 
-:global(body):has([data-slot="hero"]) .header:where(:not([data-surface-visible="true"])) {
-  --foreground: var(--site-header-hero-foreground);
-  --muted-foreground: var(--site-header-hero-foreground);
-  --ring: var(--site-header-hero-foreground);
+@media not all and (any-pointer: coarse) {
+  :global(body):has([data-slot="hero"]) .header:where(:not([data-surface-visible="true"]))::before {
+    opacity: 0;
+  }
+
+  :global(body):has([data-slot="hero"]) .header:where(:not([data-surface-visible="true"])) {
+    --foreground: var(--site-header-hero-foreground);
+    --muted-foreground: var(--site-header-hero-foreground);
+    --ring: var(--site-header-hero-foreground);
+  }
 }
 
 :global(body):has([data-slot="site-header-noscript"]) .header::before {
@@ -65,6 +67,30 @@
 }
 
 @media (any-pointer: coarse) {
+  .header::before {
+    top: calc(-1 * var(--site-header-top));
+    bottom: var(--site-header-top);
+    background: linear-gradient(
+      to bottom,
+      var(--background),
+      color-mix(in oklab, var(--background) 80%, transparent) 20%,
+      color-mix(in oklab, var(--background) 45%, transparent) 45%,
+      color-mix(in oklab, var(--background) 15%, transparent) 70%,
+      color-mix(in oklab, var(--background) 5%, transparent) 85%,
+      color-mix(in oklab, var(--background) 0%, transparent)
+    );
+  }
+
+  .header::after {
+    position: absolute;
+    z-index: -1;
+    inset: auto 0 calc(100% + var(--site-header-top));
+    height: 100svh;
+    background: var(--background);
+    content: "";
+    pointer-events: none;
+  }
+
   .navigation :is(a, button) {
     min-width: 2.75rem;
     min-height: 2.75rem;

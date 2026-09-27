@@ -43,6 +43,12 @@
   content: "";
 }
 
+@media (any-pointer: coarse) {
+  .popup::before {
+    top: calc(-1 * (var(--site-header-height) + var(--site-header-top) + 100svh));
+  }
+}
+
 .close {
   position: absolute;
   top: -3.25rem;
