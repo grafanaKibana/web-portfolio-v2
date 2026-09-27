@@ -405,6 +405,10 @@
     height: 100svh;
     background: var(--background);
     transform: translateX(-50%);
+    content: none;
+  }
+
+  .edgeEntry:has(textarea:focus) .entryFade::after {
     content: "";
   }
 

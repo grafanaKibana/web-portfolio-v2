@@ -185,10 +185,9 @@ for (const viewport of touchViewports) {
         await expect(fade).toHaveCSS("pointer-events", "none");
         const idleBounds = await fade.boundingBox();
         if (!idleBounds) throw new Error("Expected the hidden touch edge surface to have measurable geometry");
-        const idleStripTop = await fade.evaluate((element) => element.getBoundingClientRect().top + Number.parseFloat(getComputedStyle(element, "::after").top));
+        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe("none");
         expect(idleBounds.y).toBeGreaterThanOrEqual(viewport.height - 0.5);
         expect(idleBounds.y + idleBounds.height).toBeGreaterThan(viewport.height);
-        expect(idleStripTop).toBeGreaterThan(viewport.height);
         expect(idleBounds.width).toBeCloseTo(baselineBounds.width, 0);
         expect(idleBounds.height).toBeCloseTo(baselineBounds.height, 0);
         const idleExtents = await readDocumentExtents(page);
@@ -225,6 +224,9 @@ for (const viewport of touchViewports) {
 
         await page.getByRole("button", { name: "Ask about my work" }).tap();
         await expect(entry).toHaveAttribute("data-entry-revealed", "true");
+        const input = entry.getByRole("textbox", { name: "Your question" });
+        await expect(input).toBeFocused();
+        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe('""');
         await expect.poll(() => fade.evaluate(() => Boolean((window as typeof window & { touchFadeMotion?: unknown }).touchFadeMotion))).toBe(true);
         const motion = await fade.evaluate(() => (window as typeof window & {
           touchFadeMotion: { duration: number; earlyStripTop: number; earlyTop: number; lateStripTop: number; lateTop: number };
@@ -260,6 +262,16 @@ for (const viewport of touchViewports) {
         expect(await readDocumentExtents(page)).toEqual(idleExtents);
         stripPaints.push(surface.afterBackground);
 
+        await input.fill("Synthetic retained draft");
+        await page.getByRole("link", { name: "Back to top" }).tap();
+        await expect(input).not.toBeFocused();
+        await expect(entry).toHaveAttribute("data-entry-revealed", "true");
+        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe("none");
+
+        await input.tap();
+        await expect(input).toBeFocused();
+        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe('""');
+        await input.fill("");
         await page.getByRole("link", { name: "Back to top" }).tap();
         await expect(entry).toHaveAttribute("data-entry-revealed", "false");
         await expect(fade).toHaveCSS("visibility", "hidden");
@@ -267,6 +279,11 @@ for (const viewport of touchViewports) {
         if (!restingBounds) throw new Error("Expected the resting touch edge surface to have measurable geometry");
         expect(restingBounds.y).toBeGreaterThanOrEqual(viewport.height - 0.5);
         expect(await readDocumentExtents(page)).toEqual(idleExtents);
+
+        await page.evaluate(() => { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }); });
+        await expect(entry).toHaveAttribute("data-entry-revealed", "true");
+        await expect(input).not.toBeFocused();
+        expect(await fade.evaluate((element) => getComputedStyle(element, "::after").content)).toBe("none");
       } finally {
         await context.close();
       }

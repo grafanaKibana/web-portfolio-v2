@@ -860,7 +860,7 @@ export function Conversation() {
   }, [cancelAnimations]);
 
   useLayoutEffect(() => {
-    if ((entryFocusCommit === 0 && !entryFocused) || open || model.expanded) return;
+    if (!entryFocused || open || model.expanded) return;
     const input = model.inputRef.current;
     if (input?.closest("[data-edge-entry]")) input.focus({ preventScroll: true });
   }, [entryFocusCommit, entryFocused, model.expanded, model.inputRef, open]);
