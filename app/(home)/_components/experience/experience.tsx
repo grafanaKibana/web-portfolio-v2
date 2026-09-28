@@ -14,7 +14,7 @@ import { RecommendationTrack } from "./recommendation-track";
  */
 export function HomeExperience() {
   return (
-    <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1")} data-page-motion-section>
+    <section id="experience" aria-labelledby="experience-heading" className={clsx(styles.experience, "page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12")} data-page-motion-section>
       <h2 className="m-0 mb-8 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground lg:mb-10" data-page-motion-row data-page-motion-trigger id="experience-heading">Experience</h2>
       <ol className={clsx(styles.timeline, "relative m-0 list-none p-0 pl-5.5 md:pl-0 md:[--experience-rail-width:8.75rem] xl:[--experience-rail-width:11.5rem]")}>
         {profile.experience.map((experience, index) => {

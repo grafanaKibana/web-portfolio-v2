@@ -55,6 +55,32 @@ test("visitor routes and discovered details resolve semantically", async ({ page
 
 });
 
+test("Home evidence actions name their associated editorial headings", async ({ page }) => {
+  await page.goto("/");
+  for (const { rowSlot, prefix } of [
+    { rowSlot: "home-project", prefix: "Read case study:" },
+    { rowSlot: "home-article", prefix: "Read article:" },
+  ]) {
+    const rows = page.locator(`[data-slot="${rowSlot}"]`);
+    for (const row of await rows.all()) {
+      const heading = (await row.getByRole("heading").innerText()).trim();
+      const action = row.getByRole("link", { name: `${prefix} ${heading}`, exact: true });
+      await expect(action).toHaveCount(1);
+      await expect(action).toHaveAttribute("href", /^\/(?:projects|articles)\/[a-z0-9-]+$/u);
+    }
+  }
+
+  const firstAction = page.locator('[data-slot="home-project"] a[data-row-link], [data-slot="home-article"] a[data-row-link]').first();
+  if (await firstAction.count()) {
+    const href = await firstAction.getAttribute("href");
+    if (!href) throw new Error("Home evidence action must expose a native destination");
+    await firstAction.focus();
+    await expect(firstAction).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(new RegExp(`${href}$`));
+  }
+});
+
 test("declared public guidance and image assets resolve", async ({ page, request }) => {
   const guidance = await request.get("/llms.txt");
   expect(guidance.status()).toBe(200);
@@ -91,12 +117,19 @@ test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
   test("collections and discovered details retain native navigation", async ({ page }) => {
     await page.goto("/");
-    const sectionLink = page.locator('a[href^="/#"]').first();
+    const sectionLink = page.locator('a[href="/#skills"]').first();
     const href = await sectionLink.getAttribute("href");
     if (!href) throw new Error("Home must expose a native section destination");
     await sectionLink.click();
     await expect(page).toHaveURL(new RegExp(`${href.replace("/", "")}$`));
-    await expect(page.locator(`#${href.slice(2)}`)).toBeVisible();
+    const section = page.locator(`#${href.slice(2)}`);
+    await expect(section).toBeVisible();
+    const clearance = await section.locator("[data-page-motion-row]").first().evaluate((content) => {
+      const header = document.querySelector<HTMLElement>('[data-slot="site-header"]');
+      if (!header) throw new Error("Home must expose its sticky header");
+      return content.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+    });
+    expect(clearance).toBeGreaterThanOrEqual(14);
 
     for (const collection of collections) {
       await page.goto(collection.path);

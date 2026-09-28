@@ -60,7 +60,7 @@ async function mountEducation(page: Page, count: number) {
   }
   await page.locator("body").evaluate((body, markup) => { body.innerHTML = markup; }, `
     <main>
-      <section class="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1" id="education">
+      <section class="page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12" id="education">
         <h2 class="m-0 mb-8 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground lg:mb-10">Education</h2>
         <div class="grid grid-cols-[minmax(0,1fr)] gap-8 lg:data-[has-credentials=true]:grid-cols-[minmax(0,1fr)_fit-content(55%)] lg:data-[has-credentials=true]:gap-x-12" data-has-credentials="${String(hasCredentials)}" data-slot="education-tracks">
           <div class="min-w-0" data-slot="education-academic">

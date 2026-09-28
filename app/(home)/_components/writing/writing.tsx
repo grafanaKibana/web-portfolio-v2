@@ -20,7 +20,7 @@ export async function HomeWriting() {
     <section
       id="writing"
       aria-labelledby="writing-heading"
-      className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1"
+      className="page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12"
       data-page-motion-section
     >
       <h2
@@ -41,7 +41,7 @@ export async function HomeWriting() {
                 key={slug}
                 actions={(
                   <Link className="action-link" data-row-link href={`/articles/${slug}`}>
-                    <span className="sr-only">Read article</span>
+                    <span className="sr-only">Read article: {article.title}</span>
                     <ArrowRight aria-hidden="true" className="action-icon opacity-60" />
                   </Link>
                 )}

@@ -21,7 +21,7 @@ export function HomeContact() {
   return (
     <section
       aria-labelledby="contact-heading"
-      className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1"
+      className="page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12"
       data-page-motion-section
       id="contact"
     >

@@ -124,7 +124,7 @@ export function HomeSkills() {
     <section
       id="skills"
       aria-labelledby="skills-heading"
-      className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1"
+      className="page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12"
       data-page-motion-section
     >
       <svg aria-hidden="true" className="absolute size-0 overflow-hidden">

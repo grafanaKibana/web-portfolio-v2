@@ -23,7 +23,7 @@ export async function HomeProjects() {
     <section
       id="projects"
       aria-labelledby="projects-heading"
-      className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1 last:min-h-screen"
+      className="page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12 last:min-h-screen"
       data-page-motion-section
     >
       <h2
@@ -42,7 +42,7 @@ export async function HomeProjects() {
             key={slug}
             actions={(
               <Link className="action-link" data-row-link href={`/projects/${slug}`}>
-                <span className="sr-only">Read case study</span>
+                <span className="sr-only">Read case study: {project.title}</span>
                 <ArrowRight aria-hidden="true" className="action-icon opacity-60" />
               </Link>
             )}

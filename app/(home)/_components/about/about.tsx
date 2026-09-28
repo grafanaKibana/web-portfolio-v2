@@ -7,7 +7,7 @@ import { profile } from "@/lib/content/portfolio/server";
  */
 export function HomeAbout() {
   return (
-    <section id="about" aria-labelledby="about-heading" className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1" data-page-motion-section>
+    <section id="about" aria-labelledby="about-heading" className="page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12" data-page-motion-section>
       <h2 id="about-heading" className="sr-only">About</h2>
       <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-0">
         <div className="flex flex-col gap-4 text-content-foreground lg:pr-8" data-page-motion-row data-page-motion-trigger>

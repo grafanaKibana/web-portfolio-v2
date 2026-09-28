@@ -39,6 +39,36 @@ async function openStableRoute(page: Page, path: string) {
   await page.goto(path);
 }
 
+/**
+ * Waits until scrolling has stopped across several independent samples.
+ *
+ * @param page - Browser page whose viewport must settle.
+ */
+async function waitForScrollSettlement(page: Page): Promise<void> {
+  let previous = Number.NaN;
+  let stableSamples = 0;
+  await expect.poll(async () => {
+    const current = await page.evaluate(() => window.scrollY);
+    stableSamples = Math.abs(current - previous) < 0.5 ? stableSamples + 1 : 0;
+    previous = current;
+    return stableSamples;
+  }, { intervals: [100, 100, 100, 100, 100], timeout: 5_000 }).toBeGreaterThanOrEqual(4);
+}
+
+/**
+ * Returns the first visible content that follows a Home section anchor.
+ *
+ * @param page - Rendered Home page.
+ * @param sectionId - Fragment identifier for the selected section.
+ * @returns Visible content used to verify anchor clearance.
+ */
+function visibleSectionStart(page: Page, sectionId: string): Locator {
+  const section = page.locator(`#${sectionId}`);
+  return sectionId === "about"
+    ? section.locator("[data-page-motion-row]").first()
+    : section.getByRole("heading").first();
+}
+
 test("skip navigation transfers keyboard focus to main content", { tag: "@webkit" }, async ({ page, browserName }) => {
   for (const path of ["/", "/articles"]) {
     await page.goto(path);
@@ -76,11 +106,57 @@ test("compact navigation traps focus, restores it, and reaches a visible target"
   await expect(page).toHaveURL(new RegExp(`${href.replace("/", "")}$`));
   const target = page.locator(`#${href.slice(2)}`);
   await expect(target).toBeVisible();
-  await expect.poll(async () => {
-    const targetBox = await boxOf(target.getByRole("heading").first());
-    const headerBox = await boxOf(page.locator('[data-slot="site-header"]'));
-    return targetBox.y >= headerBox.y + headerBox.height - 1;
-  }).toBe(true);
+  await waitForScrollSettlement(page);
+  const targetBox = await boxOf(visibleSectionStart(page, href.slice(2)));
+  const headerBox = await boxOf(page.locator('[data-slot="site-header"]'));
+  expect(targetBox.y - headerBox.y - headerBox.height).toBeGreaterThanOrEqual(14);
+  expect(targetBox.y - headerBox.y - headerBox.height).toBeLessThanOrEqual(18);
+});
+
+test("Home section navigation clears the sticky header across responsive breakpoints", { tag: "@webkit" }, async ({ page }) => {
+  const cases = [
+    { width: 390, sections: ["experience", "about"] },
+    { width: 1023, sections: ["education"] },
+    { width: 1024, sections: ["skills", "projects"] },
+    { width: 1279, sections: ["code"] },
+    { width: 1280, sections: ["writing", "contact"] },
+  ] as const;
+
+  for (const { width, sections } of cases) {
+    await page.setViewportSize({ width, height: 844 });
+    await openStableRoute(page, "/");
+    if (width < 1280) await page.locator("#experience").scrollIntoViewIfNeeded();
+
+    for (const sectionId of sections) {
+      const label = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+      if (width < 1280) {
+        const trigger = page.getByRole("button", { name: "Jump to section" });
+        await expect(trigger).toBeVisible();
+        await trigger.click();
+        await page.getByRole("dialog", { name: "Jump to section" }).getByRole("link", { name: label, exact: true }).click();
+      } else {
+        await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: label, exact: true }).click();
+      }
+
+      await expect(page).toHaveURL(new RegExp(`#${sectionId}$`));
+      await waitForScrollSettlement(page);
+      const contentBox = await boxOf(visibleSectionStart(page, sectionId));
+      const headerBox = await boxOf(page.locator('[data-slot="site-header"]'));
+      const rawClearance = contentBox.y - headerBox.y - headerBox.height;
+      const devicePixelRatio = await page.evaluate(() => window.devicePixelRatio);
+      const clearance = Math.round(rawClearance * devicePixelRatio) / devicePixelRatio;
+      expect(clearance).toBeGreaterThanOrEqual(14);
+      if (!await page.evaluate(() => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1)) {
+        expect(clearance).toBeLessThanOrEqual(18);
+      }
+
+      const activeNavigation = width < 1280
+        ? page.getByRole("button", { name: "Jump to section" })
+        : page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: label, exact: true });
+      if (width < 1280) await expect(activeNavigation).toHaveText(label);
+      else await expect(activeNavigation).toHaveAttribute("aria-current", "location");
+    }
+  }
 });
 
 test("phone shell keeps controls and content contained without overlap", { tag: "@webkit" }, async ({ page }) => {
@@ -148,6 +224,37 @@ test("reduced motion leaves home and collection content visible and usable", asy
       }))).toBe(true);
     }
   }
+});
+
+test("direct and cross-route Home fragments retain header clearance", { tag: "@webkit" }, async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1280, height: 844 });
+
+  await openStableRoute(page, "/#skills");
+  await waitForScrollSettlement(page);
+  let header = await boxOf(page.locator('[data-slot="site-header"]'));
+  let content = await boxOf(visibleSectionStart(page, "skills"));
+  expect(content.y - header.y - header.height).toBeGreaterThanOrEqual(14);
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Skills", exact: true })).toHaveAttribute("aria-current", "location");
+
+  await page.goto("/articles");
+  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Education", exact: true }).click();
+  await expect(page).toHaveURL(/\/#education$/u);
+  await waitForScrollSettlement(page);
+  header = await boxOf(page.locator('[data-slot="site-header"]'));
+  content = await boxOf(visibleSectionStart(page, "education"));
+  expect(content.y - header.y - header.height).toBeGreaterThanOrEqual(14);
+
+  await page.addInitScript(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  await openStableRoute(page, "/");
+  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Skills", exact: true }).click();
+  await waitForScrollSettlement(page);
+  header = await boxOf(page.locator('[data-slot="site-header"]'));
+  content = await boxOf(visibleSectionStart(page, "skills"));
+  const rem = await page.locator("html").evaluate((root) => Number.parseFloat(getComputedStyle(root).fontSize));
+  expect(Math.abs(content.y - header.y - header.height - rem)).toBeLessThanOrEqual(2);
 });
 
 for (const theme of ["light", "dark"] as const) {

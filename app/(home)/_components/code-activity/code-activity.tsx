@@ -114,7 +114,7 @@ export async function HomeCodeActivity() {
     : [];
 
   return (
-    <section id="code" aria-labelledby="code-heading" className="page-shell-gutter w-full scroll-mt-3 py-8 lg:-scroll-mt-5 lg:py-12 xl:-scroll-mt-1" data-page-motion-section>
+    <section id="code" aria-labelledby="code-heading" className="page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12" data-page-motion-section>
       <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 lg:mb-10" data-page-motion-row>
         <h2
           data-page-motion-trigger
