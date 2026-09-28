@@ -84,7 +84,7 @@
   height: var(--launcher-line-height);
   border-radius: 999px;
   background: var(--brand-accent-text-gradient);
-  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 12%);
+  box-shadow: 0 0.125rem 0.5rem var(--background);
   pointer-events: none;
   transform: translateX(-50%);
   transition: opacity 0s 380ms;
@@ -140,7 +140,7 @@
   color: var(--foreground);
 
   // Composite the shadow after the inner shape is clipped during reveal and collapse.
-  filter: drop-shadow(0 0.75rem 1.5rem rgb(0 0 0 / 12%));
+  filter: drop-shadow(0 0.75rem 1.5rem var(--background));
   bottom: calc(var(--viewport-bottom) + var(--edge-gutter) + 1rem);
   left: calc(var(--viewport-left) + var(--safe-left) + (var(--viewport-width) - var(--safe-left) - var(--safe-right)) / 2);
   opacity: 1;
@@ -332,7 +332,7 @@
   width: calc(100% + 2px);
   height: calc(100% + 2px);
   border-color: var(--border);
-  box-shadow: 0 0.25rem 1.25rem rgb(0 0 0 / 20%);
+  box-shadow: 0 0.25rem 1.25rem var(--background);
   transition-delay: 0s;
 }
 
