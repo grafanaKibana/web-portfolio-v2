@@ -16,9 +16,11 @@
 .fallback {
   position: fixed;
   z-index: 20;
-  bottom: calc(var(--viewport-bottom) + var(--edge-gutter));
+
+  // Anchor directly to the visible edge; Safari's innerHeight can differ from the fixed positioning area with its keyboard open.
+  top: calc(var(--viewport-top) + var(--viewport-height) - var(--edge-gutter));
   left: calc(var(--viewport-left) + var(--viewport-width) / 2);
-  transform: translateX(-50%);
+  transform: translate(-50%, -100%);
 }
 
 .edgeEntry {

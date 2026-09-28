@@ -147,7 +147,7 @@ for (const viewport of touchViewports) {
 }
 
 for (const viewport of touchViewports) {
-  test(`focused touch Ask stays fixed during viewport scroll on ${viewport.label}`, { tag: "@webkit" }, async ({ browser, baseURL }) => {
+  test(`focused touch Ask stays above the keyboard at the page end on ${viewport.label}`, { tag: "@webkit" }, async ({ browser, baseURL }) => {
     if (!baseURL) throw new Error("Expected the Playwright project to provide a base URL");
     for (const theme of themes) {
       const context = await newTouchContext(browser, baseURL, { ...viewport, theme });
@@ -157,7 +157,10 @@ for (const viewport of touchViewports) {
           Object.assign(viewport, { height: innerHeight, width: innerWidth, offsetTop: 0, offsetLeft: 0, scale: 1 });
           Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
           window.addEventListener("ask-fixture-viewport", (event) => {
-            const { type, ...bounds } = (event as CustomEvent<{ type: string; height?: number; offsetTop?: number; scale?: number }>).detail;
+            const { type, innerHeight, ...bounds } = (event as CustomEvent<{
+              type: string; height?: number; innerHeight?: number; offsetTop?: number; scale?: number;
+            }>).detail;
+            if (innerHeight !== undefined) Object.defineProperty(window, "innerHeight", { configurable: true, value: innerHeight });
             Object.assign(viewport, bounds);
             viewport.dispatchEvent(new Event(type));
           });
@@ -177,18 +180,26 @@ for (const viewport of touchViewports) {
         if (!before) throw new Error("Expected a visible focused composer");
         expect(before.y + before.height).toBeLessThanOrEqual(400);
 
-        // Include reported bounds beyond the layout edge, then recovery from overscroll.
-        for (const offsetTop of [80, viewport.height - 320, 0]) {
-          await page.evaluate((offsetTop) => {
-            window.scrollBy({ top: 100, behavior: "instant" });
-            window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail: { type: "scroll", offsetTop } }));
-          }, offsetTop);
-          await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+        // Reported innerHeight may follow the keyboard while fixed CSS still uses the full layout height.
+        for (const bounds of [
+          { offsetTop: 80, innerHeight: viewport.height, distanceFromEnd: 200 },
+          { offsetTop: 120, innerHeight: 400, distanceFromEnd: 80 },
+          { offsetTop: 0, innerHeight: 400, distanceFromEnd: 0 },
+          { offsetTop: viewport.height - 320, innerHeight: viewport.height, distanceFromEnd: 0 },
+          { offsetTop: 0, innerHeight: viewport.height, distanceFromEnd: 0 },
+        ]) {
+          await page.evaluate(({ distanceFromEnd, ...bounds }) => {
+            const root = document.documentElement;
+            window.scrollTo({ top: root.scrollHeight - root.clientHeight - distanceFromEnd, behavior: "instant" });
+            window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail: { type: "scroll", ...bounds } }));
+          }, bounds);
+          await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight
+            - document.documentElement.clientHeight - window.scrollY)).toBeCloseTo(bounds.distanceFromEnd, 0);
           await expect(input).toBeFocused();
           const scrolled = await composer.boundingBox();
           if (!scrolled) throw new Error("Expected the composer to remain rendered");
           // The visible screen begins at offsetTop inside the layout viewport.
-          expect(scrolled.y - offsetTop).toBeCloseTo(before.y, 0);
+          expect(scrolled.y - bounds.offsetTop).toBeCloseTo(before.y, 0);
           expect(scrolled.height).toBe(before.height);
           expect(scrolled.width).toBe(before.width);
           expect(scrolled.x).toBe(before.x);
