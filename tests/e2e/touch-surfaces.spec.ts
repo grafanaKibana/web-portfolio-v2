@@ -118,7 +118,7 @@ for (const viewport of touchViewports) {
 
         const heroSurface = await readHeaderSurface(page);
         expect(heroSurface.opacity).toBe("1");
-        expect(heroSurface.backgroundImage).toMatch(/^linear-gradient/);
+        expect(heroSurface.backgroundImage).toMatch(/^radial-gradient/);
         expect(heroSurface.paintedTop).toBeLessThanOrEqual(0.5);
         expect(heroSurface.paintedBottom).toBeCloseTo(heroSurface.paintedHeight, 0);
         expect(heroSurface.paintedHeight).toBeCloseTo(heroSurface.headerHeight, 0);
