@@ -10,8 +10,15 @@
   background: transparent;
 }
 
+.inputGroup:has([data-slot="input-group-control"]:focus-visible) {
+  border-color: var(--ring);
+}
+
 .fieldSurface {
   position: absolute;
+
+  // Existing host contexts contain paint behind the group's border and focus ring.
+  z-index: -1;
   bottom: -1px;
   left: 50%;
   width: calc(100% + 2px);

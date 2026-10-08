@@ -17,8 +17,17 @@
   position: fixed;
   z-index: 20;
 
-  // Anchor directly to the visible edge; Safari's innerHeight can differ from the fixed positioning area with its keyboard open.
+  // Let Safari's compositor keep the resting entry attached to its moving toolbar.
+  bottom: var(--edge-gutter);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.edgeEntry:has(textarea:focus),
+.shell[data-viewport-zoomed="true"] :is(.edgeEntry, .fallback) {
+  // Editable focus and zoom need the visible viewport rather than the layout edge.
   top: calc(var(--viewport-top) + var(--viewport-height) - var(--edge-gutter));
+  bottom: auto;
   left: calc(var(--viewport-left) + var(--viewport-width) / 2);
   transform: translate(-50%, -100%);
 }
@@ -445,6 +454,8 @@
 }
 
 .mobileSurface .morphFrame {
+  // One animated paint layer covers safe areas and asynchronous keyboard movement.
+  inset-block: -100lvh;
   border: 0;
 }
 

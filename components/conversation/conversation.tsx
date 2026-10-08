@@ -194,9 +194,10 @@ function useSurfaceToggleMotion(
     animationsRef.current = animations;
     animations.push(animateMini(frame, {
       opacity: [currentFrameOpacity ?? (phase === "opening" ? 0 : 1), phase === "opening" ? 1 : 0],
-      clipPath: phase === "opening"
+      // Phone paint spans Safari's chrome and keyboard gaps; only desktop clips its panel.
+      ...(!mobile && { clipPath: phase === "opening"
         ? [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : rectClipPath(surfaceTarget, composerTarget), fullClip]
-        : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, rectClipPath(surfaceTarget, composerTarget)],
+        : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, rectClipPath(surfaceTarget, composerTarget)] }),
     }, { duration: panelDuration, ease }));
     const destination = origin ?? lineTarget;
     const openingFromLine = phase === "opening" && destination.height <= line.offsetHeight;

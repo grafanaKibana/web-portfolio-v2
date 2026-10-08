@@ -224,6 +224,60 @@ for (const viewport of touchViewports) {
 }
 
 for (const viewport of touchViewports) {
+  test(`idle touch Ask line stays anchored during visual viewport toolbar changes on ${viewport.label}`, { tag: "@webkit" }, async ({ browser, baseURL }) => {
+    if (!baseURL) throw new Error("Expected the Playwright project to provide a base URL");
+    for (const theme of themes) {
+      const context = await newTouchContext(browser, baseURL, { ...viewport, theme });
+      try {
+        await context.addInitScript(() => {
+          const visualViewport = new EventTarget();
+          Object.assign(visualViewport, { height: innerHeight, width: innerWidth, offsetTop: 0, offsetLeft: 0, scale: 1 });
+          Object.defineProperty(window, "visualViewport", { configurable: true, value: visualViewport });
+          window.addEventListener("ask-fixture-viewport", (event) => {
+            const { type, ...bounds } = (event as CustomEvent<{
+              type: string; height?: number; offsetTop?: number;
+            }>).detail;
+            Object.assign(visualViewport, bounds);
+            visualViewport.dispatchEvent(new Event(type));
+          });
+        });
+        const page = await openHome(context);
+        const line = page.locator("[data-entry-stroke]");
+        await expect(line).toBeVisible();
+        expect(await page.evaluate(() => document.activeElement?.matches("input, textarea, [contenteditable='true']"))).toBe(false);
+        const anchored = await line.boundingBox();
+        if (!anchored) throw new Error("Expected the idle Ask line to have measurable geometry");
+
+        for (const bounds of [
+          { type: "scroll", height: viewport.height - 64, offsetTop: 0 },
+          { type: "scroll", height: viewport.height - 24, offsetTop: 0 },
+          { type: "resize", height: viewport.height - 112, offsetTop: 20 },
+          { type: "scroll", height: viewport.height - 48, offsetTop: 4 },
+          { type: "scroll", height: viewport.height, offsetTop: 0 },
+        ]) {
+          await page.evaluate((detail) => {
+            window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail }));
+          }, bounds);
+          await expect.poll(() => page.locator("[data-conversation-shell]").evaluate((shell) => ({
+            height: shell.style.getPropertyValue("--viewport-height"),
+            top: shell.style.getPropertyValue("--viewport-top"),
+          }))).toEqual({ height: `${String(bounds.height)}px`, top: `${String(bounds.offsetTop)}px` });
+          expect(await page.evaluate(() => document.activeElement?.matches("input, textarea, [contenteditable='true']"))).toBe(false);
+          const current = await line.boundingBox();
+          if (!current) throw new Error("Expected the idle Ask line to remain rendered");
+          expect(current.x).toBeCloseTo(anchored.x, 0);
+          expect(current.y).toBeCloseTo(anchored.y, 0);
+          expect(current.width).toBeCloseTo(anchored.width, 0);
+          expect(current.height).toBeCloseTo(anchored.height, 0);
+        }
+      } finally {
+        await context.close();
+      }
+    }
+  });
+}
+
+for (const viewport of touchViewports) {
   test(`touch Ask uses the revealed field shadow on ${viewport.label}`, { tag: "@webkit" }, async ({ browser, baseURL }) => {
     if (!baseURL) throw new Error("Expected the Playwright project to provide a base URL");
     for (const theme of themes) {
@@ -246,6 +300,22 @@ for (const viewport of touchViewports) {
         const input = entry.getByRole("textbox", { name: "Your question" });
         await expect(input).toBeFocused();
         await expect(surface).not.toHaveCSS("box-shadow", "none");
+        const group = entry.locator('[data-slot="input-group"]');
+        const focusedPaint = await group.evaluate((element) => {
+          const probe = document.createElement("span");
+          probe.style.color = "var(--ring)";
+          document.body.append(probe);
+          const style = getComputedStyle(element);
+          const paint = {
+            borderColor: style.borderColor,
+            boxShadow: style.boxShadow,
+            ringColor: getComputedStyle(probe).color,
+          };
+          probe.remove();
+          return paint;
+        });
+        expect(focusedPaint.borderColor).toBe(focusedPaint.ringColor);
+        expect(focusedPaint.boxShadow).not.toBe("none");
         expect(await readDocumentExtents(page)).toEqual(idleExtents);
 
         await input.fill("Synthetic retained draft");

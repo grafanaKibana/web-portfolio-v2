@@ -69,6 +69,7 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
     const root = rootRef.current;
     if (!root) return;
     const viewport = window.visualViewport;
+    let frame: number | undefined;
     /** Publishes visible viewport bounds as feature-local CSS variables. */
     function updateViewport() {
       const height = viewport?.height ?? window.innerHeight;
@@ -77,16 +78,26 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
       const left = viewport?.offsetLeft ?? 0;
       // Preserve the visible bottom edge even when keyboard overscroll reports bounds beyond the layout viewport.
       const values = { height, width, top, left, bottom: window.innerHeight - height - top };
-      for (const [name, value] of Object.entries(values)) root?.style.setProperty(`--viewport-${name}`, `${String(value)}px`);
+      for (const [name, value] of Object.entries(values)) {
+        const property = `--viewport-${name}`;
+        const next = `${String(value)}px`;
+        if (root?.style.getPropertyValue(property) !== next) root?.style.setProperty(property, next);
+      }
+      if (root) root.dataset.viewportZoomed = String((viewport?.scale ?? 1) !== 1);
+    }
+    /** Coalesces Safari's resize and pan events into one geometry update per frame. */
+    function scheduleViewport() {
+      frame ??= window.requestAnimationFrame(() => { frame = undefined; updateViewport(); });
     }
     updateViewport();
-    window.addEventListener("resize", updateViewport);
-    viewport?.addEventListener("resize", updateViewport);
-    viewport?.addEventListener("scroll", updateViewport);
+    window.addEventListener("resize", scheduleViewport);
+    viewport?.addEventListener("resize", scheduleViewport);
+    viewport?.addEventListener("scroll", scheduleViewport);
     return () => {
-      window.removeEventListener("resize", updateViewport);
-      viewport?.removeEventListener("resize", updateViewport);
-      viewport?.removeEventListener("scroll", updateViewport);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", scheduleViewport);
+      viewport?.removeEventListener("resize", scheduleViewport);
+      viewport?.removeEventListener("scroll", scheduleViewport);
     };
   }, [rootRef]);
 
