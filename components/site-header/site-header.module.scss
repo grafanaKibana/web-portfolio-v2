@@ -11,13 +11,12 @@
     z-index: -1;
     inset: 0;
     background: radial-gradient(
-      ellipse 100% 200% at 50% -100%,
-      var(--background) 70%,
-      color-mix(in oklab, var(--background) 80%, transparent) 80%,
-      color-mix(in oklab, var(--background) 45%, transparent) 88%,
-      color-mix(in oklab, var(--background) 15%, transparent) 94%,
-      color-mix(in oklab, var(--background) 5%, transparent) 98%,
-      transparent 100%
+      ellipse 100% 100% at 50% 100%,
+      transparent 35%,
+      color-mix(in oklab, var(--background) 15%, transparent) 55%,
+      color-mix(in oklab, var(--background) 45%, transparent) 70%,
+      color-mix(in oklab, var(--background) 80%, transparent) 85%,
+      var(--background) 100%
     );
     opacity: 1;
     transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1);
