@@ -8,6 +8,49 @@ type Reply = {
   text?: string;
 };
 type AskFixtureWindow = Window & { askFixture: { aborted: number[]; requests: unknown[] } };
+/** Browser-normalized opaque color channels. */
+type Rgb = { blue: number; green: number; red: number };
+/** Fixed strip pixels and geometry used by WebKit viewport-edge sampling. */
+type EdgePaintSample = Rgb & {
+  alpha: number;
+  bottom: number;
+  height: number;
+  opacity: number;
+  placement: string;
+  position: string;
+  top: number;
+  viewportHeight: number;
+  viewportWidth: number;
+  width: number;
+};
+/** Frame and edge pixels sampled at one mobile morph-clock position. */
+type MobilePaintSample = {
+  chat: Rgb;
+  edges: EdgePaintSample[];
+  fillAlpha: number;
+  frameOpacity: number;
+  root: Rgb;
+};
+
+/** Verifies both stable edge strips blend page and chat colors with the frame fill.
+ * @param sample - Current edge, endpoint, and fill-alpha paints.
+ */
+function expectEdgeBlend(sample: MobilePaintSample): void {
+  for (const edge of sample.edges) {
+    expect(edge.position).toBe("fixed");
+    expect(edge.height).toBeGreaterThan(10);
+    expect(edge.width).toBeCloseTo(edge.viewportWidth, 0);
+    expect(edge.opacity).toBe(1);
+    expect(edge.alpha).toBe(1);
+    const sampleY = edge.placement === "top" ? 4 : edge.viewportHeight - 4;
+    expect(edge.top).toBeLessThanOrEqual(sampleY);
+    expect(edge.bottom).toBeGreaterThanOrEqual(sampleY);
+  }
+  for (const channel of ["red", "green", "blue"] as const) {
+    const expected = Math.round(sample.root[channel] + (sample.chat[channel] - sample.root[channel]) * sample.fillAlpha);
+    for (const edge of sample.edges) expect(Math.abs(edge[channel] - expected)).toBeLessThanOrEqual(1);
+  }
+}
 
 /** Installs deterministic event-driven Ask streams and transport accounting.
  * @param page - Browser page receiving the fixture.
@@ -136,7 +179,7 @@ async function pauseSurfaceMotion(page: Page): Promise<void> {
   });
 }
 
-/** Verifies that mobile panel motion changes only frame opacity.
+/** Verifies that mobile frame geometry is never registered as browser animation.
  * @param surface - Animated mobile surface.
  */
 async function expectFrameGeometryStable(surface: Locator): Promise<void> {
@@ -146,31 +189,38 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
   expect(geometryKeyframes).toHaveLength(0);
 }
 
-/** Triggers and samples the mobile panel midway through its surface motion.
+/** Triggers and samples the mobile panel midway through its composer-clock motion.
  * @param control - Control that starts opening or closing the mobile surface.
- * @returns Current frame opacity.
+ * @returns Current translucent frame-fill alpha.
  */
 async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ opacity: number }> {
   return control.evaluate(async (element) => {
     (element as HTMLElement).click();
     for (let frame = 0; frame < 10; frame += 1) {
       await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
-      const target = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="true"] [data-chat-frame]');
-      const animations = target?.getAnimations() ?? [];
-      const animation = animations.find(({ effect }) =>
-        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.opacity !== undefined));
-      if (!target || !animation?.effect) continue;
-      const owner = target.parentElement;
-      if (!owner) throw new Error("Expected the frame to belong to a surface.");
-      for (const current of owner.getAnimations({ subtree: true })) {
+      const surface = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="true"]');
+      const composer = surface?.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
+      const animation = composer?.getAnimations().find(({ effect }) =>
+        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
+      if (!surface || !animation?.effect) continue;
+      const duration = Number(animation.effect.getTiming().duration);
+      for (const current of surface.getAnimations({ subtree: true })) {
         if (current.timeline !== document.timeline) continue;
-        const duration = Number(current.effect?.getTiming().duration);
-        if (!Number.isFinite(duration)) continue;
+        const currentDuration = Number(current.effect?.getTiming().duration);
+        if (!Number.isFinite(currentDuration)) continue;
         current.pause();
-        current.currentTime = Number(animation.effect.getTiming().duration) * 0.45;
+        current.currentTime = Math.min(currentDuration, (duration - 140) * 0.45);
       }
-      const style = getComputedStyle(target);
-      return { opacity: Number.parseFloat(style.opacity) };
+      await new Promise<void>((resolve) => { requestAnimationFrame(() => { requestAnimationFrame(() => { resolve(); }); }); });
+      const fill = surface.querySelector<HTMLElement>("[data-chat-frame-fill]");
+      if (!fill) throw new Error("Expected mobile frame fill.");
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) throw new Error("Expected paint sampling context.");
+      context.fillStyle = getComputedStyle(fill).backgroundColor;
+      context.fillRect(0, 0, 1, 1);
+      return { opacity: (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255 };
     }
     throw new Error("Expected mobile opening motion to start within ten animation frames.");
   });
@@ -180,16 +230,61 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ opacit
  * @param surface - Mobile host with paused surface animations.
  */
 async function expectFieldFinishesAfterThread(surface: Locator): Promise<void> {
-  const timing = await surface.evaluate((element) => {
-    /** Reads the latest animation end time on a matching descendant.
-     * @param selector - Selector for the animated descendant.
-     * @returns Latest end time, or negative infinity when no animations exist.
-     */
-    const endTime = (selector: string) => Math.max(...Array.from(element.querySelector(selector)?.getAnimations() ?? [], ({ effect }) => Number(effect?.getComputedTiming().endTime)));
-    return { thread: endTime("[data-chat-frame]"), field: endTime('[data-conversation-composer] [data-slot="input-group"]') };
+  const handoff = await surface.evaluate(async (element) => {
+    const composer = element.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
+    const composerAnimation = composer?.getAnimations().find(({ effect }) =>
+      effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
+    const paint = element.querySelector<HTMLElement>("[data-composer-surface]");
+    const geometryAnimation = paint?.getAnimations().find(({ effect }) =>
+      effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.width !== undefined || keyframe.height !== undefined));
+    if (!(composerAnimation?.effect instanceof KeyframeEffect) || !(geometryAnimation?.effect instanceof KeyframeEffect) || !paint) {
+      throw new Error("Expected active mobile composer and paint geometry motion.");
+    }
+    const fieldDuration = Number(composerAnimation.effect.getTiming().duration);
+    const sampleTime = fieldDuration - 70;
+    const animations = element.getAnimations({ subtree: true })
+      .filter((animation) => animation.timeline === document.timeline && Number.isFinite(Number(animation.effect?.getTiming().duration)))
+      .map((animation) => ({ animation }));
+    for (const { animation } of animations) {
+      const duration = Number(animation.effect?.getTiming().duration);
+      if (!Number.isFinite(duration)) continue;
+      animation.pause();
+      animation.currentTime = Math.min(duration, sampleTime);
+    }
+    await new Promise<void>((resolve) => { requestAnimationFrame(() => { requestAnimationFrame(() => { resolve(); }); }); });
+    const fill = element.querySelector<HTMLElement>("[data-chat-frame-fill]");
+    if (!fill) throw new Error("Expected mobile frame fill.");
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Expected paint sampling context.");
+    context.fillStyle = getComputedStyle(fill).backgroundColor;
+    context.fillRect(0, 0, 1, 1);
+    const keyframes = geometryAnimation.effect.getKeyframes();
+    const first = keyframes.at(0);
+    const last = keyframes.at(-1);
+    const bounds = paint.getBoundingClientRect();
+    const result = {
+      alpha: (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255,
+      dimensions: [
+        { current: bounds.width, first: Number.parseFloat(String(first?.width)), last: Number.parseFloat(String(last?.width)) },
+        { current: bounds.height, first: Number.parseFloat(String(first?.height)), last: Number.parseFloat(String(last?.height)) },
+      ],
+      fieldDuration,
+      phase: element.dataset.morph,
+      sampleTime,
+    };
+    return result;
   });
-  expect(timing.thread).toBeGreaterThanOrEqual(500);
-  expect(timing.field - timing.thread).toBeGreaterThanOrEqual(100);
+  expect(handoff.sampleTime).toBeLessThan(handoff.fieldDuration);
+  expect(handoff.sampleTime).toBeGreaterThanOrEqual(500);
+  expect(handoff.alpha).toBe(handoff.phase === "closing" ? 0 : 1);
+  const changing = handoff.dimensions.filter(({ first, last }) => Number.isFinite(first) && Number.isFinite(last) && Math.abs(first - last) > 1);
+  expect(changing.length).toBeGreaterThan(0);
+  for (const { current, first, last } of changing) {
+    expect(current).toBeGreaterThan(Math.min(first, last));
+    expect(current).toBeLessThan(Math.max(first, last));
+  }
 }
 
 /** Reads the first frame of an interrupted mobile close animation.
@@ -198,16 +293,26 @@ async function expectFieldFinishesAfterThread(surface: Locator): Promise<void> {
  */
 async function sampleClosingStart(surface: Locator): Promise<{ opacity: number }> {
   await expect(surface).toHaveAttribute("data-closing", "true");
-  return surface.locator("[data-chat-frame]").evaluate((element) => {
-    const animation = element.getAnimations().find(({ effect }) =>
-      effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.opacity !== undefined));
+  return surface.evaluate(async (element) => {
+    const composer = element.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
+    const animation = composer?.getAnimations().find(({ effect }) =>
+      effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
     if (!(animation?.effect instanceof KeyframeEffect)) throw new Error("Expected an active mobile closing frame animation.");
-    for (const current of element.getAnimations()) {
+    for (const current of element.getAnimations({ subtree: true })) {
+      if (current.timeline !== document.timeline || !Number.isFinite(Number(current.effect?.getTiming().duration))) continue;
       current.pause();
       current.currentTime = 0;
     }
-    const style = getComputedStyle(element);
-    return { opacity: Number.parseFloat(style.opacity) };
+    await new Promise<void>((resolve) => { requestAnimationFrame(() => { requestAnimationFrame(() => { resolve(); }); }); });
+    const fill = element.querySelector<HTMLElement>("[data-chat-frame-fill]");
+    if (!fill) throw new Error("Expected mobile frame fill.");
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Expected paint sampling context.");
+    context.fillStyle = getComputedStyle(fill).backgroundColor;
+    context.fillRect(0, 0, 1, 1);
+    return { opacity: (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255 };
   });
 }
 
@@ -243,6 +348,89 @@ async function finishMorph(surface: Locator): Promise<void> {
       if (animation.timeline === document.timeline) animation.finish();
     }
   });
+}
+
+/** Seeks the mobile composer clock and samples actual frame and edge pixels.
+ * @param surface - Mobile conversation surface.
+ * @param progress - Normalized panel-paint progress, or null for settled paint.
+ * @returns Actual frame alpha and both opaque edge-strip colors.
+ */
+async function sampleMobilePaint(surface: Locator, progress: number | null = null): Promise<MobilePaintSample> {
+  return surface.evaluate(async (element, normalizedProgress) => {
+    const frame = element.querySelector<HTMLElement>("[data-chat-frame]");
+    const fill = element.querySelector<HTMLElement>("[data-chat-frame-fill]");
+    const edges = Array.from(element.querySelectorAll<HTMLElement>("[data-chat-edge-fill]"));
+    if (!frame || !fill || edges.length !== 2) throw new Error("Expected mobile frame and edge paint.");
+    if (normalizedProgress !== null) {
+      const composer = element.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
+      const composerAnimation = composer?.getAnimations().find(({ effect }) =>
+        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
+      if (!composerAnimation?.effect) throw new Error("Expected active mobile composer motion.");
+      const fieldDuration = Number(composerAnimation.effect.getTiming().duration);
+      for (const animation of element.getAnimations({ subtree: true })) {
+        if (animation.timeline !== document.timeline) continue;
+        const duration = Number(animation.effect?.getTiming().duration);
+        if (!Number.isFinite(duration)) continue;
+        animation.pause();
+        animation.currentTime = Math.min(duration, (fieldDuration - 140) * normalizedProgress);
+      }
+    }
+    await new Promise<void>((resolve) => { requestAnimationFrame(() => { requestAnimationFrame(() => { resolve(); }); }); });
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Expected paint sampling context.");
+    /** Samples a CSS paint as RGBA channels.
+     * @param color - Computed CSS color.
+     * @returns Pixel channels.
+     */
+    const pixel = (color: string): Uint8ClampedArray => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return context.getImageData(0, 0, 1, 1).data;
+    };
+    /** Selects opaque RGB channels from one sampled pixel.
+     * @param channels - Sampled RGBA channels.
+     * @returns Opaque color channels.
+     */
+    const rgb = (channels: Uint8ClampedArray): Rgb => {
+      return { red: channels[0] ?? 0, green: channels[1] ?? 0, blue: channels[2] ?? 0 };
+    };
+    const rootProbe = document.createElement("span");
+    rootProbe.style.background = "var(--background)";
+    const chatProbe = document.createElement("span");
+    chatProbe.style.background = "var(--chat-background)";
+    element.append(rootProbe, chatProbe);
+    const fillPixel = pixel(getComputedStyle(fill).backgroundColor);
+    const sample = {
+      chat: rgb(pixel(getComputedStyle(chatProbe).backgroundColor)),
+      edges: edges.map((edge): EdgePaintSample => {
+        const style = getComputedStyle(edge);
+        const bounds = edge.getBoundingClientRect();
+        const color = pixel(style.backgroundColor);
+        return {
+          ...rgb(color),
+          alpha: (color[3] ?? 0) / 255,
+          bottom: bounds.bottom,
+          height: bounds.height,
+          opacity: Number.parseFloat(style.opacity),
+          placement: edge.dataset.chatEdgeFill ?? "",
+          position: style.position,
+          top: bounds.top,
+          viewportHeight: document.documentElement.clientHeight,
+          viewportWidth: document.documentElement.clientWidth,
+          width: bounds.width,
+        };
+      }),
+      fillAlpha: (fillPixel[3] ?? 0) / 255,
+      frameOpacity: Number.parseFloat(getComputedStyle(frame).opacity),
+      root: rgb(pixel(getComputedStyle(rootProbe).backgroundColor)),
+    };
+    rootProbe.remove();
+    chatProbe.remove();
+    return sample;
+  }, progress);
 }
 
 /** Records whether the resting jade line is painted at the native closing handoff.
@@ -393,8 +581,6 @@ test.describe("mobile conversation smoke", () => {
     const opening = await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Send", exact: true }));
     const surface = page.locator('[data-chat-surface][data-mobile="true"]');
     await expect(surface).toHaveAttribute("data-morph", "opening");
-    await expectFieldFinishesAfterThread(surface);
-
     await page.keyboard.press("Escape");
     const closing = await sampleClosingStart(surface);
     expect(closing.opacity).toBeCloseTo(opening.opacity, 3);
@@ -478,7 +664,6 @@ test.describe("mobile conversation smoke", () => {
     expect(closingPaint.blockEnd).toBeLessThanOrEqual(-closingPaint.layoutHeight + 1);
     expect(closingPaint.top).toBeLessThanOrEqual(0);
     expect(closingPaint.bottom).toBeGreaterThanOrEqual(closingPaint.layoutHeight - 1);
-    await expectFieldFinishesAfterThread(surface);
     const horizontalTravel = await surface.locator('[data-conversation-composer] [data-slot="input-group"]').evaluate((element) => {
       const transforms = element.getAnimations().flatMap(({ effect }) => effect instanceof KeyframeEffect ? effect.getKeyframes() : [])
         .flatMap((frame) => typeof frame.transform === "string" ? [new DOMMatrix(frame.transform).m41] : []);
@@ -496,7 +681,6 @@ test.describe("mobile conversation smoke", () => {
     const reopening = await triggerAndSampleSurfaceMotion(page.locator("button[data-launcher]"));
     expect(reopening.opacity).toBeGreaterThan(0);
     expect(reopening.opacity).toBeLessThan(1);
-    await expectFieldFinishesAfterThread(surface);
     await expectFrameGeometryStable(surface);
     const reopeningPaint = await readMobileFramePaint(surface);
     expect(reopeningPaint.blockStart).toBeLessThanOrEqual(-reopeningPaint.layoutHeight + 1);
@@ -511,6 +695,127 @@ test.describe("mobile conversation smoke", () => {
     expect(paint.width).toBeLessThan(group.width);
     await finishMorph(surface);
     await expect(surface).toBeVisible();
+  });
+
+  test("@webkit mobile edge paint follows opening and closing composer motion in both themes", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate((value) => { localStorage.setItem("theme", value); }, theme);
+      await page.reload();
+      await readyEntry(page);
+      await expect(page.locator("[data-chat-edge-fill]")).toHaveCount(0);
+      await page.locator("button[data-launcher]").click();
+      await page.getByRole("textbox", { name: "Your question" }).fill(`Synthetic ${theme} edge paint question`);
+      await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Send", exact: true }));
+      await emit(page, { done: true, text: `Synthetic ${theme} edge paint answer.` });
+      const surface = page.locator('[data-chat-surface][data-mobile="true"]');
+      expect(await surface.locator("[data-chat-frame], [data-chat-frame-fill], [data-chat-edge-fill]").evaluateAll((elements) =>
+        elements.flatMap((element) => element.getAnimations()))).toHaveLength(0);
+      const opening = [] as MobilePaintSample[];
+      for (const progress of [0, 0.45, 0.99]) {
+        const sample = await sampleMobilePaint(surface, progress);
+        expect(sample.frameOpacity).toBe(1);
+        expect(sample.edges).toHaveLength(2);
+        expectEdgeBlend(sample);
+        opening.push(sample);
+      }
+      expect(opening[0]?.fillAlpha).toBe(0);
+      expect(opening[1]?.fillAlpha).toBeGreaterThan(opening[0]?.fillAlpha ?? 1);
+      expect(opening[2]?.fillAlpha).toBeGreaterThan(opening[1]?.fillAlpha ?? 1);
+      await finishMorph(surface);
+      await expect(surface).not.toHaveAttribute("data-morph", "opening");
+      const settled = await sampleMobilePaint(surface);
+      expect(settled.frameOpacity).toBe(1);
+      expect(settled.fillAlpha).toBe(1);
+      expectEdgeBlend(settled);
+
+      await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Close conversation" }));
+      const closing = [] as MobilePaintSample[];
+      for (const progress of [0, 0.45, 0.99]) {
+        const sample = await sampleMobilePaint(surface, progress);
+        expectEdgeBlend(sample);
+        closing.push(sample);
+      }
+      expect(closing[0]?.fillAlpha).toBe(1);
+      expect(closing[1]?.fillAlpha).toBeLessThan(closing[0]?.fillAlpha ?? 0);
+      expect(closing[2]?.fillAlpha).toBeLessThan(closing[1]?.fillAlpha ?? 0);
+      await expectFieldFinishesAfterThread(surface);
+      await finishMorph(surface);
+      await expect(surface).toBeHidden();
+      await expect(surface.locator("[data-chat-edge-fill]").first()).toHaveCSS("display", "none");
+      await expect(surface.locator("[data-chat-frame-fill]")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    }
+  });
+
+  test("@webkit mobile edge paint resets across retained close, reopen, and New chat", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.reload();
+    await readyEntry(page);
+    await send(page, "Synthetic retained edge lifecycle question");
+    const surface = page.locator('[data-chat-surface][data-mobile="true"]');
+    await emit(page, { done: true, text: "Synthetic retained edge lifecycle answer." });
+    await finishMorph(surface);
+
+    await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Close conversation" }));
+    await finishMorph(surface);
+    await expect(surface).toBeHidden();
+    await expect(surface.locator("[data-chat-frame]")).toHaveCSS("display", "none");
+    await expect(surface.locator("[data-chat-edge-fill]").first()).toHaveCSS("display", "none");
+
+    await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Reopen conversation" }));
+    const reopenedStart = await sampleMobilePaint(surface, 0);
+    const reopenedMiddle = await sampleMobilePaint(surface, 0.45);
+    expect(reopenedStart.fillAlpha).toBe(0);
+    expect(reopenedMiddle.fillAlpha).toBeGreaterThan(0);
+    expectEdgeBlend(reopenedMiddle);
+    await finishMorph(surface);
+    expect((await sampleMobilePaint(surface)).fillAlpha).toBe(1);
+
+    await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "New chat" }));
+    await finishMorph(surface);
+    await expect(surface).toBeHidden();
+    await expect(surface.locator("[data-chat-edge-fill]").first()).toBeHidden();
+    await page.reload();
+    await readyEntry(page);
+    await expect(page.locator("[data-chat-edge-fill]")).toHaveCount(0);
+  });
+
+  test("@webkit mobile settled edge paint follows theme and responsive host lifecycle without mutating metadata", async ({ page }) => {
+    await page.evaluate(() => {
+      const fixture = document.createElement("meta");
+      fixture.name = "theme-color";
+      fixture.content = "#123456";
+      fixture.media = "all";
+      fixture.dataset.fixtureThemeColor = "true";
+      document.head.prepend(fixture);
+    });
+    const fixture = page.locator('meta[name="theme-color"][data-fixture-theme-color]');
+    await send(page, "Synthetic responsive edge paint question");
+    const mobileSurface = page.locator('[data-chat-surface][data-mobile="true"]');
+    expectEdgeBlend(await sampleMobilePaint(mobileSurface));
+    await expect(fixture).toHaveAttribute("content", "#123456");
+    await expect(fixture).toHaveAttribute("media", "all");
+    await page.evaluate(() => {
+      document.documentElement.classList.remove("light", "dark");
+      document.documentElement.classList.add("dark");
+    });
+    expectEdgeBlend(await sampleMobilePaint(mobileSurface));
+
+    await page.setViewportSize({ width: 1024, height: 844 });
+    const desktopSurface = page.locator('[data-chat-surface][data-mobile="false"]');
+    await expect(desktopSurface).toBeVisible();
+    await expect(mobileSurface).toHaveCount(0);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const restoredMobileSurface = page.locator('[data-chat-surface][data-mobile="true"]');
+    await expect(restoredMobileSurface).toBeVisible();
+    expectEdgeBlend(await sampleMobilePaint(restoredMobileSurface));
+
+    await page.locator('a[href="/projects"]').first().evaluate((link: HTMLAnchorElement) => { link.click(); });
+    await expect(page).toHaveURL(/\/projects$/);
+    await expect(page.locator('[data-chat-surface][data-mobile="true"]')).toBeHidden();
+    await expect(fixture).toHaveAttribute("content", "#123456");
+    await expect(fixture).toHaveAttribute("media", "all");
   });
 
   test("@webkit mobile morph skips interpolation when reduced motion is requested", async ({ page }) => {

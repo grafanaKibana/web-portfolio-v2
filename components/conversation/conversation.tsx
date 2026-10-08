@@ -15,7 +15,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { MessageCirclePlus, Sparkle, X } from "lucide-react";
 import { clsx } from "clsx";
-import { animateMini, useReducedMotion, type AnimationPlaybackControlsWithThen } from "motion/react";
+import { animateMini, cubicBezier, useReducedMotion, type AnimationPlaybackControlsWithThen } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { ConversationComposer, ConversationFieldSurface, conversationPlaceholder } from "./conversation-composer";
 import { ConversationView } from "./conversation-view";
@@ -65,6 +65,8 @@ function clearSurfaceMotionStyles(surface: HTMLElement) {
   const line = surface.querySelector<HTMLElement>("[data-chat-morph-line]");
   const composer = findComposerGroup(surface);
   clearInlineProperties(frame, ["clip-path", "opacity"]);
+  clearInlineProperties(surface.querySelector<HTMLElement>("[data-chat-frame-fill]"), ["background-color"]);
+  for (const edge of surface.querySelectorAll<HTMLElement>("[data-chat-edge-fill]")) clearInlineProperties(edge, ["background-color"]);
   clearInlineProperties(line, ["bottom", "left", "opacity", "transform"]);
   clearInlineProperties(composer, ["opacity", "transform"]);
   clearInlineProperties(surface.querySelector<HTMLElement>("[data-composer-surface]"), ["width", "height", "border-color"]);
@@ -117,13 +119,22 @@ function useSurfaceToggleMotion(
   const reducedMotion = useReducedMotion();
   const animationsRef = useRef<AnimationPlaybackControlsWithThen[]>([]);
   const generationRef = useRef(0);
+  const paintFrameRef = useRef<number | null>(null);
+  const fillOpacityRef = useRef(1);
+
+  /** Stops direct edge painting before a morph is cancelled or released. */
+  const stopPaint = useCallback((): void => {
+    if (paintFrameRef.current !== null) window.cancelAnimationFrame(paintFrameRef.current);
+    paintFrameRef.current = null;
+  }, []);
 
   /** Invalidates current playback without allowing a stale completion to mutate lifecycle. */
   const cancelAnimations = useCallback(() => {
     generationRef.current += 1;
+    stopPaint();
     for (const animation of animationsRef.current) animation.cancel();
     animationsRef.current = [];
-  }, []);
+  }, [stopPaint]);
 
   useEffect(() => () => {
     cancelAnimations();
@@ -135,12 +146,13 @@ function useSurfaceToggleMotion(
    */
   const morphSurface = useCallback((surface: HTMLElement, phase: SurfaceMorphPhase) => {
     const frame = surface.querySelector<HTMLElement>("[data-chat-frame]");
+    const fill = surface.querySelector<HTMLElement>("[data-chat-frame-fill]");
     const line = surface.querySelector<HTMLElement>("[data-chat-morph-line]");
     const composer = findComposerGroup(surface);
     const paint = composer?.querySelector<HTMLElement>("[data-composer-surface]");
     const accent = composer?.querySelector<HTMLElement>("[data-composer-accent]");
     const origin = originRef.current;
-    if (!frame || !line || !composer || !paint || !accent) {
+    if (!frame || !fill || !line || !composer || !paint || !accent) {
       cancelAnimations();
       releaseSurfaceMotion(surface, phase);
       const completion = completionRef.current;
@@ -150,6 +162,7 @@ function useSurfaceToggleMotion(
     }
 
     const interrupted = animationsRef.current.length > 0;
+    const currentFillOpacity = interrupted ? fillOpacityRef.current : null;
     const currentFrameOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(frame).opacity) : null;
     const currentFrameClip = interrupted ? window.getComputedStyle(frame).clipPath : null;
     const currentPaint = interrupted ? paint.getBoundingClientRect() : null;
@@ -192,20 +205,38 @@ function useSurfaceToggleMotion(
 
     const animations: AnimationPlaybackControlsWithThen[] = [];
     animationsRef.current = animations;
-    animations.push(animateMini(frame, {
+    if (!mobile) animations.push(animateMini(frame, {
       opacity: [currentFrameOpacity ?? (phase === "opening" ? 0 : 1), phase === "opening" ? 1 : 0],
-      // Phone paint spans Safari's chrome and keyboard gaps; only desktop clips its panel.
-      ...(!mobile && { clipPath: phase === "opening"
+      clipPath: phase === "opening"
         ? [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : rectClipPath(surfaceTarget, composerTarget), fullClip]
-        : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, rectClipPath(surfaceTarget, composerTarget)] }),
+        : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, rectClipPath(surfaceTarget, composerTarget)],
     }, { duration: panelDuration, ease }));
     const destination = origin ?? lineTarget;
     const openingFromLine = phase === "opening" && destination.height <= line.offsetHeight;
     const movingToLine = phase === "closing" && !returningToField;
     const offset = `translate(${String(destination.left + destination.width / 2 - (composerTarget.left + composerTarget.width / 2))}px, ${String(destination.bottom - composerTarget.bottom)}px)`;
-    animations.push(animateMini(composer, {
+    const composerAnimation = animateMini(composer, {
       transform: [currentComposerTransform && currentComposerTransform !== "none" ? currentComposerTransform : phase === "opening" ? offset : "translate(0px, 0px)", phase === "opening" ? "translate(0px, 0px)" : offset],
-    }, { duration: fieldDuration, ease }));
+    }, { duration: fieldDuration, ease });
+    animations.push(composerAnimation);
+    if (mobile) {
+      const from = currentFillOpacity ?? (phase === "opening" ? 0 : 1);
+      const to = phase === "opening" ? 1 : 0;
+      const easing = cubicBezier(0.4, 0, 0.2, 1);
+      const edges = surface.querySelectorAll<HTMLElement>("[data-chat-edge-fill]");
+
+      /** Paints actual edge pixels on the shared clock; Safari ignores CSS-animated color samples. */
+      const paintFill = (): void => {
+        const progress = Math.min(1, Math.max(0, composerAnimation.time / panelDuration));
+        const opacity = from + (to - from) * easing(progress);
+        fillOpacityRef.current = opacity;
+        fill.style.backgroundColor = `color-mix(in srgb, var(--chat-background) ${String(opacity * 100)}%, transparent)`;
+        // Opaque, shallow fixed candidates avoid Safari's viewport-sized cache and alpha threshold.
+        for (const edge of edges) edge.style.backgroundColor = `color-mix(in srgb, var(--background), var(--chat-background) ${String(opacity * 100)}%)`;
+        paintFrameRef.current = progress < 1 ? window.requestAnimationFrame(paintFill) : null;
+      };
+      paintFill();
+    }
     animations.push(animateMini(paint, {
       width: [currentPaint?.width ?? (phase === "opening" ? destination.width : composerTarget.width), phase === "opening" ? composerTarget.width : destination.width],
       height: [currentPaint?.height ?? (phase === "opening" ? destination.height : composerTarget.height), phase === "opening" ? composerTarget.height : destination.height],
@@ -233,6 +264,7 @@ function useSurfaceToggleMotion(
     /** Releases only the latest morph and then advances its native lifecycle. */
     const finish = () => {
       if (generationRef.current !== generation || animationsRef.current !== animations) return;
+      stopPaint();
       animationsRef.current = [];
       const completion = completionRef.current;
       completionRef.current = null;
@@ -246,7 +278,7 @@ function useSurfaceToggleMotion(
       }
     };
     void Promise.allSettled(animations.map((animation) => animation.then(() => undefined, () => undefined))).then(finish);
-  }, [cancelAnimations, completionRef, originRef, reducedMotion]);
+  }, [cancelAnimations, completionRef, originRef, reducedMotion, stopPaint]);
 
   const collapseSurface = useCallback((surface: HTMLElement) => {
     clearClosingSurface(surface);
@@ -952,6 +984,7 @@ export function Conversation() {
           {open || model.expanded ? (mobile ? (
             <dialog aria-labelledby="portfolio-conversation-title" className={clsx(styles.surface, styles.mobileSurface)} data-chat-surface data-mobile="true" id="portfolio-conversation" onCancel={(event) => { event.preventDefault(); dismiss(); }} onClose={(event) => { handleNativeClose(event.currentTarget); }} ref={(node) => { surfaceRef.current = node; }}>
               <div aria-hidden className={styles.morphFrame} data-chat-frame><span className={styles.morphFill} data-chat-frame-fill /></div>
+              {["top", "bottom"].map((edge) => <span aria-hidden className={styles.edgeFill} data-chat-edge-fill={edge} key={edge} />)}
               <span aria-hidden className={styles.morphLine} data-chat-morph-line />
               {contents}
             </dialog>

@@ -128,6 +128,7 @@
 }
 
 .surface {
+  --chat-background: var(--background);
   --draft-padding: 1.25rem;
   --composer-height: 2.75rem;
   --surface-radius: calc(min(calc(var(--radius) * 2.2), var(--composer-height) / 2) + var(--draft-padding) + 1px);
@@ -183,7 +184,7 @@
   inset: 0;
   border: 1px solid var(--border);
   border-radius: inherit;
-  background: var(--background);
+  background: var(--chat-background);
 }
 
 .morphLine {
@@ -439,6 +440,16 @@
   display: none;
 }
 
+.mobileSurface:not([open], [data-closing="true"]) .morphFrame {
+  // Retained history must leave no opaque offscreen paint for Safari to sample.
+  display: none;
+  opacity: 0;
+}
+
+.mobileSurface:not([open], [data-closing="true"]) .morphFill {
+  background: transparent;
+}
+
 .mobileSurface[open] {
   display: flex;
 }
@@ -453,7 +464,7 @@
   background: transparent;
 }
 
-.mobileSurface .morphFrame {
+.mobileSurface:is([open], [data-closing="true"]) .morphFrame {
   // One animated paint layer covers safe areas and asynchronous keyboard movement.
   inset-block: -100lvh;
   border: 0;
@@ -461,6 +472,30 @@
 
 .mobileSurface .morphFill {
   border: 0;
+}
+
+.edgeFill {
+  position: fixed;
+  z-index: 4;
+  inset-inline: 0;
+  display: none;
+
+  // WebKit requires boxes taller than 10px and samples 4px inside the viewport; only 8px enter the page.
+  height: 18px;
+  background: var(--chat-background);
+  pointer-events: none;
+}
+
+.edgeFill[data-chat-edge-fill="top"] {
+  top: -10px;
+}
+
+.edgeFill[data-chat-edge-fill="bottom"] {
+  bottom: -10px;
+}
+
+.mobileSurface:is([open], [data-closing="true"]) .edgeFill {
+  display: block;
 }
 
 .mobileSurface [data-conversation] {
@@ -577,8 +612,8 @@
   }
 }
 
-:global(.dark) .morphFill {
-  background: var(--card);
+:global(.dark) .surface {
+  --chat-background: var(--card);
 }
 
 .headerChrome {
