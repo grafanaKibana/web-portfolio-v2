@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import styles from "./experience.module.scss";
 
 /**
- * Keeps the recommendation fade aligned with content hidden by horizontal scrolling.
+ * Synchronizes recommendation pages and edge fades with responsive scroll geometry.
  *
  * @param children - Server-rendered recommendation items.
  * @param heading - Server-rendered subsection heading beside the browsing controls.
@@ -15,8 +15,9 @@ import styles from "./experience.module.scss";
  */
 export function RecommendationTrack({ children, heading }: { children: ReactNode; heading: ReactNode }) {
   const trackRef = useRef<HTMLUListElement>(null);
+  const positionsRef = useRef([0]);
   const [fadedEdges, setFadedEdges] = useState("none");
-  const [trackState, setTrackState] = useState({ index: 0, count: 0, overflow: false });
+  const [trackState, setTrackState] = useState({ index: 0, count: 0 });
 
   useEffect(() => {
     const track = trackRef.current;
@@ -24,8 +25,12 @@ export function RecommendationTrack({ children, heading }: { children: ReactNode
 
     /** Updates fades after scrolling or changes to the visible track width. */
     const updateFades = () => {
+      const items = Array.from(track.children);
+      const leadingEdge = track.getBoundingClientRect().left;
+      const maximum = Math.max(0, track.scrollWidth - track.clientWidth);
+      const contentEnd = (items.at(-1)?.getBoundingClientRect().right ?? leadingEdge) - leadingEdge + track.scrollLeft;
       const start = track.scrollLeft > 1;
-      const end = track.scrollLeft + track.clientWidth < track.scrollWidth - 1;
+      const end = track.scrollLeft + track.clientWidth < contentEnd - 1;
 
       let nextFadedEdges = "none";
       if (start && end) nextFadedEdges = "both";
@@ -33,21 +38,31 @@ export function RecommendationTrack({ children, heading }: { children: ReactNode
       else if (end) nextFadedEdges = "end";
       setFadedEdges(nextFadedEdges);
 
-      const items = Array.from(track.children);
-      const leadingEdge = track.getBoundingClientRect().left;
+      const positions = [0];
+      if (contentEnd > track.clientWidth + 1) {
+        for (const item of items.slice(1)) {
+          const offset = item.getBoundingClientRect().left - leadingEdge + track.scrollLeft;
+          // Merge trailing padding into the first stop that reveals all remaining cards.
+          const position = offset + track.clientWidth >= contentEnd - 1 ? maximum : Math.min(offset, maximum);
+          const previousPosition = positions.at(-1);
+          if (previousPosition !== undefined && position > previousPosition + 1) positions.push(position);
+          if (position === maximum) break;
+        }
+      }
+      positionsRef.current = positions;
       let index = 0;
       let closestDistance = Infinity;
-      items.forEach((item, itemIndex) => {
-        const distance = Math.abs(item.getBoundingClientRect().left - leadingEdge);
+      positions.forEach((position, pageIndex) => {
+        const distance = Math.abs(position - track.scrollLeft);
         if (distance < closestDistance) {
-          index = itemIndex;
+          index = pageIndex;
           closestDistance = distance;
         }
       });
 
       if (!start) index = 0;
-      else if (!end) index = items.length - 1;
-      setTrackState({ index, count: items.length, overflow: track.scrollWidth > track.clientWidth + 1 });
+      else if (!end) index = positions.length - 1;
+      setTrackState({ index, count: positions.length });
     };
 
     updateFades();
@@ -62,16 +77,16 @@ export function RecommendationTrack({ children, heading }: { children: ReactNode
   }, [children]);
 
   /**
-   * Moves to an adjacent quote using the visitor's motion preference.
-   * @param direction - Previous or next recommendation.
+   * Moves to an adjacent reachable page using the visitor's motion preference.
+   * @param direction - Previous or next recommendation page.
    */
   function browse(direction: -1 | 1) {
     const track = trackRef.current;
-    const item = track?.children.item(trackState.index + direction);
-    if (!track || !item) return;
+    const position = positionsRef.current[trackState.index + direction];
+    if (!track || position === undefined) return;
 
     track.scrollTo({
-      left: track.scrollLeft + item.getBoundingClientRect().left - track.getBoundingClientRect().left,
+      left: position,
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
     });
   }
@@ -80,7 +95,7 @@ export function RecommendationTrack({ children, heading }: { children: ReactNode
     <>
       <div className="flex min-h-11 flex-wrap items-center gap-x-4 gap-y-3" data-page-motion-row>
         {heading}
-        {trackState.count > 1 && trackState.overflow ? (
+        {trackState.count > 1 ? (
           <div className="ml-auto flex shrink-0 items-center gap-1" data-slot="recommendation-controls">
             <Button
               aria-label="Previous recommendation"
