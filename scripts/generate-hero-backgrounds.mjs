@@ -3,7 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 import { paintRecipe } from "../components/gradient-background/upstream/feral-gradient-runtime.jsx";
 import { normalizeGradient } from "../components/gradient-background/gradient-background.helpers.ts";
-import { heroPalettes, heroStillOptions } from "../app/(home)/_components/hero/hero-background.config.ts";
+import { heroDarkStillOptions, heroPalettes, heroStillOptions } from "../app/(home)/_components/hero/hero-background.config.ts";
 
 /** Minimal raster target for Still's ImageData painter; no browser or native canvas is needed. */
 class StillCanvas {
@@ -59,11 +59,12 @@ async function encodeImage(pixels, width, height, channels, quality = 95) {
 /**
  * Paints the upstream Still field, retaining its fixed 640 × 420 composition.
  * @param colors - Approved theme palette.
+ * @param options - Theme-specific Still geometry and spatial grain.
  * @returns A compact image of the field.
  */
-async function field(colors) {
+async function field(colors, options) {
   const canvas = new StillCanvas();
-  const { recipe } = normalizeGradient({ variant: "still", colors, options: heroStillOptions, noise: 0, soften: 0 });
+  const { recipe } = normalizeGradient({ variant: "still", colors, options, noise: 0, soften: 0 });
   paintRecipe(canvas, recipe);
   if (!canvas.pixels) throw new Error("Still painter produced no pixels.");
   return encodeImage(canvas.pixels, canvas.width, canvas.height, 4);
@@ -98,8 +99,8 @@ try {
      */
     createElement: () => new StillCanvas(),
   };
-  const light = await field(heroPalettes.light);
-  const dark = await field(heroPalettes.dark);
+  const light = await field(heroPalettes.light, heroStillOptions);
+  const dark = await field(heroPalettes.dark, heroDarkStillOptions);
   const noise = await noiseTile();
   let totalBytes = 0;
   for (const [name, output] of Object.entries({ light, dark, noise })) {

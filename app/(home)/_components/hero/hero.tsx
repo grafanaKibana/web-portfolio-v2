@@ -30,7 +30,8 @@ const heroColors = {
   "--hero-light-image": `url("${lightImage.src}")`,
   "--hero-dark-image": `url("${darkImage.src}")`,
   "--hero-noise-image": `url("${noiseImage.src}")`,
-  "--hero-noise-opacity": heroNoise / 200,
+  "--hero-light-noise-opacity": heroNoise.light / 200,
+  "--hero-dark-noise-opacity": heroNoise.dark / 200,
 } as CSSProperties;
 
 const icons: Record<string, LucideIcon> = {

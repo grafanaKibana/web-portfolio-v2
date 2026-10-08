@@ -4,6 +4,7 @@
   --hero-muted-foreground: var(--hero-light-muted-foreground);
   --hero-surface: var(--hero-light-surface);
   --hero-veil: var(--hero-light-veil);
+  --hero-noise-opacity: var(--hero-light-noise-opacity);
   --hero-fade-height: 6rem;
   --foreground: var(--hero-foreground);
   --content-foreground: var(--hero-content-foreground);
@@ -25,6 +26,7 @@
     --hero-muted-foreground: var(--hero-dark-muted-foreground);
     --hero-surface: var(--hero-dark-surface);
     --hero-veil: var(--hero-dark-veil);
+    --hero-noise-opacity: var(--hero-dark-noise-opacity);
   }
 
   & ::selection {
