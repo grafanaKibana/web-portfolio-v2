@@ -114,7 +114,7 @@
   }
 }
 
-@keyframes conversation-entry-stroke-reduced {
+@keyframes conversation-entry-stroke-fade {
   from { opacity: 0; }
   to { opacity: 1; }
 }
@@ -334,6 +334,9 @@
   .entryStroke {
     // Apply before hydration so Safari never samples an outward launcher shadow.
     box-shadow: none;
+
+    // A downward entrance crosses Safari's bottom edge sample and can leave its chrome opaque.
+    animation-name: conversation-entry-stroke-fade;
   }
 
   .edgeEntry [data-composer-surface] {
@@ -602,7 +605,7 @@
   }
 
   .entryStroke {
-    animation-name: conversation-entry-stroke-reduced;
+    animation-name: conversation-entry-stroke-fade;
     animation-duration: 120ms;
     animation-delay: 0ms;
   }

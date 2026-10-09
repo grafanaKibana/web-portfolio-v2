@@ -503,6 +503,7 @@ test.describe("mobile conversation smoke", () => {
   });
 
   test("@webkit mobile idle launcher leaves Safari bottom sampling strip unpainted across reload", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     for (let visit = 0; visit < 2; visit += 1) {
       if (visit > 0) {
         await page.reload();
@@ -510,6 +511,33 @@ test.describe("mobile conversation smoke", () => {
       }
       const stroke = page.locator("[data-entry-stroke]");
       await expect(stroke).toHaveCSS("box-shadow", "none");
+      const entrance = await stroke.evaluate(async (element) => {
+        const line = element as HTMLElement;
+        line.style.animationName = "none";
+        line.getBoundingClientRect();
+        line.style.removeProperty("animation-name");
+        const animation = line.getAnimations()[0];
+        if (!animation?.effect) throw new Error("Expected the launcher's initial CSS entrance.");
+        animation.pause();
+        const timing = animation.effect.getTiming();
+        const duration = Number(timing.duration);
+        if (!Number.isFinite(duration)) throw new Error("Expected a finite launcher entrance duration.");
+        const samples = [] as Array<{ bottom: number; opacity: number; progress: number; top: number; viewportHeight: number }>;
+        for (const progress of [0, 0.05, 0.1, 0.15, 0.25, 0.5, 0.75, 1]) {
+          animation.currentTime = Number(timing.delay) + duration * progress;
+          await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+          const bounds = line.getBoundingClientRect();
+          samples.push({ bottom: bounds.bottom, opacity: Number(getComputedStyle(line).opacity), progress, top: bounds.top, viewportHeight: window.innerHeight });
+        }
+        animation.finish();
+        return samples;
+      });
+      expect(entrance.filter((sample) => sample.opacity > 0 && sample.top <= sample.viewportHeight - 4 && sample.bottom >= sample.viewportHeight - 4), "Visible launcher paint must never cross Safari's bottom sampling point").toEqual([]);
+      for (const sample of entrance) {
+        expect(sample.bottom, `Launcher entrance at ${String(sample.progress)}`).toBeLessThanOrEqual(sample.viewportHeight - 8);
+      }
+      expect(entrance[0]?.opacity).toBe(0);
+      expect(entrance.at(-1)?.opacity).toBe(1);
       const bounds = await box(stroke);
       const viewportHeight = await page.evaluate(() => window.innerHeight);
       expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewportHeight - 8);
