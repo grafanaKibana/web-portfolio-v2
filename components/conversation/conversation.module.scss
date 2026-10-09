@@ -17,18 +17,18 @@
   position: fixed;
   z-index: 20;
 
-  // Let Safari's compositor keep the resting entry attached to its moving toolbar.
+  // Native insets center the resting entry without a transformed scrolling layer.
   bottom: var(--edge-gutter);
-  left: 50%;
-  transform: translateX(-50%);
+  right: 0;
+  left: 0;
+  margin-inline: auto;
 }
 
-.edgeEntry:has(textarea:focus),
+.shell[data-viewport-keyboard-visible="true"] .edgeEntry:has(textarea:focus),
 .shell[data-viewport-zoomed="true"] :is(.edgeEntry, .fallback) {
   // Editable focus and zoom need the visible viewport rather than the layout edge.
-  top: calc(var(--viewport-top) + var(--viewport-height) - var(--edge-gutter));
-  bottom: auto;
-  left: calc(var(--viewport-left) + var(--viewport-width) / 2);
+  inset: calc(var(--viewport-top) + var(--viewport-height) - var(--edge-gutter)) auto auto calc(var(--viewport-left) + var(--viewport-width) / 2);
+  margin-inline: 0;
   transform: translate(-50%, -100%);
 }
 
@@ -264,6 +264,7 @@
 }
 
 .fallback {
+  width: max-content;
   min-height: 2.75rem;
   padding: 0.75rem;
   border-radius: calc(var(--radius) * 0.6);
@@ -327,6 +328,18 @@
 
   // Isolated paint resizes without reflowing or scaling the field's controls.
   transition: width 380ms cubic-bezier(0.4, 0, 0.2, 1), height 380ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 380ms cubic-bezier(0.4, 0, 0.2, 1), border-color 160ms 220ms;
+}
+
+@media (width < 40rem), (any-pointer: coarse) {
+  .entryStroke {
+    // Apply before hydration so Safari never samples an outward launcher shadow.
+    box-shadow: none;
+  }
+
+  .edgeEntry [data-composer-surface] {
+    // Keep shadow above Safari's 4px sample strip; the group's real border and focus ring remain unclipped.
+    clip-path: inset(-2rem -2rem -2px);
+  }
 }
 
 .edgeEntry [data-composer-accent] {

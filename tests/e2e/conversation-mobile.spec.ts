@@ -191,9 +191,9 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
 
 /** Triggers and samples the mobile panel midway through its composer-clock motion.
  * @param control - Control that starts opening or closing the mobile surface.
- * @returns Current translucent frame-fill alpha.
+ * @returns Current translucent frame-fill alpha and composer duration.
  */
-async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ opacity: number }> {
+async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ duration: number; opacity: number }> {
   return control.evaluate(async (element) => {
     (element as HTMLElement).click();
     for (let frame = 0; frame < 10; frame += 1) {
@@ -209,7 +209,7 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ opacit
         const currentDuration = Number(current.effect?.getTiming().duration);
         if (!Number.isFinite(currentDuration)) continue;
         current.pause();
-        current.currentTime = Math.min(currentDuration, (duration - 140) * 0.45);
+        current.currentTime = Math.min(currentDuration, (duration - 80) * 0.45);
       }
       await new Promise<void>((resolve) => { requestAnimationFrame(() => { requestAnimationFrame(() => { resolve(); }); }); });
       const fill = surface.querySelector<HTMLElement>("[data-chat-frame-fill]");
@@ -220,7 +220,7 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ opacit
       if (!context) throw new Error("Expected paint sampling context.");
       context.fillStyle = getComputedStyle(fill).backgroundColor;
       context.fillRect(0, 0, 1, 1);
-      return { opacity: (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255 };
+      return { duration, opacity: (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255 };
     }
     throw new Error("Expected mobile opening motion to start within ten animation frames.");
   });
@@ -241,7 +241,7 @@ async function expectFieldFinishesAfterThread(surface: Locator): Promise<void> {
       throw new Error("Expected active mobile composer and paint geometry motion.");
     }
     const fieldDuration = Number(composerAnimation.effect.getTiming().duration);
-    const sampleTime = fieldDuration - 70;
+    const sampleTime = fieldDuration - 40;
     const animations = element.getAnimations({ subtree: true })
       .filter((animation) => animation.timeline === document.timeline && Number.isFinite(Number(animation.effect?.getTiming().duration)))
       .map((animation) => ({ animation }));
@@ -277,7 +277,7 @@ async function expectFieldFinishesAfterThread(surface: Locator): Promise<void> {
     return result;
   });
   expect(handoff.sampleTime).toBeLessThan(handoff.fieldDuration);
-  expect(handoff.sampleTime).toBeGreaterThanOrEqual(500);
+  expect(handoff.sampleTime).toBeGreaterThanOrEqual(260);
   expect(handoff.alpha).toBe(handoff.phase === "closing" ? 0 : 1);
   const changing = handoff.dimensions.filter(({ first, last }) => Number.isFinite(first) && Number.isFinite(last) && Math.abs(first - last) > 1);
   expect(changing.length).toBeGreaterThan(0);
@@ -372,7 +372,7 @@ async function sampleMobilePaint(surface: Locator, progress: number | null = nul
         const duration = Number(animation.effect?.getTiming().duration);
         if (!Number.isFinite(duration)) continue;
         animation.pause();
-        animation.currentTime = Math.min(duration, (fieldDuration - 140) * normalizedProgress);
+        animation.currentTime = Math.min(duration, (fieldDuration - 80) * normalizedProgress);
       }
     }
     await new Promise<void>((resolve) => { requestAnimationFrame(() => { requestAnimationFrame(() => { resolve(); }); }); });
@@ -500,6 +500,66 @@ test.describe("mobile conversation smoke", () => {
     await expect(input).toBeHidden();
     await page.evaluate(() => { window.scrollTo({ behavior: "instant", top: document.documentElement.scrollHeight }); });
     await expect(input).toBeVisible();
+  });
+
+  test("@webkit mobile idle launcher leaves Safari bottom sampling strip unpainted across reload", async ({ page }) => {
+    for (let visit = 0; visit < 2; visit += 1) {
+      if (visit > 0) {
+        await page.reload();
+        await readyEntry(page);
+      }
+      const stroke = page.locator("[data-entry-stroke]");
+      await expect(stroke).toHaveCSS("box-shadow", "none");
+      const bounds = await box(stroke);
+      const viewportHeight = await page.evaluate(() => window.innerHeight);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewportHeight - 8);
+      await expect(page.locator("[data-chat-edge-fill]")).toHaveCount(0);
+    }
+  });
+
+  test("@webkit mobile focused idle entry ignores reverse viewport jitter until the keyboard opens", async ({ page }) => {
+    await page.addInitScript(() => {
+      const viewport = new EventTarget();
+      Object.assign(viewport, { height: 844, offsetLeft: 0, offsetTop: 0, pageLeft: 0, pageTop: 0, scale: 1, width: 390 });
+      Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
+      window.addEventListener("ask-fixture-viewport", (event) => {
+        Object.assign(viewport, (event as CustomEvent<{ height: number; offsetTop: number }>).detail);
+        viewport.dispatchEvent(new Event("resize"));
+        viewport.dispatchEvent(new Event("scroll"));
+      });
+    });
+    await page.reload();
+    await readyEntry(page);
+    await page.locator("button[data-launcher]").click();
+    await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
+    const entry = page.locator("[data-edge-entry]");
+    const shell = page.locator("[data-conversation-shell]");
+
+    for (const viewport of [
+      { height: 764, offsetTop: 20, scrollY: 350 },
+      { height: 799, offsetTop: -8, scrollY: 700 },
+      { height: 839, offsetTop: 0, scrollY: 450 },
+    ]) {
+      await page.evaluate(({ scrollY, ...detail }) => {
+        window.scrollTo({ behavior: "instant", top: scrollY });
+        window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail }));
+      }, viewport);
+      await expect.poll(async () => shell.evaluate((element) =>
+        Number.parseFloat(getComputedStyle(element).getPropertyValue("--viewport-height")))).toBe(viewport.height);
+      await expect(shell).toHaveAttribute("data-viewport-keyboard-visible", "false");
+      await expect(entry).toHaveCSS("transform", "none");
+      await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
+      const bounds = await box(entry);
+      expect(bounds.y + bounds.height).toBeCloseTo(844 - 8, 0);
+    }
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail: { height: 400, offsetTop: 0 } }));
+    });
+    await expect(shell).toHaveAttribute("data-viewport-keyboard-visible", "true");
+    await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
+    const keyboardBounds = await box(entry);
+    expect(keyboardBounds.y + keyboardBounds.height).toBeCloseTo(400 - 8, 0);
   });
 
   test("@webkit mobile modal contains focus and restores the retained thread", async ({ page }) => {
@@ -642,6 +702,18 @@ test.describe("mobile conversation smoke", () => {
     await expect(page.getByRole("textbox", { name: "Your question" })).toBeFocused();
     await expect(page.getByRole("textbox", { name: "Your question" })).toHaveValue("");
     await expect(page.locator("[data-entry-stroke]")).toHaveCSS("opacity", "0");
+    const replacementGroup = page.locator('[data-edge-entry] [data-slot="input-group"]');
+    const replacementPaint = page.locator("[data-edge-entry] [data-composer-surface]");
+    await expect(replacementGroup).toHaveCSS("clip-path", "none");
+    const clip = await replacementPaint.evaluate((element) => {
+      const value = getComputedStyle(element).clipPath;
+      const values = Array.from(value.matchAll(/-?\d+(?:\.\d+)?/g), ([match]) => Number(match));
+      const bottomInset = (values.length >= 3 ? values[2] : values[0]) ?? Number.NaN;
+      return { bottomInset, paintBottom: element.getBoundingClientRect().bottom, value, viewportHeight: window.innerHeight };
+    });
+    expect(clip.value).not.toBe("none");
+    expect(clip.bottomInset).toBe(-2);
+    expect(clip.paintBottom - clip.bottomInset).toBeLessThanOrEqual(clip.viewportHeight - 5);
     expect(flushWarnings).toEqual([]);
   });
 
@@ -706,7 +778,8 @@ test.describe("mobile conversation smoke", () => {
       await expect(page.locator("[data-chat-edge-fill]")).toHaveCount(0);
       await page.locator("button[data-launcher]").click();
       await page.getByRole("textbox", { name: "Your question" }).fill(`Synthetic ${theme} edge paint question`);
-      await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Send", exact: true }));
+      const openingTiming = await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Send", exact: true }));
+      expect(openingTiming.duration).toBeLessThanOrEqual(400);
       await emit(page, { done: true, text: `Synthetic ${theme} edge paint answer.` });
       const surface = page.locator('[data-chat-surface][data-mobile="true"]');
       expect(await surface.locator("[data-chat-frame], [data-chat-frame-fill], [data-chat-edge-fill]").evaluateAll((elements) =>
@@ -729,7 +802,8 @@ test.describe("mobile conversation smoke", () => {
       expect(settled.fillAlpha).toBe(1);
       expectEdgeBlend(settled);
 
-      await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Close conversation" }));
+      const closingTiming = await triggerAndSampleSurfaceMotion(page.getByRole("button", { name: "Close conversation" }));
+      expect(closingTiming.duration).toBeLessThanOrEqual(400);
       const closing = [] as MobilePaintSample[];
       for (const progress of [0, 0.45, 0.99]) {
         const sample = await sampleMobilePaint(surface, progress);

@@ -70,12 +70,23 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
     if (!root) return;
     const viewport = window.visualViewport;
     let frame: number | undefined;
+    let keyboardBaselineHeight = window.innerHeight;
+    let keyboardBaselineWidth = document.documentElement.clientWidth;
     /** Publishes visible viewport bounds as feature-local CSS variables. */
     function updateViewport() {
       const height = viewport?.height ?? window.innerHeight;
       const width = viewport?.width ?? window.innerWidth;
       const top = viewport?.offsetTop ?? 0;
       const left = viewport?.offsetLeft ?? 0;
+      const scale = viewport?.scale ?? 1;
+      if (scale === 1) {
+        const layoutWidth = document.documentElement.clientWidth;
+        if (layoutWidth !== keyboardBaselineWidth) {
+          keyboardBaselineWidth = layoutWidth;
+          keyboardBaselineHeight = window.innerHeight;
+        }
+        keyboardBaselineHeight = Math.max(keyboardBaselineHeight, window.innerHeight, height);
+      }
       // Preserve the visible bottom edge even when keyboard overscroll reports bounds beyond the layout viewport.
       const values = { height, width, top, left, bottom: window.innerHeight - height - top };
       for (const [name, value] of Object.entries(values)) {
@@ -83,7 +94,11 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
         const next = `${String(value)}px`;
         if (root?.style.getPropertyValue(property) !== next) root?.style.setProperty(property, next);
       }
-      if (root) root.dataset.viewportZoomed = String((viewport?.scale ?? 1) !== 1);
+      if (root) {
+        root.dataset.viewportZoomed = String(scale !== 1);
+        // Toolbar motion is smaller than a keyboard and must keep native fixed anchoring.
+        root.dataset.viewportKeyboardVisible = String(scale === 1 && keyboardBaselineHeight - height > 120);
+      }
     }
     /** Coalesces Safari's resize and pan events into one geometry update per frame. */
     function scheduleViewport() {

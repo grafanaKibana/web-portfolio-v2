@@ -105,6 +105,17 @@ async function scrollPastHero(page: Page) {
   await page.evaluate((top) => { window.scrollTo({ behavior: "instant", top }); }, target);
 }
 
+/** Waits until the rAF-coalesced visual viewport values reach conversation CSS.
+ * @param page - Page containing the conversation shell.
+ * @param bounds - Expected published viewport height and top offset.
+ */
+async function expectConversationViewport(page: Page, bounds: { height: number; offsetTop: number }): Promise<void> {
+  await expect.poll(async () => page.locator("[data-conversation-shell]").evaluate((shell) => ({
+    height: Number.parseFloat(getComputedStyle(shell).getPropertyValue("--viewport-height")),
+    top: Number.parseFloat(getComputedStyle(shell).getPropertyValue("--viewport-top")),
+  }))).toEqual({ height: bounds.height, top: bounds.offsetTop });
+}
+
 for (const viewport of touchViewports) {
   test(`touch header keeps its neutral fade painted through the viewport top on ${viewport.label}`, { tag: "@webkit" }, async ({ browser, baseURL }) => {
     if (!baseURL) throw new Error("Expected the Playwright project to provide a base URL");
@@ -175,6 +186,8 @@ for (const viewport of touchViewports) {
         await page.evaluate(() => {
           window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail: { type: "resize", height: 400 } }));
         });
+        await expectConversationViewport(page, { height: 400, offsetTop: 0 });
+        await expect(page.locator("[data-conversation-shell]")).toHaveAttribute("data-viewport-keyboard-visible", "true");
         const composer = entry.locator('[data-slot="input-group"]');
         const before = await composer.boundingBox();
         if (!before) throw new Error("Expected a visible focused composer");
@@ -195,6 +208,8 @@ for (const viewport of touchViewports) {
           }, bounds);
           await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight
             - document.documentElement.clientHeight - window.scrollY)).toBeCloseTo(bounds.distanceFromEnd, 0);
+          await expectConversationViewport(page, { height: 400, offsetTop: bounds.offsetTop });
+          await expect(page.locator("[data-conversation-shell]")).toHaveAttribute("data-viewport-keyboard-visible", "true");
           await expect(input).toBeFocused();
           const scrolled = await composer.boundingBox();
           if (!scrolled) throw new Error("Expected the composer to remain rendered");
@@ -209,12 +224,14 @@ for (const viewport of touchViewports) {
         await page.evaluate(() => {
           window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail: { type: "resize", height: 460, offsetTop: 0 } }));
         });
+        await expectConversationViewport(page, { height: 460, offsetTop: 0 });
         await expect.poll(async () => (await composer.boundingBox())?.y).toBeCloseTo(before.y + 60, 0);
 
         // Magnified viewport panning must keep following the reader, including while focused.
         await page.evaluate(() => {
           window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail: { type: "scroll", offsetTop: 40, scale: 2 } }));
         });
+        await expectConversationViewport(page, { height: 460, offsetTop: 40 });
         await expect.poll(async () => (await composer.boundingBox())?.y).toBeCloseTo(before.y + 100, 0);
       } finally {
         await context.close();

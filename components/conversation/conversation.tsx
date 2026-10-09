@@ -187,8 +187,8 @@ function useSurfaceToggleMotion(
     });
     const returningToField = phase === "closing" && Boolean(origin && origin.width > line.offsetWidth);
     const mobile = surface.dataset.mobile === "true";
-    const panelDuration = mobile ? (phase === "opening" ? 0.56 : 0.5) : (phase === "opening" ? 0.34 : 0.3);
-    const fieldDuration = mobile ? panelDuration + 0.14 : panelDuration;
+    const panelDuration = mobile ? (phase === "opening" ? 0.32 : 0.26) : (phase === "opening" ? 0.34 : 0.3);
+    const fieldDuration = mobile ? panelDuration + 0.08 : panelDuration;
     const ease = mobile ? [0.4, 0, 0.2, 1] as const : chatMotionEase;
 
     surface.dataset.morph = phase;
