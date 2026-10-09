@@ -474,7 +474,9 @@
 .mobileSurface {
   inset: var(--viewport-top) auto auto var(--viewport-left);
   width: var(--viewport-width);
-  height: var(--viewport-height);
+
+  // Keep keyboard-adjacent paint inside the native host, beyond the visible content area.
+  height: max(var(--viewport-height), 100lvh);
   max-width: none;
   max-height: none;
   border-radius: 0;
@@ -506,6 +508,9 @@
 }
 
 .mobileSurface .interior {
+  height: var(--viewport-height);
+  max-height: var(--viewport-height);
+  flex: 0 0 auto;
   padding: var(--safe-top) var(--safe-right) var(--edge-gutter) var(--safe-left);
   border: 0;
   background: transparent;

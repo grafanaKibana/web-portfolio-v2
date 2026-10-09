@@ -232,7 +232,12 @@ function useSurfaceToggleMotion(
         fillOpacityRef.current = opacity;
         fill.style.backgroundColor = `color-mix(in srgb, var(--chat-background) ${String(opacity * 100)}%, transparent)`;
         // Opaque, shallow fixed candidates avoid Safari's viewport-sized cache and alpha threshold.
-        for (const edge of edges) edge.style.backgroundColor = `color-mix(in srgb, var(--background), var(--chat-background) ${String(opacity * 100)}%)`;
+        for (const edge of edges) {
+          // Release page-obscuring strips with the fill, before the longer field handoff ends.
+          edge.style.backgroundColor = phase === "closing" && progress === 1
+            ? "transparent"
+            : `color-mix(in srgb, var(--background), var(--chat-background) ${String(opacity * 100)}%)`;
+        }
         paintFrameRef.current = progress < 1 ? window.requestAnimationFrame(paintFill) : null;
       };
       paintFill();

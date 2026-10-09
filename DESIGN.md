@@ -146,6 +146,8 @@ Phone transcript text uses a comfortable reading size, and follow-up pills occup
 
 Phone follow-ups expand the composer upward on the shared growth rhythm and fade in after expansion starts; choosing or editing a question collapses them more quickly. Exiting suggestions immediately leave keyboard and pointer interaction. The input row stays unscaled throughout. Desktop reaction pills use a small scale change with a soft fade, and connected follow-ups enter close to their natural size. Page-entry retreat and thread dismissal finish faster than their entrances; phone thread closure retains its slightly later composer finish. Retained suggestions do not replay their entrance when the responsive host changes, and reduced motion makes their geometry immediate.
 
+The open phone dialog covers the full viewport behind keyboard and browser controls, while its transcript and composer fit the visible viewport. Edge paint follows the background clock and becomes transparent when that fade ends, before the longer composer handoff completes. Closing and retained idle states leave no opaque edge paint behind.
+
 ## Content voice
 
 Write in first person, factual, conversational, and lightly warm—as Nikita speaking to a professional colleague.

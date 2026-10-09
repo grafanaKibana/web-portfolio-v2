@@ -279,6 +279,11 @@ async function expectFieldFinishesAfterThread(surface: Locator): Promise<void> {
   expect(handoff.sampleTime).toBeLessThan(handoff.fieldDuration);
   expect(handoff.sampleTime).toBeGreaterThanOrEqual(260);
   expect(handoff.alpha).toBe(handoff.phase === "closing" ? 0 : 1);
+  if (handoff.phase === "closing") {
+    for (const edge of await surface.locator("[data-chat-edge-fill]").all()) {
+      await expect(edge).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    }
+  }
   const changing = handoff.dimensions.filter(({ first, last }) => Number.isFinite(first) && Number.isFinite(last) && Math.abs(first - last) > 1);
   expect(changing.length).toBeGreaterThan(0);
   for (const { current, first, last } of changing) {
@@ -974,7 +979,7 @@ test.describe("mobile conversation smoke", () => {
     });
     await expect(page.locator("[data-conversation-composer]:visible")).toHaveCount(1);
     await expect(input).toBeEditable();
-    const surface = await box(dialog);
+    const surface = await box(dialog.locator("[data-chat-paint]"));
     const history = await box(page.locator("[data-conversation-history]"));
     const composer = await box(page.locator("[data-conversation-composer]"));
     expect(surface.y).toBeGreaterThanOrEqual(0);
@@ -1025,13 +1030,15 @@ test.describe("mobile conversation smoke", () => {
         await page.evaluate((detail) => {
           window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail }));
         }, bounds);
-        await expect.poll(async () => (await box(dialog)).height).toBeCloseTo(bounds.height, 0);
+        await expect.poll(async () => (await box(dialog.locator("[data-chat-paint]"))).height).toBeCloseTo(bounds.height, 0);
         await expect(page.locator("[data-conversation-composer]:visible")).toHaveCount(1);
         await expect(input).toBeEditable();
         const composer = await box(page.locator("[data-conversation-composer]"));
         expect(composer.y + composer.height).toBeLessThanOrEqual(bounds.offsetTop + bounds.height + 1);
         const paint = await readMobileFramePaint(dialog);
         expect(paint.backgroundColor).toBe(expectedBackground);
+        const host = await box(dialog);
+        expect(host.y + host.height).toBeGreaterThanOrEqual(paint.layoutHeight - 1);
         expect(paint.blockStart).toBeLessThanOrEqual(-paint.layoutHeight + 1);
         expect(paint.blockEnd).toBeLessThanOrEqual(-paint.layoutHeight + 1);
         expect(paint.top).toBeLessThanOrEqual(0);
