@@ -1,11 +1,14 @@
 import { ArrowUp, Sparkle } from "lucide-react";
 import { clsx } from "clsx";
-import type { KeyboardEvent, SyntheticEvent } from "react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
+import type { KeyboardEvent, RefObject, SyntheticEvent } from "react";
+import type { AskFollowUp } from "@/lib/ask.contract";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
 import type { UseConversationResult } from "./conversation.models";
 import { conversationConfig } from "./conversation.config";
+import { chatGrowthDuration, chatMotionEase } from "./conversation-motion";
 import styles from "./conversation-composer.module.scss";
 
 const { maxConversationInputLength } = conversationConfig;
@@ -26,6 +29,52 @@ export interface ConversationComposerProps {
   entry?: boolean;
   mobile?: boolean;
   onAccepted?: ((turnId: string) => void) | undefined;
+}
+
+/** Expands phone follow-ups above a stationary, unscaled input row.
+ * @param inputRef - Composer input focused when a continuation is selected.
+ * @param onSelect - Prefills the chosen question without submitting it.
+ * @param suggestions - Completed continuations retained through their exit.
+ * @returns An interruptible suggestion region that becomes inert while closing.
+ */
+function MobileConversationSuggestions({ inputRef, onSelect, suggestions }: {
+  inputRef: RefObject<HTMLTextAreaElement | null>;
+  onSelect: (question: string) => void;
+  suggestions: readonly AskFollowUp[];
+}) {
+  const present = useIsPresent();
+  const reducedMotion = useReducedMotion();
+  return (
+    <motion.div
+      animate={{ height: "auto", opacity: 1 }}
+      aria-hidden={!present || undefined}
+      className={styles.suggestionsSlot}
+      data-composer-content
+      data-mobile-suggestions
+      exit={{ height: 0, opacity: 0 }}
+      inert={!present}
+      initial={{ height: 0, opacity: 0 }}
+      transition={{
+        height: { duration: reducedMotion ? 0 : present ? chatGrowthDuration : 0.18, ease: chatMotionEase },
+        opacity: { duration: reducedMotion ? 0 : 0.12, delay: !reducedMotion && present ? 0.08 : 0 },
+      }}
+    >
+      <InputGroupAddon
+        align="block-start"
+        aria-label="Suggested questions"
+        className={styles.mobileSuggestions}
+        onClick={(event) => {
+          if (!(event.target as HTMLElement).closest("button")) inputRef.current?.focus({ preventScroll: true });
+        }}
+      >
+        {suggestions.map(({ label, question }) => (
+          <Button className={styles.suggestion} key={`${label}\u0000${question}`} onClick={() => { onSelect(question); }} size="xs" type="button" variant="ghost">
+            {label}
+          </Button>
+        ))}
+      </InputGroupAddon>
+    </motion.div>
+  );
 }
 
 /** Renders shared page-entry and thread-composer geometry around one model input.
@@ -93,31 +142,11 @@ export function ConversationComposer({
         <FieldLabel className="sr-only" htmlFor={inputId}>Your question</FieldLabel>
         <InputGroup className={clsx(styles.inputGroup, mobile && styles.mobileGroup)}>
           <ConversationFieldSurface />
-          {suggestions.length > 0 ? (
-            <InputGroupAddon
-              align="block-start"
-              aria-label="Suggested questions"
-              className={styles.mobileSuggestions}
-              data-mobile-suggestions
-              data-composer-content
-              onClick={(event) => {
-                if (!(event.target as HTMLElement).closest("button")) inputRef.current?.focus({ preventScroll: true });
-              }}
-            >
-              {suggestions.map(({ label, question }) => (
-                <Button
-                  className={styles.suggestion}
-                  key={`${label}\u0000${question}`}
-                  onClick={() => { handleSuggestion(question); }}
-                  size="xs"
-                  type="button"
-                  variant="ghost"
-                >
-                  {label}
-                </Button>
-              ))}
-            </InputGroupAddon>
-          ) : null}
+          <AnimatePresence initial={false}>
+            {suggestions.length > 0 ? (
+              <MobileConversationSuggestions inputRef={inputRef} key="follow-ups" onSelect={handleSuggestion} suggestions={suggestions} />
+            ) : null}
+          </AnimatePresence>
           <div className={styles.inputRow} data-composer-content data-composer-row>
             {entry || !mobile ? (
               <InputGroupAddon align="inline-start" className={styles.entryAddon} onClick={() => { inputRef.current?.focus({ preventScroll: true }); }}>
@@ -145,6 +174,7 @@ export function ConversationComposer({
               aria-label={pending ? "Stop" : "Send"}
               className={clsx(styles.submit, mobile && styles.mobileSubmit)}
               data-pending={pending || undefined}
+              disabled={!pending && !draft.trim()}
               onClick={pending
                 ? (event) => {
                     event.preventDefault();

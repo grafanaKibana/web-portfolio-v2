@@ -142,6 +142,10 @@ Conversation distinguishes pending, completed, stopped, and failed replies, and 
 
 Answer text reveals across each rendered line with a soft left-to-right sweep lasting about 480ms. New chunks continue from the current reveal edge; earlier lines remain visible. Follow-ups enter after the 280ms growth phase, finishing alongside the text reveal. Completion does not cut the sweep short or delay response actions. Reduced motion keeps arriving text static. Drafts and transcript stay in memory across dismissal and client navigation. Active generation stops when dismissed or on route changes. Contact remains the fallback when conversation cannot open. Detailed provider, cancellation, and history rules stay in the [conversation contract](app/api/ask/README.md).
 
+Phone transcript text uses a comfortable reading size, and follow-up pills occupy full-width rows with wrapping labels. Empty or whitespace-only drafts disable Send while Stop remains available during generation. Failed and stopped desktop replies keep a visible Retry action beside the reply; failure details remain directly reachable. Icon actions show host-local tooltips on hover and keyboard focus, and the scrollable transcript has a visible keyboard focus outline.
+
+Phone follow-ups expand the composer upward on the shared growth rhythm and fade in after expansion starts; choosing or editing a question collapses them more quickly. Exiting suggestions immediately leave keyboard and pointer interaction. The input row stays unscaled throughout. Desktop reaction pills use a small scale change with a soft fade, and connected follow-ups enter close to their natural size. Page-entry retreat and thread dismissal finish faster than their entrances; phone thread closure retains its slightly later composer finish. Retained suggestions do not replay their entrance when the responsive host changes, and reduced motion makes their geometry immediate.
+
 ## Content voice
 
 Write in first person, factual, conversational, and lightly warm—as Nikita speaking to a professional colleague.

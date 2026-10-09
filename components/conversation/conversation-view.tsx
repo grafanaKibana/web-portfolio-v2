@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ComponentProps, type MouseEvent, type ReactNode, type RefObject } from "react";
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ComponentProps, type MouseEvent, type ReactElement, type ReactNode, type RefObject } from "react";
 import { animate, motion, useReducedMotion, type AnimationPlaybackControlsWithThen } from "motion/react";
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 import { Check, Copy, Info, RotateCcw } from "lucide-react";
@@ -42,6 +42,33 @@ const reactionClasses = "pointer-events-none group-hover/bubble:pointer-events-a
 const reactionButtonClasses = "text-content-foreground hover:text-foreground focus-visible:text-foreground";
 const reactionControlClasses = `${reactionButtonClasses} relative border-0 hover:bg-transparent dark:hover:bg-transparent`;
 const suggestionButtonClasses = `${reactionButtonClasses} relative h-auto min-h-6 max-w-full whitespace-normal bg-transparent py-0.5 text-left hover:bg-transparent dark:hover:bg-transparent [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-y-2.5 [@media(pointer:coarse)]:after:inset-x-0`;
+
+/** Labels an icon action on hover or focus inside the native chat's top layer.
+ * @param children - Existing action control receiving tooltip trigger behavior.
+ * @param label - Current action or clipboard-feedback label.
+ * @param surfaceRef - Native host that contains the tooltip portal.
+ * @returns The action with an accessible, host-local tooltip.
+ */
+export function ConversationActionTooltip({ children, label, surfaceRef }: {
+  children: ReactElement;
+  label: string;
+  surfaceRef: RefObject<HTMLElement | null>;
+}) {
+  return (
+    <Tooltip onOpenChange={(_open, details) => {
+      if (details.reason === "escape-key") details.event.preventDefault();
+    }}>
+      <TooltipTrigger closeOnClick={false} render={children} />
+      <TooltipPrimitive.Portal container={surfaceRef}>
+        <TooltipPrimitive.Positioner className="z-50" positionMethod="fixed" side="top" sideOffset={6}>
+          <TooltipPrimitive.Popup className="max-w-64 rounded-xl bg-foreground px-3 py-1.5 text-xs text-background data-closed:hidden" role="tooltip">
+            {label}
+          </TooltipPrimitive.Popup>
+        </TooltipPrimitive.Positioner>
+      </TooltipPrimitive.Portal>
+    </Tooltip>
+  );
+}
 
 /** Detects link activation that will replace the current browsing context.
  * @param event - React link click before Next handles navigation.
@@ -186,7 +213,6 @@ function ConversationReactions({ className = "", ...props }: ComponentProps<type
  */
 function ConversationReactionVisual({ children }: { children: ReactNode }) {
   const reducedMotion = useReducedMotion();
-  const duration = reducedMotion ? 0 : 0.18;
   return (
     <motion.span
       aria-hidden
@@ -195,17 +221,15 @@ function ConversationReactionVisual({ children }: { children: ReactNode }) {
       style={{ transformOrigin: "50% 50%" }}
       variants={{
         hidden: {
-          opacity: 0, scale: 0,
+          opacity: 0, scale: 0.78,
           transition: {
-            duration, ease: [0.64, 0, 0.78, 0],
-            opacity: { duration: 0, delay: duration },
+            duration: reducedMotion ? 0 : 0.1, ease: chatMotionEase,
           },
         },
         visible: {
           opacity: 1, scale: 1,
           transition: {
-            duration, ease: chatMotionEase,
-            opacity: { duration: 0 },
+            duration: reducedMotion ? 0 : 0.16, ease: chatMotionEase,
           },
         },
       }}
@@ -227,14 +251,13 @@ function ConversationSuggestions({ children }: { children: ReactNode }) {
       aria-label="Suggested questions"
       className={clsx(styles.suggestions, "static ml-auto max-w-full flex-wrap gap-y-1 translate-y-0 ring-background dark:ring-card")}
       data-suggestion-visual
-      initial={reducedMotion ? false : { opacity: 0, scale: 0 }}
+      initial={reducedMotion ? false : { opacity: 0, scale: 0.96 }}
       role="group"
       style={{ transformOrigin: "50% 50%" }}
       transition={reducedMotion ? { duration: 0 } : {
         delay: chatGrowthDuration,
         duration: 0.18,
         ease: chatMotionEase,
-        opacity: { duration: 0 },
       }}
     >
       {children}
@@ -278,11 +301,13 @@ function copySelectedReply(text: string, owner: HTMLElement): boolean {
 
 /** Copies a completed reply with visible clipboard feedback.
  * @param mobile - Whether to render a touch-sized inline transcript action.
+ * @param surfaceRef - Native host that contains clipboard-feedback tooltips.
  * @param turn - Reply receiving the copy action.
  * @returns A desktop reaction or mobile transcript action with clipboard feedback.
  */
-function ConversationCopy({ mobile, turn }: {
+function ConversationCopy({ mobile, surfaceRef, turn }: {
   mobile: boolean;
+  surfaceRef: RefObject<HTMLElement | null>;
   turn: ConversationTurn;
 }) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
@@ -351,18 +376,19 @@ function ConversationCopy({ mobile, turn }: {
     </span>
   );
   const button = (
-    <Button
-      aria-disabled={copyPending || turn.status === "pending"}
-      aria-label={copyLabel}
-      className={mobile ? composerStyles.mobileActionButton : reactionControlClasses}
-      onClick={(event) => { void handleCopy(event.currentTarget); }}
-      size={mobile ? "icon" : "icon-xs"}
-      title={copyTitle}
-      type="button"
-      variant="ghost"
-    >
-      {mobile ? icon : <ConversationReactionVisual>{icon}</ConversationReactionVisual>}
-    </Button>
+    <ConversationActionTooltip label={copyTitle} surfaceRef={surfaceRef}>
+      <Button
+        aria-disabled={copyPending || turn.status === "pending"}
+        aria-label={copyLabel}
+        className={mobile ? composerStyles.mobileActionButton : reactionControlClasses}
+        onClick={(event) => { void handleCopy(event.currentTarget); }}
+        size={mobile ? "icon" : "icon-xs"}
+        type="button"
+        variant="ghost"
+      >
+        {mobile ? icon : <ConversationReactionVisual>{icon}</ConversationReactionVisual>}
+      </Button>
+    </ConversationActionTooltip>
   );
   return mobile ? <>{button}{liveStatus}</> : (
     <ConversationReactions align="start" aria-label="Reply actions" className="static translate-y-0">
@@ -392,16 +418,14 @@ function ConversationInfo({ mobile, surfaceRef, turn }: {
         aria-describedby={tooltipId}
         aria-label="Failure details"
         closeOnClick={false}
-        render={mobile
-          ? <Button className={composerStyles.mobileActionButton} size="icon" type="button" variant="ghost" />
-          : <span className="relative flex size-6 cursor-default items-center justify-center rounded-full outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring" tabIndex={0} />}
+        render={<Button className={mobile ? composerStyles.mobileActionButton : reactionButtonClasses} size={mobile ? "icon" : "icon-xs"} type="button" variant="ghost" />}
       >
-        {mobile ? <Info className="size-4" /> : <ConversationReactionVisual><Info className="size-3.5" /></ConversationReactionVisual>}
+        <Info aria-hidden className={mobile ? "size-4" : "size-3.5"} />
       </TooltipTrigger>
       {/* Keep tooltip content in the native chat's top layer through the public portal API. */}
       <TooltipPrimitive.Portal container={surfaceRef}>
         <TooltipPrimitive.Positioner align="start" className="z-50" positionMethod="fixed" side="top" sideOffset={6}>
-          <TooltipPrimitive.Popup className="max-w-64 rounded-xl bg-foreground px-3 py-1.5 text-xs text-background" data-conversation-info id={tooltipId} role="tooltip">
+          <TooltipPrimitive.Popup className="max-w-64 rounded-xl bg-foreground px-3 py-1.5 text-xs text-background data-closed:hidden" data-conversation-info id={tooltipId} role="tooltip">
             {turn.errorDetail ?? "The request could not be completed. No further diagnostic information is available."}
           </TooltipPrimitive.Popup>
         </TooltipPrimitive.Positioner>
@@ -432,7 +456,7 @@ const ConversationMarkdown = memo(function ConversationMarkdown({
       <Streamdown
         allowedElements={["p", "br", "em", "strong", "ul", "ol", "li", "a", "span"]}
         animated={false}
-        className="wrap-anywhere space-y-2 [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:font-semibold [&_ul]:list-disc"
+        className={clsx(styles.prose, "wrap-anywhere space-y-3 [&_ol]:list-decimal [&_strong]:font-semibold [&_ul]:list-disc")}
         components={{
           strong: "strong",
           /** Renders only transform-owned references as links to validated portfolio sources.
@@ -533,22 +557,27 @@ function ConversationAnswer({
   const actionsRef = useRef<HTMLDivElement>(null);
   useAnswerBubbleGrowth(contentRef, actionsRef, turn, showSuggestions);
   const showMobileActions = mobile && turn.status !== "pending";
+  const recoverable = turn.status === "error" || turn.status === "stopped";
 
-  const externalActions = showMobileActions || (!mobile && showBubble && turn.status !== "stopped") ? (
+  const externalActions = showMobileActions || (!mobile && (showBubble || recoverable)) ? (
     <div
-      className={mobile ? composerStyles.mobileAnswerActions : "-mt-2.5 flex flex-wrap items-start justify-between gap-x-3 gap-y-5 px-3"}
+      className={mobile ? composerStyles.mobileAnswerActions : recoverable ? styles.recoveryActions : "-mt-2.5 flex flex-wrap items-start justify-between gap-x-3 gap-y-5 px-3"}
       data-answer-actions
       ref={actionsRef}
     >
-      {showAnswer && (turn.status === "pending" || turn.status === "complete") ? <ConversationCopy mobile={mobile} turn={turn} /> : null}
+      {showAnswer && (turn.status === "pending" || turn.status === "complete") ? <ConversationCopy mobile={mobile} surfaceRef={surfaceRef} turn={turn} /> : null}
       {turn.status === "error" && active ? (
-        <ConversationReactions align="start" className="static translate-y-0 p-0">
-          <ConversationInfo mobile={mobile} surfaceRef={surfaceRef} turn={turn} />
-        </ConversationReactions>
+        <ConversationInfo mobile={mobile} surfaceRef={surfaceRef} turn={turn} />
       ) : null}
       {mobile ? (
-        <Button aria-label="Retry message" className={composerStyles.mobileActionButton} disabled={pending} onClick={() => { onRetry(turn.id); }} size="icon" title="Retry message" type="button" variant="ghost">
-          <RotateCcw aria-hidden className="size-4" />
+        <ConversationActionTooltip label="Retry message" surfaceRef={surfaceRef}>
+          <Button aria-label="Retry message" className={composerStyles.mobileActionButton} disabled={pending} onClick={() => { onRetry(turn.id); }} size="icon" type="button" variant="ghost">
+            <RotateCcw aria-hidden className="size-4" />
+          </Button>
+        </ConversationActionTooltip>
+      ) : recoverable ? (
+        <Button aria-label="Retry message" disabled={pending} onClick={() => { onRetry(turn.id); }} size="sm" type="button" variant="ghost">
+          <RotateCcw aria-hidden /> Retry
         </Button>
       ) : null}
       {!mobile && showSuggestions && turn.followUps?.length ? (
@@ -579,13 +608,13 @@ function ConversationAnswer({
             <ConversationBubble active={active} className="w-full" variant={answerVariant}>
               <BubbleContent className="w-full space-y-2" data-answer-bubble-content ref={contentRef}>
                 {showAnswer ? <ConversationMarkdown onNavigate={mobile ? onNavigate : undefined} sources={turn.status === "complete" ? turn.sources ?? noSources : noSources} text={turn.text} /> : null}
-                {turn.status === "error" ? <p>{turn.error}</p> : null}
+                {turn.status === "error" ? <p data-answer-error>{turn.error}</p> : null}
               </BubbleContent>
               {mobile ? null : externalActions}
             </ConversationBubble>
           </div>
         ) : null}
-        {mobile ? externalActions : null}
+        {mobile || !showBubble ? externalActions : null}
       </MessageContent>
     </Message>
   );
@@ -789,7 +818,7 @@ function ConversationPanel({
             <MessageScroller className={clsx("h-auto min-h-0 flex-[0_1_auto]", mobile && styles.mobileTranscript)}>
               <MessageScrollerViewport
                 aria-label="Conversation"
-                className="h-auto min-h-0 pr-2"
+                className={clsx(styles.history, "h-auto min-h-0 pr-2")}
                 data-conversation-history
                 data-lenis-prevent
                 onKeyDown={cancelScroll}
@@ -801,6 +830,7 @@ function ConversationPanel({
                 onTouchStart={cancelScroll}
                 onWheel={cancelScroll}
                 ref={historyRef}
+                role="region"
                 tabIndex={0}
               >
                 <MessageScrollerContent aria-label="Conversation" aria-live="off" className="min-h-0 gap-0" role="log">
@@ -821,11 +851,13 @@ function ConversationPanel({
                             <BubbleContent>
                               <p className="wrap-anywhere whitespace-pre-wrap" data-user-message>{turn.question}</p>
                             </BubbleContent>
-                            {!mobile && turn.status !== "pending" ? (
+                            {!mobile && turn.status === "complete" ? (
                               <ConversationReactions align="end" aria-label="Message actions">
-                                <Button aria-label="Retry message" className={reactionControlClasses} disabled={pending} onClick={() => { handleRetry(turn.id); }} size="icon-xs" title="Retry message" type="button" variant="ghost">
-                                  <ConversationReactionVisual><RotateCcw className="size-3" /></ConversationReactionVisual>
-                                </Button>
+                                <ConversationActionTooltip label="Retry message" surfaceRef={surfaceRef}>
+                                  <Button aria-label="Retry message" className={reactionControlClasses} disabled={pending} onClick={() => { handleRetry(turn.id); }} size="icon-xs" type="button" variant="ghost">
+                                    <ConversationReactionVisual><RotateCcw className="size-3" /></ConversationReactionVisual>
+                                  </Button>
+                                </ConversationActionTooltip>
                               </ConversationReactions>
                             ) : null}
                           </ConversationBubble>

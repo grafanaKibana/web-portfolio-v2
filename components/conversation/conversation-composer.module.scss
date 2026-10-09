@@ -67,6 +67,7 @@
   max-height: 8rem;
   padding-block: 0.4375rem;
   field-sizing: content;
+  caret-color: var(--brand-accent-text);
 }
 
 .submit {
@@ -103,29 +104,35 @@
   width: 3.5rem;
 }
 
+.suggestionsSlot {
+  width: 100%;
+  overflow: clip;
+}
+
 .mobileSuggestions {
   min-width: 0;
   min-height: 2.625rem;
   flex: 0 0 auto;
+  flex-direction: column;
   justify-content: stretch;
   gap: 0.1875rem;
   padding: 0.1875rem;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  white-space: nowrap;
   cursor: default;
 }
 
 .suggestion {
-  min-width: max-content;
-  height: 2.25rem;
-  flex: 1 1 0;
-  padding-inline: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.25rem;
+  height: auto;
+  padding: 0.5rem 0.75rem;
   border-radius: 999px;
   background: var(--muted);
   color: var(--content-foreground);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .suggestion:hover {

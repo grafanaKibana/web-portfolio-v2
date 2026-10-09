@@ -18,7 +18,7 @@ import { clsx } from "clsx";
 import { animateMini, cubicBezier, useReducedMotion, type AnimationPlaybackControlsWithThen } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { ConversationComposer, ConversationFieldSurface, conversationPlaceholder } from "./conversation-composer";
-import { ConversationView } from "./conversation-view";
+import { ConversationActionTooltip, ConversationView } from "./conversation-view";
 import { chatGrowthDuration, chatMotionEase } from "./conversation-motion";
 import { useConversation } from "./use-conversation";
 import { useConversationShell } from "./use-conversation-shell";
@@ -187,7 +187,7 @@ function useSurfaceToggleMotion(
     });
     const returningToField = phase === "closing" && Boolean(origin && origin.width > line.offsetWidth);
     const mobile = surface.dataset.mobile === "true";
-    const panelDuration = mobile ? (phase === "opening" ? 0.32 : 0.26) : (phase === "opening" ? 0.34 : 0.3);
+    const panelDuration = phase === "opening" ? (mobile ? 0.32 : 0.34) : 0.24;
     const fieldDuration = mobile ? panelDuration + 0.08 : panelDuration;
     const ease = mobile ? [0.4, 0, 0.2, 1] as const : chatMotionEase;
 
@@ -666,8 +666,14 @@ function ConversationInterior({
       <h2 className="sr-only" id="portfolio-conversation-title" ref={titleRef} tabIndex={-1}>About my work</h2>
       <div className={styles.headerChrome} data-header-chrome data-typing={mobile && typing} data-chat-reveal>
         <div className={styles.headerControls} data-conversation-header inert={mobile && typing} aria-hidden={mobile && typing || undefined}>
-          {model.expanded ? <Button aria-label={mobile ? "New chat" : "Start over"} onPointerDown={(event) => { if (!mobile && event.pointerType !== "touch" && event.button === 0) event.preventDefault(); }} onClick={() => { dismiss("reset"); }} size="icon" type="button" variant="ghost"><MessageCirclePlus aria-hidden /></Button> : <span />}
-          <Button aria-label="Close conversation" className={styles.closeButton} onClick={() => { dismiss(); }} size="icon" type="button" variant="ghost"><X aria-hidden /></Button>
+          {model.expanded ? (
+            <ConversationActionTooltip label={mobile ? "New chat" : "Start over"} surfaceRef={surfaceRef}>
+              <Button aria-label={mobile ? "New chat" : "Start over"} onPointerDown={(event) => { if (!mobile && event.pointerType !== "touch" && event.button === 0) event.preventDefault(); }} onClick={() => { dismiss("reset"); }} size="icon" type="button" variant="ghost"><MessageCirclePlus aria-hidden /></Button>
+            </ConversationActionTooltip>
+          ) : <span />}
+          <ConversationActionTooltip label="Close conversation" surfaceRef={surfaceRef}>
+            <Button aria-label="Close conversation" className={styles.closeButton} onClick={() => { dismiss(); }} size="icon" type="button" variant="ghost"><X aria-hidden /></Button>
+          </ConversationActionTooltip>
         </div>
         {mobile ? <div className={styles.handleSlot} inert={!typing} aria-hidden={!typing || undefined}>
           <ConversationHandle dismiss={dismiss} gestureRef={gestureRef} handleRef={handleRef} />
