@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { home } from "@/lib/content/portfolio/server";
 import { buttonVariants } from "@/components/ui/button";
+import { OpeningImages } from "@/components/opening-splash/opening-splash";
 import { clsx } from "clsx";
 import { DescriptorRotation } from "./descriptor-rotation/descriptor-rotation";
 import styles from "./hero.module.scss";
@@ -14,6 +15,7 @@ import { heroContrast, heroNoise } from "./hero-background.config";
 import lightImage from "./hero-light.generated.webp";
 import darkImage from "./hero-dark.generated.webp";
 import noiseImage from "./hero-noise.generated.webp";
+import fadeImage from "./hero-fade.generated.webp";
 
 /** Palette-derived colors are available before hydration and switch atomically with the theme. */
 const heroColors = {
@@ -30,6 +32,7 @@ const heroColors = {
   "--hero-light-image": `url("${lightImage.src}")`,
   "--hero-dark-image": `url("${darkImage.src}")`,
   "--hero-noise-image": `url("${noiseImage.src}")`,
+  "--hero-fade-image": `url("${fadeImage.src}")`,
   "--hero-light-noise-opacity": heroNoise.light / 200,
   "--hero-dark-noise-opacity": heroNoise.dark / 200,
 } as CSSProperties;
@@ -70,6 +73,7 @@ export function HomeHero() {
       style={heroColors}
       className={clsx(styles.hero, "page-shell-gutter box-border flex w-full flex-col items-center justify-center pt-8 text-center")}
     >
+      <OpeningImages sources={{ light: lightImage.src, dark: darkImage.src, shared: [noiseImage.src, fadeImage.src] }} />
       <div
         aria-hidden="true"
         data-hero-background="light"

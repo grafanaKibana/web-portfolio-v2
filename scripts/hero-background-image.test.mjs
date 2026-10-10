@@ -3,10 +3,37 @@ import test from "node:test";
 import sharp from "sharp";
 
 import {
+  encodeHeroFade,
   encodeStillImage,
   quantizeRgba,
   StillCanvas,
 } from "./hero-background-image.mjs";
+
+test("fade dithering preserves clear and opaque endpoints without organizing alpha into rows", async () => {
+  const encoded = await encodeHeroFade();
+  assert.deepEqual(encoded, await encodeHeroFade());
+  const { data, info } = await sharp(encoded).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const rowMeans = [];
+  for (let y = 0; y < info.height; y += 1) {
+    const alpha = Array.from({ length: info.width }, (_, x) => data[(y * info.width + x) * 4 + 3]);
+    const mean = alpha.reduce((sum, value) => sum + value, 0) / info.width;
+    rowMeans.push(mean);
+    if (y === 0) assert.ok(alpha.every((value) => value === 0));
+    if (y === info.height - 1) assert.ok(alpha.every((value) => value === 255));
+    if (mean > 16 && mean < 239) {
+      assert.ok(new Set(alpha).size > 2, "Intermediate opacity must vary across each row.");
+      assert.ok(Math.max(...alpha) - Math.min(...alpha) <= 16, "Fade texture must retain low-amplitude grain.");
+    }
+  }
+  let previousMean = 0;
+  for (let y = 0; y < rowMeans.length; y += 32) {
+    const rows = rowMeans.slice(y, y + 32);
+    const mean = rows.reduce((sum, value) => sum + value, 0) / rows.length;
+    assert.ok(mean >= previousMean, "Spatially averaged opacity must progress smoothly toward the page.");
+    previousMean = mean;
+  }
+  assert.ok(rowMeans[Math.floor(info.height / 2)] > 0 && rowMeans[Math.floor(info.height / 2)] < 255);
+});
 
 test("Still canvas preserves fractional color channels until final quantization", () => {
   const canvas = new StillCanvas();

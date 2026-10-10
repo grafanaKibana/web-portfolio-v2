@@ -7,10 +7,39 @@ import { BrandMark } from "@/components/brand-mark/brand-mark";
 import styles from "./opening-splash.module.scss";
 
 const MINIMUM_VISIBLE_MS = 1_800;
-const READINESS_DEADLINE_MS = 3_000;
+const SHELL_READINESS_DEADLINE_MS = 3_000;
+const IMAGE_READINESS_DEADLINE_MS = 8_000;
 const REVEAL_HANDOFF_MS = 200;
 const EXIT_WATCHDOG_MS = 1_000;
 const REQUIRED_SELECTORS = ["[data-theme-root]", "header", "main#main"] as const;
+
+const openingImagePreload = `
+(() => {
+  const script = document.currentScript;
+  if (!(script instanceof HTMLScriptElement)) return;
+
+  try {
+    const sources = JSON.parse(script.dataset.openingImageSources ?? "{}");
+    const primary = document.documentElement.classList.contains("dark") ? sources.dark : sources.light;
+    const entries = [
+      [primary, "primary"],
+      ...((Array.isArray(sources.shared) ? sources.shared : []).map((source) => [source, "shared"])),
+    ];
+
+    for (const [source, kind] of entries) {
+      if (typeof source !== "string" || source.length === 0) continue;
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "image";
+      link.href = source;
+      link.setAttribute("fetchpriority", "high");
+      link.dataset.openingImage = kind;
+      document.head.append(link);
+    }
+  } catch {
+    // The opening splash remains fail-open when preload metadata is unavailable.
+  }
+})();`;
 
 type SplashPhase = "inactive" | "visible" | "exiting" | "hidden";
 
@@ -21,6 +50,28 @@ type SplashLifecycle = {
   interruptExit?: () => void;
   disposeExit?: () => void;
 };
+
+/** Theme-specific fields and shared textures required for the initial hero paint. */
+type OpeningImageSources = {
+  light: string;
+  dark: string;
+  shared: readonly string[];
+};
+
+/**
+ * Starts fetching the resolved-theme hero field and shared textures while the opening splash is visible.
+ *
+ * @param sources - Theme-specific fields and shared image sources required for the first hero paint.
+ * @returns An inline preload bootstrap that executes during HTML parsing.
+ */
+export function OpeningImages({ sources }: { sources: OpeningImageSources }) {
+  return (
+    <script
+      data-opening-image-sources={JSON.stringify(sources)}
+      dangerouslySetInnerHTML={{ __html: openingImagePreload }}
+    />
+  );
+}
 
 /**
  * Publishes the page-reveal handoff once for the active lifecycle.
@@ -61,6 +112,27 @@ function waitForRequiredMarkers(onObserver: (observer: MutationObserver) => void
 }
 
 /**
+ * Waits for every parse-time image preload to decode or fail.
+ */
+async function waitForOpeningImages() {
+  if (document.readyState === "loading") {
+    await new Promise<void>((resolve) => {
+      document.addEventListener("DOMContentLoaded", () => {
+        resolve();
+      }, { once: true });
+    });
+  }
+
+  const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[data-opening-image]'));
+  await Promise.allSettled(links.map(async (link) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = link.href;
+    await image.decode();
+  }));
+}
+
+/**
  * Completes the pre-paint opening surface after required shell content is ready.
  *
  * @param role - YAML-authored primary role.
@@ -81,7 +153,8 @@ export function OpeningSplash({ role }: { role: string }) {
     lifecycleRef.current = owner;
     let observer: MutationObserver | undefined;
     let minimumTimer: number | undefined;
-    let deadlineTimer: number | undefined;
+    let shellDeadlineTimer: number | undefined;
+    let imageDeadlineTimer: number | undefined;
     const debug = new URLSearchParams(window.location.search).has("debugSplash");
 
     /** Applies live preferences without restarting readiness or its visibility floor. */
@@ -110,24 +183,32 @@ export function OpeningSplash({ role }: { role: string }) {
       const minimumVisibility = new Promise<void>((resolve) => {
         minimumTimer = window.setTimeout(resolve, MINIMUM_VISIBLE_MS);
       });
-      const readiness = Promise.all([
-        waitForRequiredMarkers((value) => {
-          observer = value;
-        }),
-        "fonts" in document
-          ? document.fonts.ready
-          : Promise.resolve(),
-      ]);
-      const deadline = new Promise<void>((resolve) => {
-        deadlineTimer = window.setTimeout(resolve, READINESS_DEADLINE_MS);
+      let shellReady = false;
+      const shellReadiness = waitForRequiredMarkers((value) => {
+        observer = value;
+      }).then(() => {
+        shellReady = true;
+      });
+      // WebKit may keep fonts.ready pending while an image preload is in flight, even when the shell is present.
+      const fontReadiness = "fonts" in document ? document.fonts.ready : Promise.resolve();
+      const shellFailure = new Promise<void>((resolve) => {
+        shellDeadlineTimer = window.setTimeout(() => {
+          if (!shellReady) resolve();
+        }, SHELL_READINESS_DEADLINE_MS);
+      });
+      const imageDeadline = new Promise<void>((resolve) => {
+        imageDeadlineTimer = window.setTimeout(resolve, IMAGE_READINESS_DEADLINE_MS);
       });
 
       void Promise.race([
-        Promise.all([minimumVisibility, readiness]).catch(() => minimumVisibility),
-        deadline,
-      ]).then(() => {
+        Promise.all([minimumVisibility, shellReadiness, fontReadiness, waitForOpeningImages()]),
+        shellFailure,
+        imageDeadline,
+      ]).catch(() => minimumVisibility).then(() => {
         if (!owner.active) return;
 
+        if (shellDeadlineTimer !== undefined) window.clearTimeout(shellDeadlineTimer);
+        if (imageDeadlineTimer !== undefined) window.clearTimeout(imageDeadlineTimer);
         observer?.disconnect();
         setPhase("exiting");
       });
@@ -140,7 +221,8 @@ export function OpeningSplash({ role }: { role: string }) {
       observer?.disconnect();
       window.cancelAnimationFrame(activationFrame);
       if (minimumTimer !== undefined) window.clearTimeout(minimumTimer);
-      if (deadlineTimer !== undefined) window.clearTimeout(deadlineTimer);
+      if (shellDeadlineTimer !== undefined) window.clearTimeout(shellDeadlineTimer);
+      if (imageDeadlineTimer !== undefined) window.clearTimeout(imageDeadlineTimer);
     };
   }, []);
 

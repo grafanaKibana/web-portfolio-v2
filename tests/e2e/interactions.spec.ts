@@ -336,6 +336,135 @@ test("first-visit hero reveal waits for the splash handoff", { tag: "@webkit" },
   }
 });
 
+test("opening splash preloads and decodes only the resolved-theme hero", { tag: "@webkit" }, async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    localStorage.setItem("theme", "dark");
+    const state = window as typeof window & {
+      __openingImageDecodes: string[];
+      __openingImageDecodesAtHandoff?: string[];
+    };
+    state.__openingImageDecodes = [];
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- Preserve the browser's native decoder while recording successful readiness.
+    const decode = HTMLImageElement.prototype.decode;
+    HTMLImageElement.prototype.decode = function () {
+      const source = this.src;
+      return decode.call(this).then(() => {
+        state.__openingImageDecodes.push(source);
+      });
+    };
+    window.addEventListener("opening-splash-complete", () => {
+      state.__openingImageDecodesAtHandoff = [...state.__openingImageDecodes];
+    });
+  });
+
+  const requestedHeroImages: string[] = [];
+  page.on("request", (request) => {
+    if (/hero-(?:dark|light|noise)\.generated\.[^/]+\.webp/.test(request.url())) {
+      requestedHeroImages.push(request.url());
+    }
+  });
+  let releaseHeroResponse: (() => void) | undefined;
+  const heroResponseGate = new Promise<void>((resolve) => {
+    releaseHeroResponse = resolve;
+  });
+  await page.route(/hero-dark\.generated\.[^/]+\.webp/, async (route) => {
+    await heroResponseGate;
+    await route.continue();
+  });
+
+  try {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const splash = page.locator('[data-slot="opening-splash"]');
+    await expect(splash).toHaveAttribute("data-state", "visible");
+    await page.waitForTimeout(3_300);
+    await expect(splash).toHaveAttribute("data-state", "visible");
+    releaseHeroResponse?.();
+    await expect(splash).toHaveCount(0, { timeout: 5_000 });
+    await expect(page.locator("html")).toHaveAttribute("data-splash-complete", "true");
+  } finally {
+    releaseHeroResponse?.();
+  }
+
+  const primary = page.locator('link[data-opening-image="primary"]');
+  const shared = page.locator('link[data-opening-image="shared"][href*="hero-noise.generated."]');
+  const fade = page.locator('link[data-opening-image="shared"][href*="hero-fade.generated."]');
+  await expect(primary).toHaveAttribute("href", /hero-dark\.generated\.[^/]+\.webp/);
+  await expect(primary).toHaveAttribute("fetchpriority", "high");
+  await expect(shared).toHaveAttribute("href", /hero-noise\.generated\.[^/]+\.webp/);
+  await expect(shared).toHaveAttribute("fetchpriority", "high");
+  await expect(fade).toHaveAttribute("fetchpriority", "high");
+  expect(requestedHeroImages.some((url) => /hero-dark\.generated\.[^/]+\.webp/.test(url))).toBe(true);
+  expect(requestedHeroImages.some((url) => /hero-noise\.generated\.[^/]+\.webp/.test(url))).toBe(true);
+  expect(requestedHeroImages.some((url) => /hero-light\.generated\.[^/]+\.webp/.test(url))).toBe(false);
+  const decodedAtHandoff = await page.evaluate(() => {
+    const state = window as typeof window & { __openingImageDecodesAtHandoff?: string[] };
+    return state.__openingImageDecodesAtHandoff ?? [];
+  });
+  expect(decodedAtHandoff.some((url) => /hero-dark\.generated\.[^/]+\.webp/.test(url))).toBe(true);
+  expect(decodedAtHandoff.some((url) => /hero-noise\.generated\.[^/]+\.webp/.test(url))).toBe(true);
+  expect(decodedAtHandoff.some((url) => /hero-fade\.generated\.[^/]+\.webp/.test(url))).toBe(true);
+  expect(decodedAtHandoff.some((url) => /hero-light\.generated\.[^/]+\.webp/.test(url))).toBe(false);
+});
+
+test("active hero preload starts during parsing before hydration", { tag: "@webkit" }, async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.addInitScript(() => {
+    localStorage.setItem("theme", "light");
+  });
+
+  const requestedHeroImages: string[] = [];
+  page.on("request", (request) => {
+    if (/hero-(?:dark|light|noise)\.generated\.[^/]+\.webp/.test(request.url())) {
+      requestedHeroImages.push(request.url());
+    }
+  });
+  let releaseScripts: (() => void) | undefined;
+  const scriptGate = new Promise<void>((resolve) => {
+    releaseScripts = resolve;
+  });
+  await page.route(/\/_next\/static\/chunks\/.*\.js(?:\?.*)?$/, async (route) => {
+    await scriptGate;
+    await route.continue();
+  });
+
+  try {
+    await page.goto("/", { waitUntil: "commit" });
+    const primary = page.locator('link[data-opening-image="primary"]');
+    await expect(primary).toHaveAttribute("href", /hero-light\.generated\.[^/]+\.webp/);
+    await expect(primary).toHaveAttribute("fetchpriority", "high");
+    await expect(page.locator("[data-theme-root]")).toHaveCount(0);
+    await expect.poll(() => requestedHeroImages.some((url) => /hero-light\.generated\.[^/]+\.webp/.test(url))).toBe(true);
+    expect(requestedHeroImages.some((url) => /hero-dark\.generated\.[^/]+\.webp/.test(url))).toBe(false);
+  } finally {
+    releaseScripts?.();
+  }
+});
+
+test("opening splash fails open when the active hero never responds", { tag: "@webkit" }, async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  let releaseResponse: (() => void) | undefined;
+  const responseGate = new Promise<void>((resolve) => {
+    releaseResponse = resolve;
+  });
+  await page.route(/hero-dark\.generated\.[^/]+\.webp/, async (route) => {
+    await responseGate;
+    await route.fulfill({ status: 503, body: "Unavailable" }).catch(() => undefined);
+  });
+
+  try {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const splash = page.locator('[data-slot="opening-splash"]');
+    await expect(splash).toHaveAttribute("data-state", "visible");
+    await page.waitForTimeout(3_300);
+    await expect(splash).toHaveAttribute("data-state", "visible");
+    await expect(splash).toHaveCount(0, { timeout: 7_000 });
+    await expect(page.getByRole("main")).toBeVisible();
+  } finally {
+    releaseResponse?.();
+  }
+});
+
 test("chat entry keeps a usable fallback without JavaScript or native popup support", { tag: "@webkit" }, async ({ browser, baseURL }) => {
   if (!baseURL) throw new Error("Browser tests require a configured base URL");
   for (const javaScriptEnabled of [false, true]) {

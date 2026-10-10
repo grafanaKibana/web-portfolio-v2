@@ -58,3 +58,34 @@ export async function encodeStillImage(pixels, width, height) {
     .webp({ lossless: true })
     .toBuffer();
 }
+
+/**
+ * Encodes the hero fade with spatial alpha dithering to avoid horizontal compositing bands.
+ * @returns A lossless alpha texture, transparent at the top and opaque at the bottom.
+ */
+export async function encodeHeroFade() {
+  const width = 256;
+  const height = 2048;
+  const stops = [[0, 0], [0.18, 0], [0.30, 0.03], [0.44, 0.13], [0.58, 0.33], [0.72, 0.60], [0.86, 0.85], [0.95, 0.97], [1, 1]];
+  const pixels = new Uint8Array(width * height * 4).fill(255);
+  let seed = 12345;
+  let stop = 0;
+  for (let y = 0; y < height; y += 1) {
+    const position = y / (height - 1);
+    while (position > stops[stop + 1][0]) stop += 1;
+    const [start, startAlpha] = stops[stop];
+    const [end, endAlpha] = stops[stop + 1];
+    const alpha = (startAlpha + (endAlpha - startAlpha) * (position - start) / (end - start)) * 255;
+    // Keep the mean fade intact without clipping noise at either endpoint.
+    const amplitude = Math.min(16, alpha * 2, (255 - alpha) * 2);
+    for (let x = 0; x < width; x += 1) {
+      seed ^= seed << 13;
+      seed ^= seed >>> 17;
+      seed ^= seed << 5;
+      pixels[(y * width + x) * 4 + 3] = Math.round(alpha + ((seed >>> 0) / 4294967296 - 0.5) * amplitude);
+    }
+  }
+  return sharp(pixels, { raw: { width, height, channels: 4 } })
+    .webp({ lossless: true })
+    .toBuffer();
+}

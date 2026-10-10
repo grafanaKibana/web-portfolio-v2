@@ -48,7 +48,7 @@ const splashPreflight = `
   if (!debug) {
     window.setTimeout(() => {
       delete document.documentElement.dataset.splashPending;
-    }, 3320);
+    }, 9320);
   }
 })();`;
 

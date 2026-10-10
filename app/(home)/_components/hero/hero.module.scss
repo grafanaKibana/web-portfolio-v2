@@ -36,6 +36,8 @@
 }
 
 .hero > .background {
+  --hero-veil-color: color-mix(in srgb, var(--hero-surface) calc(var(--hero-veil) * 100%), transparent);
+
   position: absolute;
   z-index: -1;
   top: calc(-1 * var(--site-header-height));
@@ -44,24 +46,13 @@
   overflow: hidden;
   isolation: isolate;
   pointer-events: none;
+  background-image: linear-gradient(var(--hero-veil-color), var(--hero-veil-color)), var(--hero-image);
   background-position: center;
   background-size: cover;
-  mask-image: linear-gradient(
-    to bottom,
-    #000 0%,
-    #000 18%,
-    rgb(0 0 0 / 97%) 30%,
-    rgb(0 0 0 / 87%) 44%,
-    rgb(0 0 0 / 67%) 58%,
-    rgb(0 0 0 / 40%) 72%,
-    rgb(0 0 0 / 15%) 86%,
-    rgb(0 0 0 / 3%) 95%,
-    transparent 100%
-  );
 
   &::before {
     position: absolute;
-    z-index: 1;
+    z-index: 2;
     inset: 0;
     background-image: var(--hero-noise-image);
     background-size: 256px 256px;
@@ -73,16 +64,21 @@
 
   &::after {
     position: absolute;
-    z-index: 2;
+    z-index: 1;
     inset: 0;
-    background: var(--hero-surface);
-    opacity: var(--hero-veil);
+    background: var(--background);
+    image-rendering: pixelated;
+
+    // Dither only the opaque page-color overlay; masking the entire field quantizes its colors into horizontal bands.
+    mask-image: var(--hero-fade-image);
+    mask-size: 128px 100%;
+    mask-repeat: repeat-x;
     content: "";
   }
 }
 
 .lightBackground {
-  background-image: var(--hero-light-image);
+  --hero-image: var(--hero-light-image);
 
   :global(.dark) & {
     display: none;
@@ -90,8 +86,9 @@
 }
 
 .darkBackground {
+  --hero-image: var(--hero-dark-image);
+
   display: none;
-  background-image: var(--hero-dark-image);
 
   :global(.dark) & {
     display: block;

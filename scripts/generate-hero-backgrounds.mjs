@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { paintRecipe } from "../components/gradient-background/upstream/feral-gradient-runtime.jsx";
 import { normalizeGradient } from "../components/gradient-background/gradient-background.helpers.ts";
 import { heroDarkStillOptions, heroPalettes, heroStillOptions } from "../app/(home)/_components/hero/hero-background.config.ts";
-import { encodeStillImage, StillCanvas } from "./hero-background-image.mjs";
+import { encodeHeroFade, encodeStillImage, StillCanvas } from "./hero-background-image.mjs";
 
 /**
  * Paints the Still field at 6× native detail, retaining its original 32:21 composition.
@@ -45,8 +45,9 @@ const directory = new URL("../app/(home)/_components/hero/", import.meta.url);
 const light = await field(heroPalettes.light, heroStillOptions);
 const dark = await field(heroPalettes.dark, heroDarkStillOptions);
 const noise = await noiseTile();
+const fade = await encodeHeroFade();
 let totalBytes = 0;
-for (const [name, output] of Object.entries({ light, dark, noise })) {
+for (const [name, output] of Object.entries({ light, dark, noise, fade })) {
   const destination = new URL(`hero-${name}.generated.webp`, directory);
   const previous = await readFile(destination).catch(() => null);
   if (process.argv.includes("--check")) {
