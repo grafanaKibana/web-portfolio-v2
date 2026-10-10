@@ -7,6 +7,7 @@ import { gunzipSync } from "node:zlib";
 import type { GradientRecipe } from "../gradient-background.models";
 import { adaptFeralGradientRuntime } from "./adapt-feral-gradient-runtime.mjs";
 import { getFeralCssBackground } from "./feral-gradient-css";
+import { paintRecipe } from "./feral-gradient-runtime.jsx";
 
 const UPSTREAM_DIRECTORY = new URL("./", import.meta.url);
 const SOURCE_RUNTIME = new URL(
@@ -77,6 +78,47 @@ test("adaptation script reproduces the checked-in runtime byte for byte", async 
     vendored.match(/Math\.min\(2,window\.devicePixelRatio\|\|1\)/g)?.length,
     2,
   );
+});
+
+test("Still exports paint every native pixel above the browser raster limit", () => {
+  const width = 1920;
+  const height = 1260;
+  let painted: ImageData | undefined;
+  const context = {
+    /** Verifies the complete destination is cleared before painting.
+     * @param bounds - Rectangle passed to the drawing context.
+     */
+    clearRect: (...bounds: number[]) => { assert.deepEqual(bounds, [0, 0, width, height]); },
+    /** Allocates the requested native raster without a browser canvas.
+     * @param rasterWidth - Requested pixel width.
+     * @param rasterHeight - Requested pixel height.
+     * @returns An image buffer at the full export dimensions.
+     */
+    createImageData: (rasterWidth: number, rasterHeight: number) => {
+      assert.equal(rasterWidth, width);
+      assert.equal(rasterHeight, height);
+      return { width, height, data: new Uint8ClampedArray(width * height * 4) };
+    },
+    /** Captures the painted raster for native export assertions.
+     * @param image - Complete output from the Still painter.
+     */
+    putImageData: (image: ImageData) => { painted = image; },
+  };
+  const canvas = {
+    width,
+    height,
+    /** Returns the export context without scratch-canvas resize operations.
+     * @returns The minimal native raster context.
+     */
+    getContext: () => context,
+  };
+
+  paintRecipe(canvas as unknown as HTMLCanvasElement, recipe("SMESH"));
+  assert.ok(painted);
+  assert.equal(painted.data.length, width * height * 4);
+  assert.equal(painted.data[3], 255);
+  assert.equal(painted.data.at(-1), 255);
+  assert.notDeepEqual(painted.data.slice(0, 3), painted.data.slice(-4, -1));
 });
 
 test("CSS recipes match the captured builder b6 generator", async () => {

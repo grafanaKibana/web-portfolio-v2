@@ -7,8 +7,8 @@ import { heroDarkStillOptions, heroPalettes, heroStillOptions } from "../app/(ho
 
 /** Minimal raster target for Still's ImageData painter; no browser or native canvas is needed. */
 class StillCanvas {
-  width = 640;
-  height = 420;
+  width = 3840;
+  height = 2520;
   pixels = null;
 
   /** Supplies only the raster operations used by the static Still painter.
@@ -28,16 +28,6 @@ class StillCanvas {
        * @param image - Image data containing painted pixels.
        */
       putImageData: (image) => { this.pixels = image.data; },
-      /** Copies pixels from an equally sized scratch canvas.
-       * @param source - Scratch canvas holding the rendered field.
-       * @throws When the scratch canvas dimensions differ from this target.
-       */
-      drawImage: (source) => {
-        if (source.width !== this.width || source.height !== this.height) {
-          throw new Error("Still image dimensions changed; review the upstream raster path.");
-        }
-        this.pixels = source.pixels;
-      },
     };
   }
 }
@@ -57,7 +47,7 @@ async function encodeImage(pixels, width, height, channels, quality = 95) {
 }
 
 /**
- * Paints the upstream Still field, retaining its fixed 640 × 420 composition.
+ * Paints the Still field at 6× native detail, retaining its original 32:21 composition.
  * @param colors - Approved theme palette.
  * @param options - Theme-specific Still geometry and spatial grain.
  * @returns A compact image of the field.
@@ -90,31 +80,18 @@ async function noiseTile() {
 }
 
 const directory = new URL("../app/(home)/_components/hero/", import.meta.url);
-const previousDocument = globalThis.document;
-try {
-  // The upstream painter creates one scratch canvas. Keep the shim local to this build process.
-  globalThis.document = {
-    /** Creates the scratch canvas required by the upstream painter.
-     * @returns A fresh raster target.
-     */
-    createElement: () => new StillCanvas(),
-  };
-  const light = await field(heroPalettes.light, heroStillOptions);
-  const dark = await field(heroPalettes.dark, heroDarkStillOptions);
-  const noise = await noiseTile();
-  let totalBytes = 0;
-  for (const [name, output] of Object.entries({ light, dark, noise })) {
-    const destination = new URL(`hero-${name}.generated.webp`, directory);
-    const previous = await readFile(destination).catch(() => null);
-    if (process.argv.includes("--check")) {
-      if (!previous?.equals(output)) throw new Error("Hero images are stale. Run npm run generate:hero-backgrounds.");
-    } else if (!previous?.equals(output)) {
-      await writeFile(destination, output);
-    }
-    totalBytes += output.length;
+const light = await field(heroPalettes.light, heroStillOptions);
+const dark = await field(heroPalettes.dark, heroDarkStillOptions);
+const noise = await noiseTile();
+let totalBytes = 0;
+for (const [name, output] of Object.entries({ light, dark, noise })) {
+  const destination = new URL(`hero-${name}.generated.webp`, directory);
+  const previous = await readFile(destination).catch(() => null);
+  if (process.argv.includes("--check")) {
+    if (!previous?.equals(output)) throw new Error("Hero images are stale. Run npm run generate:hero-backgrounds.");
+  } else if (!previous?.equals(output)) {
+    await writeFile(destination, output);
   }
-  console.log(`Hero backgrounds ready (${Math.round(totalBytes / 1024)} KiB cacheable assets, both themes).`);
-} finally {
-  if (previousDocument === undefined) delete globalThis.document;
-  else globalThis.document = previousDocument;
+  totalBytes += output.length;
 }
+console.log(`Hero backgrounds ready (${Math.round(totalBytes / 1024)} KiB cacheable assets, both themes).`);

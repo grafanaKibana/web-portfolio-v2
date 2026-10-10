@@ -13,7 +13,7 @@ export interface FeralGradientRuntimeProps {
 }
 
 /**
- * Paints one recipe into an existing canvas at a controlled time.
+ * Paints one recipe at a controlled time; Still uses the full destination raster without scratch upscaling.
  *
  * @param canvas - Destination canvas element.
  * @param recipe - Gradient recipe to paint.

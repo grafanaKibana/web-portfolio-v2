@@ -86,8 +86,8 @@ export function adaptFeralGradientRuntime(source) {
   output = replaceOnce(
     output,
     'function cc(e,t,n=t.startT??ae){let a=e.getContext("2d");if(!a)return;',
-    'function cc(e,t,n=t.startT??ae){let a=e.getContext("2d");if(!a)throw new Error("Feral gradient canvas 2D context is unavailable.");',
-    "static painter context failure",
+    'function cc(e,t,n=t.startT??ae){let a=e.getContext("2d");if(!a)throw new Error("Feral gradient canvas 2D context is unavailable.");if(t.type==="SMESH"){a.clearRect(0,0,e.width,e.height);Ps(a,e.width,e.height,t.stops,t.divs,t.params);return}',
+    "static painter context failure and native Still export",
   );
 
   output = replaceOnce(

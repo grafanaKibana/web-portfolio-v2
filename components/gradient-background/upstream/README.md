@@ -15,3 +15,5 @@ The script reads the owned deterministic gzip fixture by default, rejects any de
 Sky uses its original CPU renderer while the shared WebGL context is lost, recreates GPU state after restoration, and releases its cached GPU resources after the last runtime instance unmounts. Shared CPU/raster caches keep their upstream module lifetime: they are single latest-size canvases, weak context entries, a 256×256 grain tile, a 12,000,000-pixel edge-cache budget, or at most 49 fixed color tables. They schedule no active work; lifecycle cleanup still returns renderer RAF, listeners, and observers to zero.
 
 Still paints its final grained frame in one layout pass. The overlay noise initializes before browser paint, and the engine reports Still readiness so consumers can avoid showing the unrelated CSS fallback during startup.
+
+The explicit `paintRecipe` export paints Still directly at the supplied canvas dimensions, bypassing the browser scratch-raster limit. Hero generation uses a native 3840×2520 raster with the original 32:21 composition; live browser rendering retains its existing resolution limits.

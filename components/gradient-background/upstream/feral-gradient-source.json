@@ -19,7 +19,7 @@
   "adaptation": {
     "decision": "The user explicitly selected adaptation of the Feral exports.",
     "script": "adapt-feral-gradient-runtime.mjs",
-    "sha256": "ca50c43534ebc05fdf08d5fcf38fc6ee223485e2249ddbb6ee3a4c2db5df9232",
+    "sha256": "d0617c15282daf5fa0f23966f9e214a336ae0d6ed14b27800abc026fb434a558",
     "changes": [
       "replace the injected __FERAL_RECIPE__ constant with a required per-instance recipe prop",
       "cap both raster device-pixel-ratio paths at 2",
@@ -30,7 +30,8 @@
       "pause Mist CSS animation when recipe.animated is false",
       "route LINEAR, IOS, CIRCLE and ANGULAR through the builder b6 CSS algorithm",
       "paint Still at final detail in one layout pass without its delayed coarse preview",
-      "initialize the grain overlay before the first browser paint"
+      "initialize the grain overlay before the first browser paint",
+      "paint explicit Still exports at native destination resolution without scratch-raster upscaling"
     ]
   },
   "permission": {
