@@ -1,10 +1,10 @@
 import { clsx } from "clsx";
 import { GitPullRequest, GitPullRequestDraft, MessageCircleMore } from "lucide-react";
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { home } from "@/lib/content/portfolio/server";
 import { GitHubActivityService } from "@/lib/content/github-activity";
 import type { ContributionDay } from "@/lib/content/github-activity.models";
+import { ActivityCounters } from "./activity-counters";
 import { CalendarDays } from "./calendar-days";
 import {
   codeActivityState,
@@ -129,24 +129,15 @@ export async function HomeCodeActivity() {
             className="m-0 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs leading-4.5 font-normal tabular-nums text-muted-foreground"
             data-slot="activity-summary"
           >
-            <TooltipProvider delay={250}>
-              {visibleGroups.length > 0 ? [groups[2], groups[0], groups[1]]
-              .filter((group) => group.contributions.length > 0)
-              .map(({ status, label, contributions, icon: StatusIcon }) => (
-                <Tooltip key={status}>
-                  <TooltipTrigger
-                    type="button"
-                    aria-label={`${contributions.length.toLocaleString("en-US")} ${label.toLowerCase()} pull requests`}
-                    className={clsx(styles.statusIcon, "-my-3 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
-                    data-status={status}
-                  >
-                    {contributions.length.toLocaleString("en-US")}
-                    <StatusIcon aria-hidden="true" className="size-4" />
-                  </TooltipTrigger>
-                  <TooltipContent className="data-closed:hidden motion-reduce:animate-none">{label} pull requests</TooltipContent>
-                </Tooltip>
-              )) : summary}
-            </TooltipProvider>
+            {visibleGroups.length > 0 ? (
+              <ActivityCounters counters={[groups[2], groups[0], groups[1]]
+                .filter((group) => group.contributions.length > 0)
+                .map(({ status, label, contributions, icon: StatusIcon }) => ({
+                  status, label, count: contributions.length,
+                  icon: <StatusIcon aria-hidden="true" className="size-4" />,
+                }))}
+              />
+            ) : summary}
           </p>
         ) : null}
       </div>

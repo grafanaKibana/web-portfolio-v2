@@ -1,14 +1,12 @@
-import { clsx } from "clsx";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { HomeEditorialRow } from "@/app/(home)/_components/editorial-row/editorial-row";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { loadProjects } from "@/lib/content/projects/server";
 import { home } from "@/lib/content/portfolio/server";
 
-import styles from "./projects.module.scss";
 import { RepositoryStarsService } from "./repository-stars";
+import { StarCounter } from "./star-counter";
 
 const repositoryStars = new RepositoryStarsService();
 
@@ -47,21 +45,7 @@ export async function HomeProjects() {
         >
           Selected work
         </h2>
-        {totalStars !== null && (
-          <TooltipProvider delay={250}>
-            <Tooltip>
-              <TooltipTrigger
-                type="button"
-                aria-label={`${totalStars.toLocaleString("en-US")} total stars across public GitHub repositories`}
-                className={clsx(styles.totalStars, "-my-2 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-sm whitespace-nowrap font-mono text-xs tabular-nums focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
-              >
-                {totalStars.toLocaleString("en-US")}
-                <Star aria-hidden="true" className="size-4 fill-current" />
-              </TooltipTrigger>
-              <TooltipContent className="data-closed:hidden motion-reduce:animate-none">Total Stars</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+        {totalStars !== null && <StarCounter totalStars={totalStars} />}
       </div>
       {featuredProjects.length ? <ul className="m-0 list-none p-0">
         {featuredProjects.map(({ slug, metadata: project }) => (
