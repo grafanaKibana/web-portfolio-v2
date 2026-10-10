@@ -977,6 +977,7 @@ test.describe("mobile conversation smoke", () => {
     await page.evaluate(() => {
       window.dispatchEvent(new CustomEvent("ask-fixture-viewport", { detail: { height: 400 } }));
     });
+    await expect.poll(async () => (await box(dialog.locator("[data-chat-paint]"))).height).toBeCloseTo(400, 0);
     await expect(page.locator("[data-conversation-composer]:visible")).toHaveCount(1);
     await expect(input).toBeEditable();
     const surface = await box(dialog.locator("[data-chat-paint]"));

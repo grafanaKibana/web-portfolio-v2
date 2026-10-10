@@ -52,8 +52,7 @@ for (const theme of ["light", "dark"] as const) {
           return section;
         });
         const headers = sections.filter((section) => section.id !== "about" && section.id !== "contact").map((section) => {
-          const header = section.id === "code" ? section.querySelector("#code-heading")?.parentElement
-            : section.querySelector("h2");
+          const header = section.querySelector(":scope > h2, :scope > :has(> h2)");
           if (!header) throw new Error(`Missing section header: ${section.id}`);
           return header;
         });
