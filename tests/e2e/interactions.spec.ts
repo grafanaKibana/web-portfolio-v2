@@ -343,6 +343,7 @@ test("opening splash preloads and decodes only the resolved-theme hero", { tag: 
     const state = window as typeof window & {
       __openingImageDecodes: string[];
       __openingImageDecodesAtHandoff?: string[];
+      __openingRendererAtHandoff?: string;
     };
     state.__openingImageDecodes = [];
     // eslint-disable-next-line @typescript-eslint/unbound-method -- Preserve the browser's native decoder while recording successful readiness.
@@ -355,6 +356,7 @@ test("opening splash preloads and decodes only the resolved-theme hero", { tag: 
     };
     window.addEventListener("opening-splash-complete", () => {
       state.__openingImageDecodesAtHandoff = [...state.__openingImageDecodes];
+      state.__openingRendererAtHandoff = document.querySelector<HTMLCanvasElement>("canvas[data-opening-renderer]")?.dataset.openingRenderer ?? "absent";
     });
   });
 
@@ -405,6 +407,7 @@ test("opening splash preloads and decodes only the resolved-theme hero", { tag: 
   expect(decodedAtHandoff.some((url) => /hero-noise\.generated\.[^/]+\.webp/.test(url))).toBe(true);
   expect(decodedAtHandoff.some((url) => /hero-fade\.generated\.[^/]+\.webp/.test(url))).toBe(true);
   expect(decodedAtHandoff.some((url) => /hero-light\.generated\.[^/]+\.webp/.test(url))).toBe(false);
+  expect(await page.evaluate(() => (window as typeof window & { __openingRendererAtHandoff?: string }).__openingRendererAtHandoff)).toBe("ready");
 });
 
 test("active hero preload starts during parsing before hydration", { tag: "@webkit" }, async ({ page }) => {

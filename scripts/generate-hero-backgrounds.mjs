@@ -3,7 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 import { paintRecipe } from "../components/gradient-background/upstream/feral-gradient-runtime.jsx";
 import { normalizeGradient } from "../components/gradient-background/gradient-background.helpers.ts";
-import { heroDarkStillOptions, heroPalettes, heroStillOptions } from "../app/(home)/_components/hero/hero-background.config.ts";
+import { heroDarkStillOptions, heroFadeStops, heroPalettes, heroStillOptions } from "../app/(home)/_components/hero/hero-background.config.ts";
 import { encodeHeroFade, encodeStillImage, StillCanvas } from "./hero-background-image.mjs";
 
 /**
@@ -45,7 +45,7 @@ const directory = new URL("../app/(home)/_components/hero/", import.meta.url);
 const light = await field(heroPalettes.light, heroStillOptions);
 const dark = await field(heroPalettes.dark, heroDarkStillOptions);
 const noise = await noiseTile();
-const fade = await encodeHeroFade();
+const fade = await encodeHeroFade(heroFadeStops);
 let totalBytes = 0;
 for (const [name, output] of Object.entries({ light, dark, noise, fade })) {
   const destination = new URL(`hero-${name}.generated.webp`, directory);

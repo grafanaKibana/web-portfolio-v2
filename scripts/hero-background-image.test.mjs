@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import sharp from "sharp";
 
+import { heroFadeStops } from "../app/(home)/_components/hero/hero-background.config.ts";
+
 import {
   encodeHeroFade,
   encodeStillImage,
@@ -10,8 +12,8 @@ import {
 } from "./hero-background-image.mjs";
 
 test("fade dithering preserves clear and opaque endpoints without organizing alpha into rows", async () => {
-  const encoded = await encodeHeroFade();
-  assert.deepEqual(encoded, await encodeHeroFade());
+  const encoded = await encodeHeroFade(heroFadeStops);
+  assert.deepEqual(encoded, await encodeHeroFade(heroFadeStops));
   const { data, info } = await sharp(encoded).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const rowMeans = [];
   for (let y = 0; y < info.height; y += 1) {

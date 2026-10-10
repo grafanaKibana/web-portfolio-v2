@@ -61,12 +61,12 @@ export async function encodeStillImage(pixels, width, height) {
 
 /**
  * Encodes the hero fade with spatial alpha dithering to avoid horizontal compositing bands.
+ * @param stops - Ordered vertical fade positions and opacities.
  * @returns A lossless alpha texture, transparent at the top and opaque at the bottom.
  */
-export async function encodeHeroFade() {
+export async function encodeHeroFade(stops) {
   const width = 256;
   const height = 2048;
-  const stops = [[0, 0], [0.18, 0], [0.30, 0.03], [0.44, 0.13], [0.58, 0.33], [0.72, 0.60], [0.86, 0.85], [0.95, 0.97], [1, 1]];
   const pixels = new Uint8Array(width * height * 4).fill(255);
   let seed = 12345;
   let stop = 0;

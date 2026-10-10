@@ -35,9 +35,8 @@
   }
 }
 
-.hero > .background {
-  --hero-veil-color: color-mix(in srgb, var(--hero-surface) calc(var(--hero-veil) * 100%), transparent);
-
+.hero > .background,
+.hero > .renderedBackground {
   position: absolute;
   z-index: -1;
   top: calc(-1 * var(--site-header-height));
@@ -46,6 +45,21 @@
   overflow: hidden;
   isolation: isolate;
   pointer-events: none;
+}
+
+.hero > .renderedBackground {
+  width: 100%;
+  height: calc(100% + var(--site-header-height) + 8rem);
+  opacity: 0;
+
+  &[data-opening-renderer="ready"] {
+    opacity: 1;
+  }
+}
+
+.hero > .background {
+  --hero-veil-color: color-mix(in srgb, var(--hero-surface) calc(var(--hero-veil) * 100%), transparent);
+
   background-image: linear-gradient(var(--hero-veil-color), var(--hero-veil-color)), var(--hero-image);
   background-position: center;
   background-size: cover;

@@ -10,6 +10,19 @@ export const heroPalettes = {
 /** Theme-specific grain overlay strength, expressed as a percentage. */
 export const heroNoise = { light: 7, dark: 10 };
 
+/** Vertical page-color fade shared by the generated fallback and live renderer. */
+export const heroFadeStops = [
+  [0, 0],
+  [0.18, 0],
+  [0.30, 0.03],
+  [0.44, 0.13],
+  [0.58, 0.33],
+  [0.72, 0.60],
+  [0.86, 0.85],
+  [0.95, 0.97],
+  [1, 1],
+] as const;
+
 /** Derived foreground roles account for the palette and grain overlay in both themes. */
 export const heroContrast = {
   light: resolveHeroContrast(heroPalettes.light, heroNoise.light),

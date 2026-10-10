@@ -10,6 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { OpeningImages } from "@/components/opening-splash/opening-splash";
 import { clsx } from "clsx";
 import { DescriptorRotation } from "./descriptor-rotation/descriptor-rotation";
+import { HeroBackground } from "./hero-background";
 import styles from "./hero.module.scss";
 import { heroContrast, heroNoise } from "./hero-background.config";
 import lightImage from "./hero-light.generated.webp";
@@ -84,6 +85,7 @@ export function HomeHero() {
         data-hero-background="dark"
         className={clsx(styles.background, styles.darkBackground)}
       />
+      <HeroBackground sources={{ light: lightImage.src, dark: darkImage.src, noise: noiseImage.src }} />
       <div data-page-motion-intro="immediate" className={clsx(styles.availability, "inline-flex items-center rounded-full py-1.5 text-xs font-medium")}>
         <span
           aria-hidden="true"

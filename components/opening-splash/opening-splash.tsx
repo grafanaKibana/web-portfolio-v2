@@ -112,9 +112,10 @@ function waitForRequiredMarkers(onObserver: (observer: MutationObserver) => void
 }
 
 /**
- * Waits for every parse-time image preload to decode or fail.
+ * Waits for parse-time images and the Home renderer to settle before the splash reveals the page.
+ * @param signal - Releases readiness listeners when the splash exits or unmounts.
  */
-async function waitForOpeningImages() {
+async function waitForOpeningImages(signal: AbortSignal) {
   if (document.readyState === "loading") {
     await new Promise<void>((resolve) => {
       document.addEventListener("DOMContentLoaded", () => {
@@ -124,12 +125,28 @@ async function waitForOpeningImages() {
   }
 
   const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[data-opening-image]'));
-  await Promise.allSettled(links.map(async (link) => {
+  const renderer = links.some((link) => link.dataset.openingImage === "primary")
+    ? document.querySelector<HTMLCanvasElement>("canvas[data-opening-renderer]") : null;
+  const rendering = new Promise<void>((resolve) => {
+    if (!renderer || signal.aborted || renderer.dataset.openingRenderer !== "pending") {
+      resolve();
+      return;
+    }
+    /** Releases both subscriptions after renderer settlement or the bounded splash deadline. */
+    function settle() {
+      renderer?.removeEventListener("opening-renderer-settled", settle);
+      signal.removeEventListener("abort", settle);
+      resolve();
+    }
+    renderer.addEventListener("opening-renderer-settled", settle);
+    signal.addEventListener("abort", settle, { once: true });
+  });
+  await Promise.all([rendering, Promise.allSettled(links.map(async (link) => {
     const image = new Image();
     image.decoding = "async";
     image.src = link.href;
     await image.decode();
-  }));
+  }))]);
 }
 
 /**
@@ -155,6 +172,7 @@ export function OpeningSplash({ role }: { role: string }) {
     let minimumTimer: number | undefined;
     let shellDeadlineTimer: number | undefined;
     let imageDeadlineTimer: number | undefined;
+    const readiness = new AbortController();
     const debug = new URLSearchParams(window.location.search).has("debugSplash");
 
     /** Applies live preferences without restarting readiness or its visibility floor. */
@@ -201,7 +219,7 @@ export function OpeningSplash({ role }: { role: string }) {
       });
 
       void Promise.race([
-        Promise.all([minimumVisibility, shellReadiness, fontReadiness, waitForOpeningImages()]),
+        Promise.all([minimumVisibility, shellReadiness, fontReadiness, waitForOpeningImages(readiness.signal)]),
         shellFailure,
         imageDeadline,
       ]).catch(() => minimumVisibility).then(() => {
@@ -209,6 +227,7 @@ export function OpeningSplash({ role }: { role: string }) {
 
         if (shellDeadlineTimer !== undefined) window.clearTimeout(shellDeadlineTimer);
         if (imageDeadlineTimer !== undefined) window.clearTimeout(imageDeadlineTimer);
+        readiness.abort();
         observer?.disconnect();
         setPhase("exiting");
       });
@@ -216,6 +235,7 @@ export function OpeningSplash({ role }: { role: string }) {
 
     return () => {
       owner.active = false;
+      readiness.abort();
       owner.disposeExit?.();
       preference.removeEventListener("change", updatePreference);
       observer?.disconnect();
