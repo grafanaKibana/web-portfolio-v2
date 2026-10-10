@@ -4,60 +4,20 @@ import sharp from "sharp";
 import { paintRecipe } from "../components/gradient-background/upstream/feral-gradient-runtime.jsx";
 import { normalizeGradient } from "../components/gradient-background/gradient-background.helpers.ts";
 import { heroDarkStillOptions, heroPalettes, heroStillOptions } from "../app/(home)/_components/hero/hero-background.config.ts";
-
-/** Minimal raster target for Still's ImageData painter; no browser or native canvas is needed. */
-class StillCanvas {
-  width = 3840;
-  height = 2520;
-  pixels = null;
-
-  /** Supplies only the raster operations used by the static Still painter.
-   * @returns Minimal drawing context backed by this canvas pixel buffer.
-   */
-  getContext() {
-    return {
-      /** Discards previously painted pixels. */
-      clearRect: () => { this.pixels = null; },
-      /** Allocates an empty RGBA raster.
-       * @param width - Raster width in pixels.
-       * @param height - Raster height in pixels.
-       * @returns Dimensions and a zero-filled pixel buffer.
-       */
-      createImageData: (width, height) => ({ width, height, data: new Uint8ClampedArray(width * height * 4) }),
-      /** Stores the raster produced by the Still painter.
-       * @param image - Image data containing painted pixels.
-       */
-      putImageData: (image) => { this.pixels = image.data; },
-    };
-  }
-}
-
-/**
- * Encodes a compact, independently cacheable image.
- * @param pixels - Raw raster channels.
- * @param width - Pixel width.
- * @param height - Pixel height.
- * @param channels - Number of channels per pixel.
- * @param quality - WebP quality; low-opacity grain tolerates stronger compression.
- * @returns Encoded WebP bytes.
- */
-async function encodeImage(pixels, width, height, channels, quality = 95) {
-  const image = await sharp(pixels, { raw: { width, height, channels } }).webp({ quality }).toBuffer();
-  return image;
-}
+import { encodeStillImage, StillCanvas } from "./hero-background-image.mjs";
 
 /**
  * Paints the Still field at 6× native detail, retaining its original 32:21 composition.
  * @param colors - Approved theme palette.
  * @param options - Theme-specific Still geometry and spatial grain.
- * @returns A compact image of the field.
+ * @returns A lossless, dithered image of the field.
  */
 async function field(colors, options) {
   const canvas = new StillCanvas();
   const { recipe } = normalizeGradient({ variant: "still", colors, options, noise: 0, soften: 0 });
   paintRecipe(canvas, recipe);
   if (!canvas.pixels) throw new Error("Still painter produced no pixels.");
-  return encodeImage(canvas.pixels, canvas.width, canvas.height, 4);
+  return encodeStillImage(canvas.pixels, canvas.width, canvas.height);
 }
 
 /** Reproduces the upstream seeded monochrome tile; CSS retains the requested noise opacity.
@@ -76,7 +36,9 @@ async function noiseTile() {
   for (let index = 0; index < pixels.length; index += 1) {
     pixels[index] = Math.round((random() + random()) / 2 * 255);
   }
-  return encodeImage(pixels, 256, 256, 1, 40);
+  return sharp(pixels, { raw: { width: 256, height: 256, channels: 1 } })
+    .webp({ quality: 40 })
+    .toBuffer();
 }
 
 const directory = new URL("../app/(home)/_components/hero/", import.meta.url);
