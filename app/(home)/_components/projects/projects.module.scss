@@ -1,0 +1,13 @@
+.totalStars {
+  color: #966500;
+}
+
+:global(.dark) .totalStars {
+  color: #e8b84a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not(.light, .dark)) .totalStars {
+    color: #e8b84a;
+  }
+}

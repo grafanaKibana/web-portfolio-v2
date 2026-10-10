@@ -1,9 +1,16 @@
-import { ArrowRight } from "lucide-react";
+import { clsx } from "clsx";
+import { ArrowRight, Star } from "lucide-react";
 import Link from "next/link";
 
 import { HomeEditorialRow } from "@/app/(home)/_components/editorial-row/editorial-row";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { loadProjects } from "@/lib/content/projects/server";
 import { home } from "@/lib/content/portfolio/server";
+
+import styles from "./projects.module.scss";
+import { RepositoryStarsService } from "./repository-stars";
+
+const repositoryStars = new RepositoryStarsService();
 
 /**
  * Renders validated local projects as editorial links to their static case studies.
@@ -11,7 +18,10 @@ import { home } from "@/lib/content/portfolio/server";
  * @returns The Home Selected Work section.
  */
 export async function HomeProjects() {
-  const projects = await loadProjects();
+  const [projects, totalStars] = await Promise.all([
+    loadProjects(),
+    repositoryStars.load(home.codeActivity.username),
+  ]);
   const projectsBySlug = new Map(projects.map((project) => [project.slug, project]));
   const featuredProjects = home.projects.featuredSlugs.map((slug) => {
     const project = projectsBySlug.get(slug);
@@ -26,14 +36,33 @@ export async function HomeProjects() {
       className="page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12 last:min-h-screen"
       data-page-motion-section
     >
-      <h2
+      <div
         data-page-motion-row
         data-page-motion-trigger
-        id="projects-heading"
-        className="m-0 mb-8 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground lg:mb-10"
+        className="mb-8 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 lg:mb-10"
       >
-        Selected work
-      </h2>
+        <h2
+          id="projects-heading"
+          className="m-0 font-sans text-2xl leading-[1.12] font-semibold tracking-[-0.03em] text-balance wrap-anywhere text-foreground"
+        >
+          Selected work
+        </h2>
+        {totalStars !== null && (
+          <TooltipProvider delay={250}>
+            <Tooltip>
+              <TooltipTrigger
+                type="button"
+                aria-label={`${totalStars.toLocaleString("en-US")} total stars across public GitHub repositories`}
+                className={clsx(styles.totalStars, "-my-2 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-sm whitespace-nowrap font-mono text-xs tabular-nums focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2")}
+              >
+                {totalStars.toLocaleString("en-US")}
+                <Star aria-hidden="true" className="size-4 fill-current" />
+              </TooltipTrigger>
+              <TooltipContent className="data-closed:hidden motion-reduce:animate-none">Total Stars</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
       {featuredProjects.length ? <ul className="m-0 list-none p-0">
         {featuredProjects.map(({ slug, metadata: project }) => (
           <HomeEditorialRow

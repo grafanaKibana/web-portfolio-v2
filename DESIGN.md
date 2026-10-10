@@ -100,6 +100,10 @@ The conversation entry is an intentional accent exception: desktop rests as a ja
 
 About begins with the biography and retains a screen-reader heading. Contact begins with “Let's talk”, without a separate section label. Recommendation arrows use the shared ghost icon buttons at the hero’s standard desktop button height. Education degree and certification names share the same text size, weight, and heading color; academic metadata shows the study period without location. Home project and article rows keep a single arrow link at the end of the title row at every width. Reading labels remain accessible without visible text and include the destination's project or article title; project external links stay on the case-study page.
 
+Selected work pairs its heading with a compact gold total-stars count and star icon. The shared tooltip shows “Total Stars” on hover or keyboard focus. The count covers the configured account's public GitHub repositories and stays hidden when the complete total is unavailable. The heading row wraps when needed on narrow screens.
+
+Code activity pairs its heading with counts followed by the matching section status icons and colors, without separators. Each counter uses the shared tooltip to identify its pull-request status on hover or keyboard focus. Status names remain available to assistive technology.
+
 Reuse existing route and site-frame patterns and shared [UI components](components/ui/). These components are editable repository source: keep them reusable, document authored declarations, and review affected consumers when changing shared behavior. Configure controls through public props and semantic tokens. Keep feature geometry in its owning styles and avoid introducing a separate design-system layer.
 
 ## Accessibility

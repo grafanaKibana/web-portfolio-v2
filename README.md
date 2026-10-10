@@ -28,6 +28,8 @@ Code activity pull-request rows require a server-only `GITHUB_TOKEN` deployment 
 
 Plugin links on case studies use Obsidian's official download statistics and each source repository's latest stable GitHub release for their labels. Home project rows link to those case studies. Data refreshes on demand after a day in the server cache; unavailable data retains the original labels and destinations.
 
+Home's Selected work heading shows the total stars across the configured GitHub account's public repositories. The server refreshes repository data on demand after a day in the cache and hides the optional count when GitHub is unavailable.
+
 ## Directory map
 
 | Path | Responsibility |
