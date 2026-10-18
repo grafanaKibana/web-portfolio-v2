@@ -189,11 +189,12 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
   expect(geometryKeyframes).toHaveLength(0);
 }
 
-/** Triggers and samples the mobile panel midway through its composer-clock motion.
+/** Waits for an enabled control, then triggers and samples the mobile panel midway through its composer-clock motion.
  * @param control - Control that starts opening or closing the mobile surface.
  * @returns Current translucent frame-fill alpha and composer duration.
  */
 async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ duration: number; opacity: number }> {
+  await expect(control).toBeEnabled();
   return control.evaluate(async (element) => {
     (element as HTMLElement).click();
     const deadline = performance.now() + 5_000;
@@ -226,7 +227,13 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ durati
       context.fillRect(0, 0, 1, 1);
       return { duration, opacity: (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255 };
     }
-    throw new Error("Expected mobile surface motion to start within five seconds.");
+    const state = {
+      disabled: element.matches(":disabled"),
+      reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      requests: (window as unknown as AskFixtureWindow).askFixture.requests.length,
+      morph: document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="true"]')?.dataset.morph ?? null,
+    };
+    throw new Error(`Expected mobile surface motion to start within five seconds: ${JSON.stringify(state)}`);
   });
 }
 

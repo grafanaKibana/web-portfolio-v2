@@ -145,11 +145,12 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
   expect(geometryKeyframes).toHaveLength(0);
 }
 
-/** Triggers and samples the desktop panel midway through its surface motion.
+/** Waits for an enabled control, then triggers and samples the desktop panel midway through its surface motion.
  * @param control - Control that starts opening or closing the desktop surface.
  * @returns Current frame clip and opacity.
  */
 async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPath: string; opacity: number }> {
+  await expect(control).toBeEnabled();
   return control.evaluate(async (element) => {
     (element as HTMLElement).click();
     const deadline = performance.now() + 5_000;
