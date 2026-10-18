@@ -152,13 +152,17 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
 async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPath: string; opacity: number }> {
   return control.evaluate(async (element) => {
     (element as HTMLElement).click();
-    for (let frame = 0; frame < 10; frame += 1) {
-      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+    const deadline = performance.now() + 5_000;
+    // Inspect the synchronous start before a delayed frame can outlast the animation.
+    while (performance.now() < deadline) {
       const target = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="false"] [data-chat-frame]');
       const animations = target?.getAnimations() ?? [];
       const animation = animations.find(({ effect }) =>
         effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.clipPath !== undefined));
-      if (!target || !animation?.effect) continue;
+      if (!target || !animation?.effect) {
+        await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+        continue;
+      }
       const owner = target.parentElement;
       if (!owner) throw new Error("Expected the frame to belong to a surface.");
       for (const current of owner.getAnimations({ subtree: true })) {
@@ -171,7 +175,7 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPa
       const style = getComputedStyle(target);
       return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
     }
-    throw new Error("Expected desktop opening motion to start within ten animation frames.");
+    throw new Error("Expected desktop surface motion to start within five seconds.");
   });
 }
 
