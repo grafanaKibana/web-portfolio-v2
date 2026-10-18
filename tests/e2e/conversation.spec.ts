@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { triggerAndPauseSurfaceMotion } from "./surface-motion";
 
 type AskRequest = {
   context?: { pathname?: string; sectionId?: string };
@@ -145,33 +146,32 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
   expect(geometryKeyframes).toHaveLength(0);
 }
 
-/** Triggers and samples the desktop panel midway through its surface motion.
+/** Waits for an enabled control, then triggers and samples the desktop panel midway through its surface motion.
  * @param control - Control that starts opening or closing the desktop surface.
  * @returns Current frame clip and opacity.
  */
 async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPath: string; opacity: number }> {
-  return control.evaluate(async (element) => {
-    (element as HTMLElement).click();
-    for (let frame = 0; frame < 10; frame += 1) {
-      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
-      const target = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="false"] [data-chat-frame]');
-      const animations = target?.getAnimations() ?? [];
-      const animation = animations.find(({ effect }) =>
-        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.clipPath !== undefined));
-      if (!target || !animation?.effect) continue;
-      const owner = target.parentElement;
-      if (!owner) throw new Error("Expected the frame to belong to a surface.");
-      for (const current of owner.getAnimations({ subtree: true })) {
-        if (current.timeline !== document.timeline) continue;
-        const duration = Number(current.effect?.getTiming().duration);
-        if (!Number.isFinite(duration)) continue;
-        current.pause();
-        current.currentTime = Number(animation.effect.getTiming().duration) * 0.45;
-      }
-      const style = getComputedStyle(target);
-      return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
+  await triggerAndPauseSurfaceMotion(
+    control,
+    '[data-chat-surface][data-mobile="false"] [data-chat-frame]',
+    "clipPath",
+  );
+  return control.page().evaluate(() => {
+    const target = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="false"] [data-chat-frame]');
+    const animation = target?.getAnimations().find(({ effect }) =>
+      effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.clipPath !== undefined));
+    if (!target || !animation?.effect) throw new Error("Expected captured desktop frame motion.");
+    const owner = target.parentElement;
+    if (!owner) throw new Error("Expected the frame to belong to a surface.");
+    for (const current of owner.getAnimations({ subtree: true })) {
+      if (current.timeline !== document.timeline) continue;
+      const duration = Number(current.effect?.getTiming().duration);
+      if (!Number.isFinite(duration)) continue;
+      current.pause();
+      current.currentTime = Number(animation.effect.getTiming().duration) * 0.45;
     }
-    throw new Error("Expected desktop opening motion to start within ten animation frames.");
+    const style = getComputedStyle(target);
+    return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
   });
 }
 

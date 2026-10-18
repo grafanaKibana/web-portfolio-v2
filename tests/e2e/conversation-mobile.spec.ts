@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { triggerAndPauseSurfaceMotion } from "./surface-motion";
 
 type Reply = {
   done?: boolean;
@@ -189,40 +190,40 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
   expect(geometryKeyframes).toHaveLength(0);
 }
 
-/** Triggers and samples the mobile panel midway through its composer-clock motion.
+/** Waits for an enabled control, then triggers and samples the mobile panel midway through its composer-clock motion.
  * @param control - Control that starts opening or closing the mobile surface.
  * @returns Current translucent frame-fill alpha and composer duration.
  */
 async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ duration: number; opacity: number }> {
-  return control.evaluate(async (element) => {
-    (element as HTMLElement).click();
-    for (let frame = 0; frame < 10; frame += 1) {
-      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
-      const surface = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="true"]');
-      const composer = surface?.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
-      const animation = composer?.getAnimations().find(({ effect }) =>
-        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
-      if (!surface || !animation?.effect) continue;
-      const duration = Number(animation.effect.getTiming().duration);
-      for (const current of surface.getAnimations({ subtree: true })) {
-        if (current.timeline !== document.timeline) continue;
-        const currentDuration = Number(current.effect?.getTiming().duration);
-        if (!Number.isFinite(currentDuration)) continue;
-        current.pause();
-        current.currentTime = Math.min(currentDuration, (duration - 80) * 0.45);
-      }
-      await new Promise<void>((resolve) => { requestAnimationFrame(() => { requestAnimationFrame(() => { resolve(); }); }); });
-      const fill = surface.querySelector<HTMLElement>("[data-chat-frame-fill]");
-      if (!fill) throw new Error("Expected mobile frame fill.");
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 1;
-      const context = canvas.getContext("2d", { willReadFrequently: true });
-      if (!context) throw new Error("Expected paint sampling context.");
-      context.fillStyle = getComputedStyle(fill).backgroundColor;
-      context.fillRect(0, 0, 1, 1);
-      return { duration, opacity: (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255 };
+  await triggerAndPauseSurfaceMotion(
+    control,
+    '[data-chat-surface][data-mobile="true"] [data-conversation-composer] [data-slot="input-group"]',
+    "transform",
+  );
+  return control.page().evaluate(async () => {
+    const surface = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="true"]');
+    const composer = surface?.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
+    const animation = composer?.getAnimations().find(({ effect }) =>
+      effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
+    if (!surface || !animation?.effect) throw new Error("Expected captured mobile composer motion.");
+    const duration = Number(animation.effect.getTiming().duration);
+    for (const current of surface.getAnimations({ subtree: true })) {
+      if (current.timeline !== document.timeline) continue;
+      const currentDuration = Number(current.effect?.getTiming().duration);
+      if (!Number.isFinite(currentDuration)) continue;
+      current.pause();
+      current.currentTime = Math.min(currentDuration, (duration - 80) * 0.45);
     }
-    throw new Error("Expected mobile opening motion to start within ten animation frames.");
+    await new Promise<void>((resolve) => { requestAnimationFrame(() => { requestAnimationFrame(() => { resolve(); }); }); });
+    const fill = surface.querySelector<HTMLElement>("[data-chat-frame-fill]");
+    if (!fill) throw new Error("Expected mobile frame fill.");
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Expected paint sampling context.");
+    context.fillStyle = getComputedStyle(fill).backgroundColor;
+    context.fillRect(0, 0, 1, 1);
+    return { duration, opacity: (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255 };
   });
 }
 
