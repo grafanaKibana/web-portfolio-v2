@@ -3,7 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: ["style-contracts.spec.ts", "home-layout.spec.ts"],
-  workers: 2,
+  // Follow Playwright's single-worker CI guidance for reproducible browser checks.
+  workers: process.env.CI ? 1 : 2,
   webServer: {
     command: "npm start -- --port 3192",
     port: 3192,

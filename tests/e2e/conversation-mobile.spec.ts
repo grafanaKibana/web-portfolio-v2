@@ -196,13 +196,17 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
 async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ duration: number; opacity: number }> {
   return control.evaluate(async (element) => {
     (element as HTMLElement).click();
-    for (let frame = 0; frame < 10; frame += 1) {
-      await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+    const deadline = performance.now() + 5_000;
+    // Inspect the synchronous start before a delayed frame can outlast the animation.
+    while (performance.now() < deadline) {
       const surface = document.querySelector<HTMLElement>('[data-chat-surface][data-mobile="true"]');
       const composer = surface?.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
       const animation = composer?.getAnimations().find(({ effect }) =>
         effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
-      if (!surface || !animation?.effect) continue;
+      if (!surface || !animation?.effect) {
+        await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
+        continue;
+      }
       const duration = Number(animation.effect.getTiming().duration);
       for (const current of surface.getAnimations({ subtree: true })) {
         if (current.timeline !== document.timeline) continue;
@@ -222,7 +226,7 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ durati
       context.fillRect(0, 0, 1, 1);
       return { duration, opacity: (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255 };
     }
-    throw new Error("Expected mobile opening motion to start within ten animation frames.");
+    throw new Error("Expected mobile surface motion to start within five seconds.");
   });
 }
 

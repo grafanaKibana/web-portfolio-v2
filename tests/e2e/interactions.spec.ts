@@ -126,16 +126,14 @@ test("compact navigation traps focus, restores it, and reaches a visible target"
   expect(targetBox.y - headerBox.y - headerBox.height).toBeLessThanOrEqual(18);
 });
 
-test("Home section navigation clears the sticky header across responsive breakpoints", { tag: "@webkit" }, async ({ page }) => {
-  const cases = [
-    { width: 390, sections: ["experience", "about"] },
-    { width: 1023, sections: ["education"] },
-    { width: 1024, sections: ["skills", "projects"] },
-    { width: 1279, sections: ["code"] },
-    { width: 1280, sections: ["writing", "contact"] },
-  ] as const;
-
-  for (const { width, sections } of cases) {
+for (const { width, sections } of [
+  { width: 390, sections: ["experience", "about"] },
+  { width: 1023, sections: ["education"] },
+  { width: 1024, sections: ["skills", "projects"] },
+  { width: 1279, sections: ["code"] },
+  { width: 1280, sections: ["writing", "contact"] },
+] as const) {
+  test(`Home section navigation clears the sticky header at ${String(width)}px`, { tag: "@webkit" }, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await openStableRoute(page, "/");
     if (width < 1280) await page.locator("#experience").scrollIntoViewIfNeeded();
@@ -171,8 +169,8 @@ test("Home section navigation clears the sticky header across responsive breakpo
       if (width < 1280) await expect(activeNavigation).toHaveText(label);
       else await expect(activeNavigation).toHaveAttribute("aria-current", "location");
     }
-  }
-});
+  });
+}
 
 test("phone shell keeps controls and content contained without overlap", { tag: "@webkit" }, async ({ page }) => {
   const width = 390;
@@ -515,6 +513,8 @@ test("readiness failure leaves visible usable content", { tag: "@webkit" }, asyn
     };
   });
   await page.goto("/");
+  // Start the fail-open deadline after hydration activates the splash controller.
+  await expect(page.locator('[data-slot="opening-splash"][data-state="inactive"]')).toHaveCount(0);
   await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
