@@ -69,6 +69,17 @@ function visibleSectionStart(page: Page, sectionId: string): Locator {
     : section.getByRole("heading").first();
 }
 
+/**
+ * Waits for section content or its owning row to finish its reveal translation.
+ *
+ * @param content - Visible content whose final bounds will be measured.
+ */
+async function waitForSectionReveal(content: Locator): Promise<void> {
+  await expect.poll(() => content.evaluate((element) =>
+    getComputedStyle(element.closest("[data-page-motion-row]") ?? element).transform,
+  )).toBe("none");
+}
+
 test("skip navigation transfers keyboard focus to main content", { tag: "@webkit" }, async ({ page, browserName }) => {
   for (const path of ["/", "/articles"]) {
     await page.goto(path);
@@ -107,7 +118,9 @@ test("compact navigation traps focus, restores it, and reaches a visible target"
   const target = page.locator(`#${href.slice(2)}`);
   await expect(target).toBeVisible();
   await waitForScrollSettlement(page);
-  const targetBox = await boxOf(visibleSectionStart(page, href.slice(2)));
+  const content = visibleSectionStart(page, href.slice(2));
+  await waitForSectionReveal(content);
+  const targetBox = await boxOf(content);
   const headerBox = await boxOf(page.locator('[data-slot="site-header"]'));
   expect(targetBox.y - headerBox.y - headerBox.height).toBeGreaterThanOrEqual(14);
   expect(targetBox.y - headerBox.y - headerBox.height).toBeLessThanOrEqual(18);
@@ -140,7 +153,9 @@ test("Home section navigation clears the sticky header across responsive breakpo
 
       await expect(page).toHaveURL(new RegExp(`#${sectionId}$`));
       await waitForScrollSettlement(page);
-      const contentBox = await boxOf(visibleSectionStart(page, sectionId));
+      const content = visibleSectionStart(page, sectionId);
+      await waitForSectionReveal(content);
+      const contentBox = await boxOf(content);
       const headerBox = await boxOf(page.locator('[data-slot="site-header"]'));
       const rawClearance = contentBox.y - headerBox.y - headerBox.height;
       const devicePixelRatio = await page.evaluate(() => window.devicePixelRatio);
