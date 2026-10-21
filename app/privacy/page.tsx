@@ -3,8 +3,6 @@ import type { Metadata } from "next";
 /** Search and sharing metadata for the privacy policy. */
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  alternates: { canonical: "/privacy" },
-  openGraph: { url: "/privacy" },
   description: "How this portfolio handles analytics, AI questions, performance measurements, and information sent by email.",
 };
 

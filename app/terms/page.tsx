@@ -3,8 +3,6 @@ import type { Metadata } from "next";
 /** Search and sharing metadata for the terms and conditions. */
 export const metadata: Metadata = {
   title: "Terms & Conditions",
-  alternates: { canonical: "/terms" },
-  openGraph: { url: "/terms" },
   description: "Terms for using this personal portfolio and understanding source-code rights in linked repositories.",
 };
 

@@ -1,5 +1,3 @@
-import type { Metadata } from "next";
-
 import { HomeAbout } from "@/app/(home)/_components/about/about";
 import { HomeCodeActivity } from "@/app/(home)/_components/code-activity/code-activity";
 import { HomeContact } from "@/app/(home)/_components/contact/contact";
@@ -9,12 +7,6 @@ import { HomeHero } from "@/app/(home)/_components/hero/hero";
 import { HomeProjects } from "@/app/(home)/_components/projects/projects";
 import { HomeSkills } from "@/app/(home)/_components/skills/skills";
 import { HomeWriting } from "@/app/(home)/_components/writing/writing";
-
-/** Canonical and sharing URLs for the portfolio Home page. */
-export const metadata: Metadata = {
-  alternates: { canonical: "/" },
-  openGraph: { url: "/" },
-};
 
 /** Refresh interval for server-rendered Home content, in seconds. */
 export const revalidate = 300;

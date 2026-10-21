@@ -58,6 +58,8 @@ const siteOrigin = getSiteOrigin();
 /** Application-wide metadata defaults, canonical origin, and title template. */
 export const metadata: Metadata = {
   ...(siteOrigin ? { metadataBase: new URL(siteOrigin) } : {}),
+  alternates: { canonical: "./" },
+  openGraph: { url: "./" },
   title: {
     default: profile.name,
     template: `%s | ${profile.name}`,

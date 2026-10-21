@@ -1,7 +1,7 @@
 import { Github, Obsidian } from "@thesvg/react";
 import { clsx } from "clsx";
 import { ArrowRight, ExternalLink } from "lucide-react";
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -27,11 +27,13 @@ export function generateStaticParams() {
  * Builds route metadata from a validated project.
  *
  * @param params - Promise containing the requested project slug.
+ * @param parent - Resolved metadata containing inherited Open Graph defaults.
  * @returns Metadata for the requested project.
  */
-export async function generateMetadata({
-  params,
-}: PageProps<"/projects/[slug]">): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: PageProps<"/projects/[slug]">,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
   const { slug } = await params;
   const project = await loadProject(slug);
   if (!project) notFound();
@@ -39,9 +41,8 @@ export async function generateMetadata({
   return {
     title: project.metadata.title,
     description: project.metadata.description,
-    alternates: { canonical: `/projects/${slug}` },
     openGraph: {
-      url: `/projects/${slug}`,
+      ...(await parent).openGraph,
       type: "website",
       title: project.metadata.title,
       description: project.metadata.description,
