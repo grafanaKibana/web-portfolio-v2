@@ -13,6 +13,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      VERCEL_PROJECT_PRODUCTION_URL: portfolio.example.test
 
     steps:
       - name: Check out repository
@@ -37,16 +39,12 @@ jobs:
         run: npm run test:unit
 
       - name: Build production application
-        env:
-          VERCEL_PROJECT_PRODUCTION_URL: portfolio.example.test
         run: npm run build
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium webkit
 
       - name: Run browser tests
-        env:
-          VERCEL_PROJECT_PRODUCTION_URL: portfolio.example.test
         run: time npm run test:e2e
 
       - name: Check development CSS contracts
