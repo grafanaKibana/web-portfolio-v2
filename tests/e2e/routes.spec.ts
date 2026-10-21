@@ -1,5 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { getSiteOrigin } from "@/lib/seo/site-url";
+
+const siteOrigin = getSiteOrigin();
+
 const collections = [
   { path: "/articles", rowSlot: "article-row" },
   { path: "/projects", rowSlot: "project-row" },
@@ -31,6 +35,21 @@ async function expectSemanticPage(page: Page) {
   await expect(main).toBeVisible();
   await expect(main.getByRole("heading", { level: 1 })).toHaveCount(1);
   expect(await page.locator("html").evaluate((root) => root.scrollWidth <= root.clientWidth)).toBe(true);
+  const canonical = page.locator('link[rel="canonical"]');
+  await expect(canonical).toHaveCount(1);
+  await expect(canonical).toHaveAttribute("href", /.+/u);
+  const canonicalHref = await canonical.getAttribute("href") ?? "";
+  const canonicalUrl = new URL(canonicalHref, page.url());
+  expect(canonicalUrl.pathname).toBe(new URL(page.url()).pathname);
+  const sharing = page.locator('meta[property="og:url"]');
+  await expect(sharing).toHaveAttribute("content", /.+/u);
+  const sharingHref = await sharing.getAttribute("content") ?? "";
+  expect(new URL(sharingHref, page.url()).href).toBe(canonicalUrl.href);
+  if (siteOrigin) {
+    expect(canonicalUrl.origin).toBe(siteOrigin);
+    expect(new URL(canonicalHref).href).toBe(canonicalUrl.href);
+    expect(new URL(sharingHref).href).toBe(canonicalUrl.href);
+  }
 }
 
 test("visitor routes and discovered details resolve semantically", async ({ page }) => {
@@ -98,6 +117,25 @@ test("declared public guidance and image assets resolve", async ({ page, request
     expect(response.headers()["content-type"]).toMatch(/^image\//);
     expect((await response.body()).byteLength).toBeGreaterThan(0);
   }
+});
+
+test("sitemap and robots publish the same configured canonical origin", async ({ request }) => {
+  const sitemap = await request.get("/sitemap.xml");
+  expect(sitemap.status()).toBe(200);
+  const urls = [...(await sitemap.text()).matchAll(/<loc>([^<]+)<\/loc>/gu)]
+    .map((match) => new URL(match[1] ?? ""));
+  const robots = await request.get("/robots.txt");
+  expect(robots.status()).toBe(200);
+  const directives = await robots.text();
+  if (!siteOrigin) {
+    expect(urls).toHaveLength(0);
+    expect(directives).not.toMatch(/^Sitemap:/mu);
+    return;
+  }
+  expect(urls.length).toBeGreaterThan(0);
+  expect(new Set(urls.map((url) => url.origin))).toEqual(new Set([siteOrigin]));
+  expect(new Set(urls.map((url) => url.href)).size).toBe(urls.length);
+  expect(directives).toContain(`Sitemap: ${siteOrigin}/sitemap.xml`);
 });
 
 test("unknown routes return readable non-indexable fallbacks", async ({ page }) => {

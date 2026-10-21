@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getArticleSlugs, loadArticle } from "@/lib/content/articles/server";
@@ -24,11 +24,13 @@ export function generateStaticParams() {
  * Builds route metadata from a validated article.
  *
  * @param params - Promise containing the requested article slug.
+ * @param parent - Resolved metadata containing inherited Open Graph defaults.
  * @returns Metadata for the requested article.
  */
-export async function generateMetadata({
-  params,
-}: PageProps<"/articles/[slug]">): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: PageProps<"/articles/[slug]">,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
   const { slug } = await params;
   const article = await loadArticle(slug);
   if (!article) notFound();
@@ -36,8 +38,8 @@ export async function generateMetadata({
   return {
     title: article.metadata.title,
     description: article.metadata.description,
-    alternates: { canonical: `/articles/${slug}` },
     openGraph: {
+      ...(await parent).openGraph,
       type: "article",
       title: article.metadata.title,
       description: article.metadata.description,
