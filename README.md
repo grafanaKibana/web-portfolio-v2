@@ -30,16 +30,6 @@ Plugin links on case studies use Obsidian's official download statistics and eac
 
 Home's Selected work heading shows the total stars across the configured GitHub account's public repositories. The server refreshes repository data on demand after a day in the cache and hides the optional count when GitHub is unavailable.
 
-## Production domain and search metadata
-
-After connecting `reshetnik.dev` as the production domain, rebuild/redeploy so the generated metadata uses it. With access to Vercel's system environment variables enabled, the existing `VERCEL_PROJECT_PRODUCTION_URL` fallback selects the shortest custom production domain, or a `vercel.app` hostname when no custom domain is attached. No manually added site-URL variable is required for this setup. See [Vercel's production-domain variable](https://vercel.com/docs/environment-variables/system-environment-variables#vercel_project_production_url).
-
-`NEXT_PUBLIC_SITE_URL` remains an optional override for choosing a specific canonical origin or building outside Vercel. For example, `NEXT_PUBLIC_SITE_URL=https://reshetnik.dev` explicitly selects that origin and takes precedence over Vercel's automatic value. The validated HTTPS origin supplies the root metadata base, per-page canonical and Open Graph URLs, sitemap entries, and the sitemap location in `robots.txt`. Each page owns its canonical path so detail pages never inherit Home's URL.
-
-Without either variable, sitemap URLs are omitted and Next.js handles its metadata-base default; local development does not invent a production domain. CI uses the optional override with a synthetic HTTPS origin to test the configured-origin contract independently of Vercel and current portfolio inventory.
-
-Connect and validate `reshetnik.dev` and its HTTPS certificate before publishing the new-origin release. Domain attachment, DNS, old-host redirects, and Search Console verification/Change of Address are separate deployment steps; this application configuration does not activate them.
-
 ## Directory map
 
 | Path | Responsibility |

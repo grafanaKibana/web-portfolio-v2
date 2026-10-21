@@ -38,7 +38,7 @@ jobs:
 
       - name: Build production application
         env:
-          NEXT_PUBLIC_SITE_URL: https://portfolio.example.test
+          VERCEL_PROJECT_PRODUCTION_URL: portfolio.example.test
         run: npm run build
 
       - name: Install Playwright browsers
@@ -46,7 +46,7 @@ jobs:
 
       - name: Run browser tests
         env:
-          NEXT_PUBLIC_SITE_URL: https://portfolio.example.test
+          VERCEL_PROJECT_PRODUCTION_URL: portfolio.example.test
         run: time npm run test:e2e
 
       - name: Check development CSS contracts
