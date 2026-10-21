@@ -14,6 +14,7 @@ import { SiteHeader } from "@/components/site-header/site-header";
 import { SmoothScroll } from "@/components/smooth-scroll/smooth-scroll";
 import { ThemeProvider } from "@/components/theme/theme";
 import { home, profile } from "@/lib/content/portfolio/server";
+import { getSiteOrigin } from "@/lib/seo/site-url";
 import "lenis/dist/lenis.css";
 import styles from "./layout.module.scss";
 
@@ -52,8 +53,11 @@ const splashPreflight = `
   }
 })();`;
 
-/** Application-wide metadata defaults and title template. */
+const siteOrigin = getSiteOrigin();
+
+/** Application-wide metadata defaults, canonical origin, and title template. */
 export const metadata: Metadata = {
+  ...(siteOrigin ? { metadataBase: new URL(siteOrigin) } : {}),
   title: {
     default: profile.name,
     template: `%s | ${profile.name}`,

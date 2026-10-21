@@ -4,6 +4,8 @@ import Link from "next/link";
 /** Search and sharing metadata for the crawler guidance page. */
 export const metadata: Metadata = {
   title: "For Robots",
+  alternates: { canonical: "/for-robots" },
+  openGraph: { url: "/for-robots" },
   description: "How llms.txt and robots.txt describe this portfolio to automated agents and crawlers.",
 };
 

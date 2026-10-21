@@ -30,6 +30,14 @@ Plugin links on case studies use Obsidian's official download statistics and eac
 
 Home's Selected work heading shows the total stars across the configured GitHub account's public repositories. The server refreshes repository data on demand after a day in the cache and hides the optional count when GitHub is unavailable.
 
+## Production domain and search metadata
+
+Set `NEXT_PUBLIC_SITE_URL=https://reshetnik.dev` in the Vercel project's Production environment before building the domain-migration release, then redeploy. The validated HTTPS origin supplies the root metadata base, per-page canonical and Open Graph URLs, sitemap entries, and the sitemap location in `robots.txt`. An explicit value takes precedence over `VERCEL_PROJECT_PRODUCTION_URL`, which may still identify an older Vercel hostname. Each page owns its canonical path so detail pages never inherit Home's URL.
+
+When no explicit origin is configured, the existing Vercel production-host fallback remains available. Without either variable, sitemap URLs are omitted and Next.js handles its metadata-base default; local development does not invent a production domain. CI builds with a synthetic HTTPS origin and verifies rendered canonical and sharing URLs against the generated sitemap.
+
+Connect and validate `reshetnik.dev` and its HTTPS certificate before publishing the new-origin release. Domain attachment, DNS, old-host redirects, and Search Console verification/Change of Address are separate deployment steps; this application configuration does not activate them.
+
 ## Directory map
 
 | Path | Responsibility |

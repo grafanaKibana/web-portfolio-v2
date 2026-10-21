@@ -13,6 +13,8 @@ const publishedDate = new Intl.DateTimeFormat("en", {
 export const metadata: Metadata = {
   title: "Articles",
   description: home.writing.indexDescription,
+  alternates: { canonical: "/articles" },
+  openGraph: { url: "/articles" },
 };
 
 /**

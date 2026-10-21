@@ -8,6 +8,8 @@ import { home } from "@/lib/content/portfolio/server";
 export const metadata: Metadata = {
   title: "Projects",
   description: home.projects.indexDescription,
+  alternates: { canonical: "/projects" },
+  openGraph: { url: "/projects" },
 };
 
 /**
