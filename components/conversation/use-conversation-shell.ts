@@ -47,6 +47,24 @@ export function useConversationShell({ pathname, dismiss, rootRef }: Conversatio
   }, []);
 
   useEffect(() => {
+    const entry = rootRef.current?.querySelector<HTMLElement>("[data-edge-entry]");
+    if (!entry) return;
+    const html = document.documentElement;
+    /** Keeps in-flow footer clearance in step with wrapped or enlarged entry content. */
+    function updateEntryHeight() {
+      const field = entry?.querySelector<HTMLElement>('[data-slot="input-group"], [data-reopen-field]');
+      if (field) html.style.setProperty("--conversation-entry-height", `${String(field.getBoundingClientRect().height)}px`);
+    }
+    const observer = new ResizeObserver(updateEntryHeight);
+    observer.observe(entry);
+    updateEntryHeight();
+    return () => {
+      observer.disconnect();
+      html.style.removeProperty("--conversation-entry-height");
+    };
+  }, [capability, rootRef]);
+
+  useEffect(() => {
     const html = document.documentElement;
     const debugSplash = new URLSearchParams(window.location.search).has("debugSplash");
     /** Mirrors the splash marker while preserving the unbounded debug review gate. */

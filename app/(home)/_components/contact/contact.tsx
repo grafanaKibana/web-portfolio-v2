@@ -1,7 +1,9 @@
 import { Github, Leetcode, Linkedin, Telegram } from "@thesvg/react";
 import { ArrowUpRight, Calendar, Mail } from "lucide-react";
+import { clsx } from "clsx";
 
 import { home, profile } from "@/lib/content/portfolio/server";
+import styles from "./contact.module.scss";
 
 const socialIcons = {
   GitHub: <Github aria-hidden="true" className="action-icon opacity-65" variant="mono" />,
@@ -21,7 +23,7 @@ export function HomeContact() {
   return (
     <section
       aria-labelledby="contact-heading"
-      className="page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12"
+      className={clsx(styles.section, "page-shell-gutter w-full scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-1rem)] py-8 lg:scroll-mt-[calc(var(--site-header-top)+var(--site-header-height)-2rem)] lg:py-12")}
       data-page-motion-section
       id="contact"
     >
@@ -32,7 +34,7 @@ export function HomeContact() {
             {contact.description}
           </p>
         </div>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,max(7rem,calc(50%_-_0.75rem))),1fr))] gap-x-6 gap-y-2 min-[56.25rem]:grid-cols-[repeat(2,max-content)]" data-page-motion-row>
+        <div className={clsx(styles.links, "grid grid-cols-[repeat(auto-fit,minmax(min(100%,max(7rem,calc(50%_-_1rem))),1fr))] gap-x-8 gap-y-2 min-[56.25rem]:grid-cols-[repeat(2,max-content)]")} data-page-motion-row>
           <a
             aria-label={`E-Mail: ${contact.email}`}
             className="inline-flex min-h-12 max-w-full min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"

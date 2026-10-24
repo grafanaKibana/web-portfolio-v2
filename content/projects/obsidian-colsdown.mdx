@@ -2,7 +2,7 @@ export const metadata = {
   kind: "project",
   title: "Colsdown",
   description:
-    "An Obsidian plugin that turns readable fenced Markdown into responsive columns and stacks in Reading View.",
+    "Responsive Markdown columns and stacks for Obsidian, with in-place editing, resizing, and reusable presets.",
   tags: ["Obsidian API", "TypeScript", "Markdown", "CSS", "Vitest"],
   links: [
     { label: "Store page", href: "https://obsidian.md/plugins?id=colsdown" },
@@ -12,21 +12,37 @@ export const metadata = {
 
 ## About
 
-Colsdown adds columns and vertical stacks to Obsidian notes without replacing their Markdown source. Layouts are written as fenced blocks, so they remain understandable in Source Mode, editable in Live Preview, and responsive when rendered in Reading View.
+Colsdown adds responsive columns and vertical stacks to Obsidian notes while keeping Markdown as the source. Write layouts with comment markers or fenced blocks and render them in Reading View and Live Preview on desktop and mobile.
+
+In Live Preview, edit one column in place while its neighbors remain rendered. Dividers resize by dragging or with the keyboard, and a `+` control appends another column. Named presets retain reusable layout settings for later insertion.
 
 The plugin deliberately leaves visual identity to the active Obsidian theme. It supplies layout, spacing, optional dividers, and responsive behavior without adding card surfaces, hover colors, or a competing theme layer.
 
 ## Highlights
 
 - Column widths accept percentages, fractional tracks, or automatic sizing.
-- `stack` blocks use the same separator model for vertically divided content.
+- Comment markers and fenced blocks both support columns and vertical stacks.
+- Live Preview supports in-place Markdown editing with rendered neighboring columns and arrow-key navigation.
+- Divider resizing works by drag or keyboard; Escape cancels a resize before widths are saved.
+- New columns can be appended without rewriting the layout.
 - Nested layouts and nested backtick or tilde fences stay within the correct column.
 - Columns collapse below a configurable container width to avoid horizontal overflow.
-- Editor commands insert common two-column, three-column, sidebar, stack, and custom layouts as ordinary undoable changes.
+- Editor commands insert common two-column, three-column, sidebar, stack, custom, and named preset layouts as ordinary undoable changes.
 
 ## How it works
 
-A `colsdown` fence treats content before the first separator as the first column. A width written on a later separator belongs to the column after it, while the first column receives the remaining space.
+Comment markers keep the layout boundaries visible around ordinary Markdown. A width on a column marker belongs to the column after it, while the first column receives the remaining space.
+
+```markdown
+%% cols %%
+Sidebar content
+
+%% col:70 %%
+Main content
+%% endcols %%
+```
+
+This produces a 30/70 layout. `%% cols:stack %%` starts vertically arranged sections instead of side-by-side columns. Existing `colsdown` and `stack` fences remain supported:
 
 ```markdown
 ~~~colsdown
@@ -38,10 +54,11 @@ Main content
 ~~~
 ```
 
-This produces a 30/70 layout. Omitting widths creates equal automatic columns, while `1fr` and `2fr` express proportional tracks. The parser locks a block to its first separator and ignores marker-looking lines inside nested code fences.
+Omitting widths creates equal automatic columns, while fractional widths such as `1fr` and `2fr` express proportional tracks. The parser preserves nested layouts and ignores marker-looking lines inside code fences.
 
 ## Project details
 
 - **Platform:** Obsidian desktop and mobile
-- **Rendering:** Reading View through Obsidian's Markdown renderer
+- **Rendering:** Reading View and Live Preview through Obsidian's Markdown renderer
+- **Editing:** Markdown in place in Live Preview, with rendered neighboring columns
 - **License:** MIT

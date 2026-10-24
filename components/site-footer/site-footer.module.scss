@@ -1,28 +1,40 @@
 .footer {
-  container-name: site-footer;
-  container-type: inline-size;
+  --content-gap: 1rem;
+  --signoff-clearance: var(--content-gap);
+  --entry-height: var(--conversation-entry-height, 2.75rem);
+  --entry-lift: 0px;
+
   padding-top: 1.75rem;
-  padding-bottom: calc(6.0625rem + env(safe-area-inset-bottom, 0px));
+
+  // Reserve the revealed field's height, edge inset and desktop lift beneath the sign-off clearance.
+  padding-bottom: calc(var(--signoff-clearance) + var(--entry-height) + var(--entry-lift) + max(0.5rem, env(safe-area-inset-bottom, 0px)));
   font-size: 0.75rem;
   line-height: 1.125rem;
 }
 
 .layout {
   display: grid;
-  gap: 1rem;
+  justify-items: center;
+  gap: var(--content-gap);
+  text-align: center;
 }
 
 .navigation {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  column-gap: 1rem;
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 1.75rem;
 }
 
 .link {
   display: inline-flex;
+  max-width: 100%;
   min-height: 2.75rem;
   align-items: center;
+  justify-content: center;
   border-radius: 0.125rem;
+  text-align: center;
   transition: color 150ms ease-out;
 
   &:hover,
@@ -37,44 +49,56 @@
 }
 
 .metadata {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  text-align: left;
+  color: var(--foreground);
+  text-wrap: balance;
+
+  time {
+    white-space: nowrap;
+  }
 }
 
-.time {
-  time {
+@media (width < 40rem) {
+  .footer {
+    --content-gap: var(--mobile-closing-gap);
+
+    // Include the link target's inset so the visible top and bottom spaces match.
+    --signoff-clearance: calc(var(--mobile-closing-gap) + (2.75rem - 1.125rem) / 2);
+
+    padding-top: var(--mobile-closing-gap);
+  }
+
+  .navigation {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(7rem, calc(50% - 0.75rem))), 1fr));
+    gap: 0 1.5rem;
+  }
+
+  .link {
+    min-height: 2.75rem;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .metadata {
+    width: 100%;
+
+    // The full sign-off measures under 27.5em in the footer's monospace face.
+    font-size: min(0.75rem, calc((100vw - 2 * var(--page-shell-padding-inline)) / 27.5));
+  }
+
+  .signoff,
+  .localTime {
+    display: block;
     white-space: nowrap;
   }
 }
 
 @media (min-width: 40rem) {
   .footer {
+    --entry-height: var(--conversation-entry-height, 2.5rem);
+    --entry-lift: 0.5rem;
+
     padding-top: 2.25rem;
-    padding-bottom: calc(8.0625rem + env(safe-area-inset-bottom, 0px));
-  }
-}
-
-@container site-footer (min-width: 20em) {
-  .navigation {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 64rem) {
-  @container site-footer (min-width: 71.5em) {
-    .navigation {
-      display: flex;
-      justify-content: space-between;
-      gap: 0;
-    }
-
-    .metadata {
-      flex-direction: row;
-      justify-content: space-between;
-      gap: 0;
-      text-align: center;
-    }
   }
 }
