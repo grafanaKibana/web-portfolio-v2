@@ -99,6 +99,8 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
     compilerOptions: { baseUrl: ".", paths: { "@/*": ["./*"] } },
   }));
   await Promise.all([
+    writeFixture(root, "app/projects/_components/project-metrics.tsx"),
+    writeFixture(root, "app/projects/_lib/project-metrics.ts"),
     writeFixture(root, "components/site-header/site-header.tsx"),
     writeFixture(root, "components/gradient-background/index.ts"),
     writeFixture(root, "components/gradient-background/gradient-background.tsx"),
@@ -143,6 +145,10 @@ test("strict colocation zones enforce resolved aliases, relatives, exports, type
   ]);
 
   const cases = [
+    ["app/projects/page.tsx", 'import "./_components/project-metrics";', 0],
+    ["app/projects/page.tsx", 'import "./_lib/project-metrics";', 0],
+    ["app/(home)/_components/projects/projects.tsx", 'import "@/app/projects/_components/project-metrics";', 1],
+    ["app/(home)/_components/projects/projects.tsx", 'import "@/app/projects/_lib/project-metrics";', 1],
     ["app/(home)/page.tsx", 'import "@/components/gradient-background";', 0],
     ["components/site-header/site-header.tsx", 'import "@/components/gradient-background/gradient-background";', 1],
     ["components/site-header/site-header.tsx", 'import "@/components/gradient-background/upstream/feral-gradient-runtime";', 1],

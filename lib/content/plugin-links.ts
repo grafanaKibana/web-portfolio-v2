@@ -34,6 +34,23 @@ export class PluginLinksService {
   }
 
   /**
+   * Loads the total downloads for a linked Obsidian plugin, preserving unavailable metadata as null.
+   * @param links - Validated project links.
+   * @returns A validated count, including zero, or null when unavailable.
+   */
+  async loadDownloads(links: readonly ProjectLink[] | undefined): Promise<number | null> {
+    const storeLink = links?.find(({ href }) => PluginLinksService.obsidianPluginId(href) !== null);
+    const pluginId = storeLink ? PluginLinksService.obsidianPluginId(storeLink.href) : null;
+    if (!pluginId) return null;
+    try {
+      const counts = await this.operations.loadDownloadCounts();
+      return Object.hasOwn(counts, pluginId) ? counts[pluginId] ?? null : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Resolves live labels for links belonging to an Obsidian plugin project.
    *
    * @param links - Validated project links.
@@ -104,7 +121,7 @@ export class PluginLinksService {
    * @param href - Candidate source URL.
    * @returns The repository path when valid.
    */
-  private static githubRepository(href: string): string | null {
+  static githubRepository(href: string): string | null {
     try {
       const url = new URL(href);
       const segments = url.pathname.split("/").filter(Boolean);

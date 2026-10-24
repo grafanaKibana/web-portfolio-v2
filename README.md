@@ -30,6 +30,8 @@ Plugin links on case studies use Obsidian's official download statistics and eac
 
 Home's Selected work heading shows the total stars across the configured GitHub account's public repositories. The server refreshes repository data on demand after a day in the cache and hides the optional count when GitHub is unavailable.
 
+The project index shows available GitHub stars and total Obsidian plugin downloads beside each title. It sorts by descending stars, keeps the existing order for ties, and places projects without star data last. Optional counts refresh on demand after a day and disappear independently when unavailable. Home keeps its curated featured-project order without per-project metrics.
+
 ## Directory map
 
 | Path | Responsibility |

@@ -102,6 +102,8 @@ About begins with the biography and retains a screen-reader heading. Contact beg
 
 Selected work pairs its heading with a compact gold total-stars count and star icon. The shared tooltip shows “Total Stars” on hover, keyboard focus, or tap. The count covers the configured account's public GitHub repositories and stays hidden when the complete total is unavailable. The heading row wraps when needed on narrow screens.
 
+The project index places available GitHub stars and total Obsidian plugin downloads at the right of the title row, with compact icons and accessible labels. Titles wrap within the remaining space. Put the most-starred projects first, retain source order for ties, and place projects with unavailable star data last. Hide each unavailable metric independently while keeping its project visible. Home keeps its curated featured-project order without per-project metrics.
+
 Code activity pairs its heading with counts followed by the matching section status icons and colors, without separators. Each counter uses the shared tooltip to identify its pull-request status on hover, keyboard focus, or tap. Status names remain available to assistive technology.
 
 Reuse existing route and site-frame patterns and shared [UI components](components/ui/). These components are editable repository source: keep them reusable, document authored declarations, and review affected consumers when changing shared behavior. Configure controls through public props and semantic tokens. Keep feature geometry in its owning styles and avoid introducing a separate design-system layer.
