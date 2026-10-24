@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { triggerAndPauseSurfaceMotion } from "./surface-motion";
+import { readShellWidthContract } from "./shell-width";
 
 type AskRequest = {
   context?: { pathname?: string; sectionId?: string };
@@ -230,7 +231,8 @@ async function sampleEntryResize(field: Locator) {
       const animation = paint.getAnimations().find(({ effect }) =>
         effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.width !== undefined));
       if (animation?.effect) {
-        for (const current of element.getAnimations({ subtree: true })) {
+        const entry = element.closest("[data-edge-entry]") ?? element;
+        for (const current of entry.getAnimations({ subtree: true })) {
           current.pause();
           current.currentTime = Number(animation.effect.getTiming().duration) / 2;
         }
@@ -298,6 +300,21 @@ test.describe("conversation smoke", () => {
     await page.goto("/");
     await readyComposer(page);
   });
+
+  for (const width of [768, 1024, 1440]) {
+    test(`@webkit desktop shell alignment at ${String(width)}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await readyComposer(page);
+      const { pageGutter } = await readShellWidthContract(page);
+      const entry = await box(page.locator("[data-edge-entry]"));
+      expect(entry.x).toBeCloseTo(pageGutter, 0);
+      expect(entry.width).toBeCloseTo(width - 2 * pageGutter, 0);
+
+      const dialog = await send(page, "Synthetic shell alignment question");
+      await expect.poll(async () => (await box(dialog)).x).toBeCloseTo(pageGutter, 0);
+      expect((await box(dialog)).width).toBeCloseTo(width - 2 * pageGutter, 0);
+    });
+  }
 
   test("@webkit desktop entry reveals on hover or page end without reacting to upward scroll", async ({ page }) => {
     const entry = page.locator("[data-edge-entry]");
@@ -528,26 +545,43 @@ test.describe("conversation smoke", () => {
     const surface = page.locator('[data-chat-surface][data-mobile="false"]');
     const surfaceComposer = surface.locator('[data-conversation-composer] [data-slot="input-group"]');
     const motion = await surfaceComposer.evaluate((element) => {
+      const paint = element.querySelector<HTMLElement>("[data-composer-surface]");
+      if (!paint) throw new Error("Expected independent composer paint.");
       const animation = element.getAnimations().find(({ effect }) =>
         effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
       if (!(animation?.effect instanceof KeyframeEffect)) throw new Error("Expected composer transfer motion.");
       const keyframes = animation.effect.getKeyframes();
       const duration = Number(animation.effect.getTiming().duration);
+      const paintAnimation = paint.getAnimations().find(({ effect }) =>
+        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.width !== undefined));
+      if (!paintAnimation) throw new Error("Expected field paint resizing.");
       animation.currentTime = 0;
+      paintAnimation.currentTime = 0;
       const start = element.getBoundingClientRect();
+      const paintStart = paint.getBoundingClientRect();
       animation.currentTime = duration / 2;
+      paintAnimation.currentTime = duration / 2;
       const middle = element.getBoundingClientRect();
+      const paintMiddle = paint.getBoundingClientRect();
       animation.currentTime = duration;
+      paintAnimation.currentTime = duration;
       const end = element.getBoundingClientRect();
+      const paintEnd = paint.getBoundingClientRect();
       return {
         keyframes,
+        paintStart: { left: paintStart.left, width: paintStart.width },
+        paintMiddleWidth: paintMiddle.width,
+        paintEndWidth: paintEnd.width,
         start: { bottom: start.bottom, left: start.left, width: start.width, height: start.height },
         middle: { bottom: middle.bottom, width: middle.width },
         end: { bottom: end.bottom, left: end.left, width: end.width, height: end.height },
       };
     });
     const geometry = JSON.stringify({ before, motion, viewport: page.viewportSize() });
-    expect(motion.start.left, geometry).toBeCloseTo(before.x, 0);
+    expect(motion.paintStart.left, geometry).toBeCloseTo(before.x, 0);
+    expect(motion.paintStart.width, geometry).toBeCloseTo(before.width, 0);
+    expect(motion.paintMiddleWidth, geometry).toBeLessThan(motion.paintStart.width);
+    expect(motion.paintMiddleWidth, geometry).toBeGreaterThan(motion.paintEndWidth);
     expect(motion.start.bottom, geometry).toBeCloseTo(before.y + before.height, 0);
     expect(motion.end.bottom, geometry).toBeLessThan(motion.start.bottom - 20);
     expect(motion.end.bottom, geometry).toBeGreaterThan(motion.start.bottom - 40);

@@ -324,6 +324,16 @@
   }
 }
 
+@media (min-width: 48rem) {
+  .edgeEntry,
+  .surface[data-mobile="false"] {
+    width: min(
+      calc(100vw - 2 * var(--page-shell-padding-inline)),
+      calc(var(--viewport-width) - var(--safe-left) - var(--safe-right))
+    );
+  }
+}
+
 @media (forced-colors: active) {
   .entryStroke {
     background: buttontext;
