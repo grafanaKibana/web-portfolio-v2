@@ -1,0 +1,14 @@
+@media (width < 40rem) {
+  .section {
+    padding-bottom: var(--mobile-closing-gap);
+  }
+
+  .links {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(7rem, calc(50% - 0.75rem))), 1fr));
+    gap: 0 1.5rem;
+
+    > * {
+      min-height: 2.75rem;
+    }
+  }
+}

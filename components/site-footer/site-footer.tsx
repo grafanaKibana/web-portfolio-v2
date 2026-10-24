@@ -12,6 +12,7 @@ import styles from "./site-footer.module.scss";
  */
 export function SiteFooter() {
   const year = new Date().getFullYear();
+  const signoff = `© ${String(year)} ${profile.name}. All rights reserved.`;
   const initialTime = formatLocalTime(new Date(), home.footer.locale, home.footer.timeZone);
 
   return (
@@ -31,19 +32,17 @@ export function SiteFooter() {
             For Robots
           </Link>
         </nav>
-        <div className={styles.metadata}>
-          <p>
-            <span className="inline-block">© {year} {profile.name}.</span>{" "}
-            <span className="inline-block">All rights reserved.</span>
-          </p>
-          <p className={styles.time}>My local time:{" "}
+        <span className={styles.metadata}>
+          <span className={styles.signoff}>{signoff}</span>{" "}
+          <span className={styles.localTime}>
+            My&nbsp;local&nbsp;time:{" "}
             <LocalTime
               initialTime={initialTime}
               locale={home.footer.locale}
               timeZone={home.footer.timeZone}
             />
-          </p>
-        </div>
+          </span>
+        </span>
       </div>
     </footer>
   );

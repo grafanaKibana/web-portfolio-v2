@@ -149,6 +149,7 @@
   --page-shell-max-width: 54rem; /* Increase for wider content and longer lines on large screens. */
   --page-shell-desktop-min-gutter: 4rem; /* Increase to push content inward on tablets and smaller desktops. */
   --page-shell-mobile-gutter: 1.375rem; /* Increase to narrow page content below 48rem. */
+  --mobile-closing-gap: 1rem;
 
   /* Derived insets: compact header sits 0.25rem closer to the edge; desktop header follows the page frame. */
   --page-shell-padding-inline: var(--page-shell-mobile-gutter);
