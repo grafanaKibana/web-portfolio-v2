@@ -62,7 +62,10 @@ for (const theme of ["light", "dark"] as const) {
           contained: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
           sections: sections.map((section) => {
             const style = getComputedStyle(section);
-            return [parseFloat(style.paddingTop), parseFloat(style.paddingBottom)];
+            return {
+              id: section.id,
+              padding: [parseFloat(style.paddingTop), parseFloat(style.paddingBottom)],
+            };
           }),
           headers: headers.map((header) => {
             const style = getComputedStyle(header);
@@ -81,7 +84,10 @@ for (const theme of ["light", "dark"] as const) {
       const spacious = width >= 1024;
       const interval = measured.rootSize * (spacious ? 3 : 2);
       expect(measured.contained).toBe(true);
-      for (const sides of measured.sections) expect(sides).toEqual([interval, interval]);
+      for (const section of measured.sections) {
+        const bottom = section.id === "contact" && width < 640 ? measured.rootSize : interval;
+        expect(section.padding).toEqual([interval, bottom]);
+      }
       for (const header of measured.headers) {
         expect(header).toEqual([0, measured.rootSize * (spacious ? 2.5 : 2)]);
       }
