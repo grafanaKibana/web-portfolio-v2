@@ -2,7 +2,7 @@ export const metadata = {
   kind: "project",
   title: "Tabsdown",
   description:
-    "A shared fenced Markdown format that renders as accessible, theme-native tabs in Obsidian and Quartz.",
+    "Theme-native Markdown tabs with in-place editing in Obsidian and matching marker or fenced layouts for Quartz publishing.",
   tags: ["Obsidian API", "Quartz", "TypeScript", "Markdown", "CSS"],
   links: [
     { label: "Store page", href: "https://obsidian.md/plugins?id=tabsdown" },
@@ -13,9 +13,11 @@ export const metadata = {
 
 ## About
 
-Tabsdown turns fenced Markdown into tabs in Obsidian and Quartz. Both integrations share the same content format, so a vault can use interactive tabs while editing and publish those blocks without rewriting them for the website.
+Tabsdown turns Markdown into accessible, theme-native tabs in Obsidian and Quartz. Write layouts with comment markers or fenced blocks, use them in Obsidian Reading View and Live Preview, and publish the same source through Quartz.
 
-Tab bodies continue through each host's Markdown renderer. Links, embeds, callouts, math, diagrams, highlighted code, and compatible plugin blocks therefore behave like the same content outside a tab set.
+In Obsidian Live Preview, the active tab's body can be edited in place with a plain Markdown editor. Escape returns to the rendered content, switching tabs retains edits, and changes use Obsidian's Undo and Redo history. Tabs can be added, renamed, or removed without rebuilding the layout by hand.
+
+In Obsidian, tab bodies use the native Markdown renderer, keeping links, embeds, callouts, math, diagrams, highlighted code, and compatible plugin blocks available inside tabs. Quartz processes supported content through its own Markdown and Obsidian Flavored Markdown transformers.
 
 <figure>
   <img src="/projects/obsidian-tabsdown/showcase.png" alt="Tabsdown in Obsidian with Overview, Timeline, and Resources tabs and a nested weekly tab set" width={1440} height={1072} loading="lazy" />
@@ -25,14 +27,29 @@ Tab bodies continue through each host's Markdown renderer. Links, embeds, callou
 ## Highlights
 
 - Works in Obsidian Reading View and Live Preview on desktop and mobile.
+- Supports comment markers and fenced blocks, including layouts nested across both formats.
+- Edits the active tab in place in Live Preview while preserving the note's Markdown source and undo history.
 - Supports nested tab sets, Lucide icons, limited label formatting, four tab-list positions, wrapping, density, and appearance options.
+- Uses Style Settings for global styling and a context menu for individual layouts.
 - Keeps the original source readable when the plugin is inactive or the note is opened elsewhere.
 - Quartz emits every labelled panel as readable HTML before JavaScript adds tab behavior.
 - Pointer, touch, arrow-key, `Home`, and `End` navigation are supported.
 
 ## How it works
 
-Each block needs at least two non-empty, unique `tab:` labels. Optional configuration appears before the first tab.
+Comment markers surround ordinary Markdown and label each tab. A layout needs at least two non-empty, unique labels.
+
+```markdown
+%% tabs %%
+%% tab: Notes %%
+Plain Markdown content
+
+%% tab: Example %%
+`code` and other Markdown
+%% endtabs %%
+```
+
+Fenced `tabsdown` blocks remain supported with the same layout features. Optional configuration appears before the first `tab:` label.
 
 ```markdown
 ~~~tabsdown
@@ -44,10 +61,11 @@ tab: Example
 ~~~
 ```
 
-In Obsidian, the plugin delegates bodies to Obsidian's renderer. In Quartz, the transformer runs before Obsidian Flavored Markdown, inserts each body into the syntax tree, and lets later transformers process it normally. Malformed blocks retain their source and show a diagnostic instead of silently dropping content.
+In Obsidian, the plugin delegates rendered bodies to Obsidian's Markdown renderer and writes in-place edits back into the original layout. In Quartz, the transformer recognizes both formats before Obsidian Flavored Markdown, inserts each body into the syntax tree, and lets later transformers process it normally. Quartz reports malformed layouts with their original source; incomplete layouts in Obsidian can reveal the note's source for editing.
 
 ## Project details
 
 - **Platforms:** Obsidian and Quartz
-- **Rendering:** Reading View through Obsidian's Markdown renderer
+- **Rendering:** Reading View and Live Preview in Obsidian; readable HTML with progressive tab behavior in Quartz
+- **Editing:** plain Markdown in place within Obsidian Live Preview
 - **License:** MIT for the Obsidian plugin
