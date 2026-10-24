@@ -41,8 +41,10 @@ test("skills restore brand color and expose tooltips at compact and desktop widt
     await expect(tooltip).toBeVisible();
     await expect.poll(() => icon.evaluate((element) => getComputedStyle(element).filter)).toContain("grayscale(0)");
 
-    await page.mouse.move(0, 0);
     await page.keyboard.press("Escape");
+    await expect(tooltip).toBeHidden();
+    // Leaving after dismissal resets the trigger's Escape suppression before focus re-entry.
+    await page.mouse.move(0, 0);
     await firstSkill.focus();
     await expect(tooltip).toBeVisible();
 
