@@ -5,11 +5,12 @@ import type { ProjectMetrics as ProjectMetricsData } from "../_lib/project-metri
 /**
  * Shows available project counts with accessible labels and quiet, aligned numerals.
  *
- * @param metrics - Optional star and total download counts, including known zeroes.
- * @returns Inline project metrics, or nothing when both counts are unavailable.
+ * @param metrics - Optional star and total download counts; zero downloads remain visible.
+ * @returns Available downloads and positive stars, or nothing when neither is shown.
  */
 export function ProjectMetrics({ metrics }: { metrics: ProjectMetricsData }) {
-  if (metrics.stars === null && metrics.downloads === null) return null;
+  const stars = metrics.stars ?? 0;
+  if (stars <= 0 && metrics.downloads === null) return null;
 
   return (
     <span className="inline-flex shrink-0 items-center justify-end gap-3 font-mono text-xs leading-7 whitespace-nowrap text-muted-foreground tabular-nums" data-slot="project-metrics">
@@ -20,11 +21,11 @@ export function ProjectMetrics({ metrics }: { metrics: ProjectMetricsData }) {
           <ArrowBigDownDash aria-hidden="true" className="size-3.5" />
         </span>
       )}
-      {metrics.stars !== null && (
-        <span className="inline-flex items-center gap-1" data-project-stars={metrics.stars} title="GitHub stars">
-          {metrics.stars.toLocaleString("en-US")}
+      {stars > 0 && (
+        <span className="inline-flex items-center gap-1.5 text-[var(--star-foreground)]" data-project-stars={stars} title="GitHub stars">
+          {stars.toLocaleString("en-US")}
           <span className="sr-only"> stars</span>
-          <Star aria-hidden="true" className="size-3.5" />
+          <Star aria-hidden="true" className="size-4 fill-current" />
         </span>
       )}
     </span>
