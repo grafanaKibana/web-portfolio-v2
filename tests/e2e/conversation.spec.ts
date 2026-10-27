@@ -530,6 +530,49 @@ test.describe("conversation smoke", () => {
     await expect(launcher).toBeFocused();
   });
 
+  for (const theme of ["light", "dark"] as const) {
+    test(`@webkit first send preserves the focused field during transfer (${theme})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: "no-preference" });
+      await page.addInitScript((theme) => { localStorage.setItem("theme", theme); }, theme);
+      await page.reload();
+      await readyComposer(page);
+      await page.getByRole("textbox", { name: "Your question" }).fill("Synthetic focused field transfer");
+      const entryGroup = page.locator('[data-edge-entry] [data-slot="input-group"]');
+      await expect.poll(async () => entryGroup.evaluate((element) => element.getAnimations().length)).toBe(0);
+      const before = await entryGroup.evaluate((element) => ({
+        border: getComputedStyle(element).borderColor,
+        shadow: getComputedStyle(element).boxShadow,
+      }));
+      expect(before.shadow).not.toBe("none");
+
+      await triggerAndPauseSurfaceMotion(page.getByRole("button", { name: "Send", exact: true }),
+        '[data-chat-surface][data-mobile="false"] [data-slot="input-group"]', "transform");
+      const surface = page.locator('[data-chat-surface][data-mobile="false"]');
+      const input = surface.getByRole("textbox", { name: "Your question" });
+      await expect(input).toBeFocused();
+      const paint = surface.locator("[data-composer-surface]");
+      for (const progress of [0, 0.1, 0.5, 0.9]) {
+        await surface.evaluate((element, progress) => {
+          for (const animation of element.getAnimations({ subtree: true })) {
+            const end = animation.effect?.getComputedTiming().endTime;
+            if (typeof end === "number" && Number.isFinite(end)) animation.currentTime = end * progress;
+          }
+        }, progress);
+        await expect(input).toBeFocused();
+        await expect(paint).not.toHaveCSS("box-shadow", "none");
+        await expect(paint).toHaveCSS("border-color", before.border);
+      }
+
+      await finishMorph(surface);
+      await expect(surface).not.toHaveAttribute("data-morph");
+      await expect(input).toBeFocused();
+      const settledGroup = surface.locator('[data-slot="input-group"]');
+      await expect(settledGroup).toHaveCSS("box-shadow", before.shadow);
+      await expect(settledGroup).toHaveCSS("border-color", before.border);
+      await expect(paint).toHaveCSS("box-shadow", "none");
+    });
+  }
+
   test("@webkit desktop send moves the revealed field into the appearing panel", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();

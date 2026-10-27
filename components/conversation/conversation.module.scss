@@ -750,6 +750,14 @@
 }
 
 .surface[data-morph] [data-slot="input-group"] {
+  // Resolve the utility ring here so its non-inheriting value follows the resizing paint.
+  --composer-focus-shadow: var(--tw-ring-shadow);
+
   box-shadow: none;
   border-color: transparent;
+}
+
+.surface[data-morph] [data-slot="input-group"]:has([data-slot="input-group-control"]:focus-visible) [data-composer-surface] {
+  box-shadow: var(--composer-focus-shadow);
+  border-color: var(--ring);
 }
