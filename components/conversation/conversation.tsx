@@ -20,11 +20,12 @@ import { Button } from "@/components/ui/button";
 import { ConversationComposer, ConversationFieldSurface, conversationPlaceholder } from "./conversation-composer";
 import { ConversationActionTooltip, ConversationView } from "./conversation-view";
 import { chatGrowthDuration, chatMotionEase } from "./conversation-motion";
+import { panelElevationFrames, panelGeometry, readPanelElevation } from "./conversation-surface-motion";
+import type { SurfaceMorphPhase } from "./conversation.models";
 import { useConversation } from "./use-conversation";
 import { useConversationShell } from "./use-conversation-shell";
 import styles from "./conversation.module.scss";
 
-type SurfaceMorphPhase = "opening" | "closing";
 type ConversationDismiss = (intent?: "dismiss" | "navigate" | "reset", nativeClosing?: boolean) => void;
 
 /** Returns the visible composer group whose box transfers between page and thread.
@@ -33,19 +34,6 @@ type ConversationDismiss = (intent?: "dismiss" | "navigate" | "reset", nativeClo
  */
 function findComposerGroup(owner: ParentNode): HTMLElement | null {
   return owner.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
-}
-
-/** Describes a screen-space rectangle as a clip polygon relative to one element.
- * @param bounds - Element box that owns the clip path.
- * @param visible - Screen-space rectangle that should remain visible.
- * @returns A four-corner polygon that can extend beyond the owning box.
- */
-function rectClipPath(bounds: DOMRect, visible: DOMRect): string {
-  const left = visible.left - bounds.left;
-  const right = visible.right - bounds.left;
-  const top = visible.top - bounds.top;
-  const bottom = visible.bottom - bounds.top;
-  return `polygon(${String(left)}px ${String(top)}px, ${String(right)}px ${String(top)}px, ${String(right)}px ${String(bottom)}px, ${String(left)}px ${String(bottom)}px)`;
 }
 
 /** Removes transient inline geometry from one morph-owned element.
@@ -65,12 +53,14 @@ function clearSurfaceMotionStyles(surface: HTMLElement) {
   const line = surface.querySelector<HTMLElement>("[data-chat-morph-line]");
   const composer = findComposerGroup(surface);
   clearInlineProperties(frame, ["clip-path", "opacity"]);
+  clearInlineProperties(surface.querySelector<HTMLElement>("[data-chat-elevation]"), ["top", "right", "bottom", "left", "opacity"]);
   clearInlineProperties(surface.querySelector<HTMLElement>("[data-chat-frame-fill]"), ["background-color"]);
   for (const edge of surface.querySelectorAll<HTMLElement>("[data-chat-edge-fill]")) clearInlineProperties(edge, ["background-color"]);
   clearInlineProperties(line, ["bottom", "left", "opacity", "transform"]);
   clearInlineProperties(composer, ["opacity", "transform"]);
   clearInlineProperties(surface.querySelector<HTMLElement>("[data-composer-surface]"), ["width", "height", "border-color"]);
   clearInlineProperties(surface.querySelector<HTMLElement>("[data-composer-accent]"), ["opacity"]);
+  clearInlineProperties(surface.querySelector<HTMLElement>("[data-composer-elevation]"), ["opacity"]);
   for (const element of surface.querySelectorAll<HTMLElement>("[data-composer-content]")) element.style.removeProperty("opacity");
   for (const element of surface.querySelectorAll<HTMLElement>("[data-chat-reveal], [data-conversation-history]")) element.style.removeProperty("opacity");
   surface.style.removeProperty("height");
@@ -146,13 +136,15 @@ function useSurfaceToggleMotion(
    */
   const morphSurface = useCallback((surface: HTMLElement, phase: SurfaceMorphPhase) => {
     const frame = surface.querySelector<HTMLElement>("[data-chat-frame]");
+    const panelElevation = surface.querySelector<HTMLElement>("[data-chat-elevation]");
     const fill = surface.querySelector<HTMLElement>("[data-chat-frame-fill]");
     const line = surface.querySelector<HTMLElement>("[data-chat-morph-line]");
     const composer = findComposerGroup(surface);
     const paint = composer?.querySelector<HTMLElement>("[data-composer-surface]");
     const accent = composer?.querySelector<HTMLElement>("[data-composer-accent]");
+    const elevation = composer?.querySelector<HTMLElement>("[data-composer-elevation]");
     const origin = originRef.current;
-    if (!frame || !fill || !line || !composer || !paint || !accent) {
+    if (!frame || !fill || !line || !composer || !paint || !accent || !elevation) {
       cancelAnimations();
       releaseSurfaceMotion(surface, phase);
       const completion = completionRef.current;
@@ -165,8 +157,10 @@ function useSurfaceToggleMotion(
     const currentFillOpacity = interrupted ? fillOpacityRef.current : null;
     const currentFrameOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(frame).opacity) : null;
     const currentFrameClip = interrupted ? window.getComputedStyle(frame).clipPath : null;
+    const currentPanelInsets = interrupted && panelElevation ? readPanelElevation(panelElevation) : null;
     const currentPaint = interrupted ? paint.getBoundingClientRect() : null;
     const currentAccentOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(accent).opacity) : null;
+    const currentElevationOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(elevation).opacity) : null;
     const controls = Array.from(composer.querySelectorAll<HTMLElement>("[data-composer-content]"));
     const currentControlOpacity = interrupted ? controls.map((element) => Number.parseFloat(window.getComputedStyle(element).opacity)) : [];
     const currentComposerTransform = interrupted ? window.getComputedStyle(composer).transform : null;
@@ -178,6 +172,7 @@ function useSurfaceToggleMotion(
 
     const composerTarget = composer.getBoundingClientRect();
     const surfaceTarget = surface.getBoundingClientRect();
+    const collapsedPanel = panelGeometry(surfaceTarget, composerTarget);
     const fullClip = "polygon(0px 0px, 100% 0px, 100% 100%, 0px 100%)";
     const lineTarget = DOMRect.fromRect({
       x: composerTarget.left + (composerTarget.width - line.offsetWidth) / 2,
@@ -208,9 +203,11 @@ function useSurfaceToggleMotion(
     if (!mobile) animations.push(animateMini(frame, {
       opacity: [currentFrameOpacity ?? (phase === "opening" ? 0 : 1), phase === "opening" ? 1 : 0],
       clipPath: phase === "opening"
-        ? [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : rectClipPath(surfaceTarget, composerTarget), fullClip]
-        : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, rectClipPath(surfaceTarget, composerTarget)],
+        ? [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : collapsedPanel.clipPath, fullClip]
+        : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, collapsedPanel.clipPath],
     }, { duration: panelDuration, ease }));
+    if (!mobile && panelElevation) animations.push(animateMini(panelElevation,
+      panelElevationFrames(collapsedPanel.insets, phase, currentPanelInsets), { duration: panelDuration, ease }));
     const destination = origin ?? lineTarget;
     const openingFromLine = phase === "opening" && destination.height <= line.offsetHeight;
     const movingToLine = phase === "closing" && !returningToField;
@@ -246,6 +243,11 @@ function useSurfaceToggleMotion(
       width: [currentPaint?.width ?? (phase === "opening" ? destination.width : composerTarget.width), phase === "opening" ? composerTarget.width : destination.width],
       height: [currentPaint?.height ?? (phase === "opening" ? destination.height : composerTarget.height), phase === "opening" ? composerTarget.height : destination.height],
     }, { duration: fieldDuration, ease }));
+    // Keep Soft elevation through the entire move, then fade it once the panel's geometry is stable.
+    const elevationDelay = phase === "opening" && !openingFromLine ? fieldDuration : 0;
+    animations.push(animateMini(elevation, {
+      opacity: [currentElevationOpacity ?? (phase === "opening" && !openingFromLine ? 1 : 0), returningToField ? 1 : 0],
+    }, { delay: elevationDelay, duration: elevationDelay > 0 ? 0.12 : fieldDuration, ease }));
     animations.push(animateMini(accent, {
       opacity: [currentAccentOpacity ?? (openingFromLine ? 1 : 0), movingToLine ? 1 : 0],
     }, { delay: movingToLine ? fieldDuration * 0.6 : 0, duration: movingToLine ? fieldDuration * 0.4 : 0.18, ease }));
@@ -1008,7 +1010,7 @@ export function Conversation() {
               handleBeforeToggle(event);
               dismiss("dismiss", true);
             }} onToggle={handleToggle} popover="auto" ref={(node) => { surfaceRef.current = node; }} role="dialog">
-              <div aria-hidden className={styles.morphFrame} data-chat-frame><span className={styles.morphFill} data-chat-frame-fill /></div>
+              <span aria-hidden className={styles.panelElevation} data-chat-elevation /><div aria-hidden className={styles.morphFrame} data-chat-frame><span className={styles.morphFill} data-chat-frame-fill /></div>
               <span aria-hidden className={styles.morphLine} data-chat-morph-line />
               {contents}
             </div>

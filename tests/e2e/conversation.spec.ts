@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { triggerAndPauseSurfaceMotion } from "./surface-motion";
+import { readShellWidthContract } from "./shell-width";
 
 type AskRequest = {
   context?: { pathname?: string; sectionId?: string };
@@ -19,6 +20,9 @@ type Reply = {
 type AskFixtureWindow = Window & {
   askFixture: { aborted: number[]; requests: AskRequest[] };
 };
+
+/** Visible panel paint and shadow state at an intercepted animation frame. */
+type PanelMotionSample = { clipPath: string; opacity: number; elevation: { x: number; y: number; width: number; height: number; opacity: number } };
 
 /** Installs deterministic event-driven Ask streams and transport accounting.
  * @param page - Browser page receiving the fixture.
@@ -150,7 +154,7 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
  * @param control - Control that starts opening or closing the desktop surface.
  * @returns Current frame clip and opacity.
  */
-async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPath: string; opacity: number }> {
+async function triggerAndSampleSurfaceMotion(control: Locator): Promise<PanelMotionSample> {
   await triggerAndPauseSurfaceMotion(
     control,
     '[data-chat-surface][data-mobile="false"] [data-chat-frame]',
@@ -171,7 +175,11 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPa
       current.currentTime = Number(animation.effect.getTiming().duration) * 0.45;
     }
     const style = getComputedStyle(target);
-    return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
+    const elevation = owner.querySelector("[data-chat-elevation]");
+    if (!elevation) throw new Error("Expected the panel shadow layer.");
+    const { x, y, width, height } = elevation.getBoundingClientRect();
+    return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity),
+      elevation: { x, y, width, height, opacity: Number(getComputedStyle(elevation).opacity) } };
   });
 }
 
@@ -179,7 +187,7 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPa
  * @param control - Close control inside the opening desktop surface.
  * @returns Closing frame's initial clip and opacity.
  */
-async function triggerAndSampleClosingStart(control: Locator): Promise<{ clipPath: string; opacity: number }> {
+async function triggerAndSampleClosingStart(control: Locator): Promise<PanelMotionSample> {
   return control.evaluate(async (element) => {
     (element as HTMLElement).click();
     for (let frame = 0; frame < 10; frame += 1) {
@@ -187,13 +195,18 @@ async function triggerAndSampleClosingStart(control: Locator): Promise<{ clipPat
       const target = surface?.querySelector<HTMLElement>("[data-chat-frame]");
       const animation = target?.getAnimations().find(({ effect }) =>
         effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.clipPath !== undefined));
-      if (target && animation?.effect instanceof KeyframeEffect) {
-        for (const current of target.getAnimations()) {
+      if (surface && target && animation?.effect instanceof KeyframeEffect) {
+        for (const current of surface.getAnimations({ subtree: true })) {
+          if (current.timeline !== document.timeline) continue;
           current.pause();
           current.currentTime = 0;
         }
         const style = getComputedStyle(target);
-        return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
+        const elevation = surface.querySelector("[data-chat-elevation]");
+        if (!elevation) throw new Error("Expected the panel shadow layer.");
+        const { x, y, width, height } = elevation.getBoundingClientRect();
+        return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity),
+          elevation: { x, y, width, height, opacity: Number(getComputedStyle(elevation).opacity) } };
       }
       await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
     }
@@ -230,14 +243,15 @@ async function sampleEntryResize(field: Locator) {
       const animation = paint.getAnimations().find(({ effect }) =>
         effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.width !== undefined));
       if (animation?.effect) {
-        for (const current of element.getAnimations({ subtree: true })) {
+        const entry = element.closest("[data-edge-entry]") ?? element;
+        for (const current of entry.getAnimations({ subtree: true })) {
           current.pause();
           current.currentTime = Number(animation.effect.getTiming().duration) / 2;
         }
         return { width: paint.getBoundingClientRect().width, height: paint.getBoundingClientRect().height,
           fullWidth: element.getBoundingClientRect().width, fullHeight: element.getBoundingClientRect().height,
           clip: getComputedStyle(element).clipPath, controlsWidth: controls.getBoundingClientRect().width, controlsOpacity: Number(getComputedStyle(controls).opacity),
-          accent: getComputedStyle(paint.firstElementChild ?? paint).opacity };
+          accent: getComputedStyle(paint.querySelector("[data-composer-accent]") ?? paint).opacity };
       }
       await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
     }
@@ -298,6 +312,23 @@ test.describe("conversation smoke", () => {
     await page.goto("/");
     await readyComposer(page);
   });
+
+  for (const width of [768, 1024, 1440]) {
+    test.describe(`shell viewport ${String(width)}px`, () => {
+      test.use({ viewport: { width, height: 900 } });
+
+      test(`@webkit desktop shell alignment at ${String(width)}px`, async ({ page }) => {
+        const { pageGutter } = await readShellWidthContract(page);
+        const entry = await box(page.locator("[data-edge-entry]"));
+        expect(entry.x).toBeCloseTo(pageGutter, 0);
+        expect(entry.width).toBeCloseTo(width - 2 * pageGutter, 0);
+
+        const dialog = await send(page, "Synthetic shell alignment question");
+        await expect.poll(async () => (await box(dialog)).x).toBeCloseTo(pageGutter, 0);
+        expect((await box(dialog)).width).toBeCloseTo(width - 2 * pageGutter, 0);
+      });
+    });
+  }
 
   test("@webkit desktop entry reveals on hover or page end without reacting to upward scroll", async ({ page }) => {
     const entry = page.locator("[data-edge-entry]");
@@ -513,6 +544,88 @@ test.describe("conversation smoke", () => {
     await expect(launcher).toBeFocused();
   });
 
+  for (const theme of ["light", "dark"] as const) {
+    test(`@webkit first send preserves field elevation and focus during transfer (${theme})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: "no-preference" });
+      await page.addInitScript((theme) => { localStorage.setItem("theme", theme); }, theme);
+      await page.reload();
+      await readyComposer(page);
+      await page.getByRole("textbox", { name: "Your question" }).fill("Synthetic focused field transfer");
+      const entryGroup = page.locator('[data-edge-entry] [data-slot="input-group"]');
+      await expect.poll(async () => entryGroup.evaluate((element) => element.getAnimations().length)).toBe(0);
+      await expect.poll(async () => entryGroup.locator("[data-composer-surface]").evaluate((element) => element.getAnimations().length)).toBe(0);
+      const before = await entryGroup.evaluate((element) => ({
+        border: getComputedStyle(element).borderColor,
+        shadow: getComputedStyle(element).boxShadow,
+      }));
+      expect(before.shadow).not.toBe("none");
+      const beforeElevation = await entryGroup.locator("[data-composer-surface]").evaluate((element) => getComputedStyle(element).boxShadow);
+      expect(beforeElevation).not.toBe("none");
+
+      await triggerAndPauseSurfaceMotion(page.getByRole("button", { name: "Send", exact: true }),
+        '[data-chat-surface][data-mobile="false"] [data-slot="input-group"]', "transform");
+      const surface = page.locator('[data-chat-surface][data-mobile="false"]');
+      const input = surface.getByRole("textbox", { name: "Your question" });
+      await expect(input).toBeFocused();
+      const paint = surface.locator("[data-composer-surface]");
+      const elevation = surface.locator("[data-composer-elevation]");
+      await expect(elevation).toHaveCSS("box-shadow", beforeElevation);
+      const panelElevation = surface.locator("[data-chat-elevation]");
+      await expect(panelElevation).toBeAttached();
+      await expect(surface).toHaveCSS("filter", "none");
+      for (const progress of [0, 0.1, 0.5, 0.9, 1]) {
+        await surface.evaluate((element, progress) => {
+          const group = element.querySelector('[data-conversation-composer] [data-slot="input-group"]');
+          const transfer = group?.getAnimations().find(({ effect }) => effect instanceof KeyframeEffect
+            && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
+          if (!transfer?.effect) throw new Error("Expected the field transfer clock.");
+          const elapsed = Number(transfer.effect.getTiming().duration) * progress;
+          for (const animation of element.getAnimations({ subtree: true })) {
+            const end = animation.effect?.getComputedTiming().endTime;
+            if (typeof end === "number" && Number.isFinite(end)) animation.currentTime = Math.min(elapsed, end);
+          }
+        }, progress);
+        await expect(input).toBeFocused();
+        await expect(paint).not.toHaveCSS("box-shadow", "none");
+        await expect(paint).toHaveCSS("border-color", before.border);
+        expect(await elevation.evaluate((element) => Number(getComputedStyle(element).opacity))).toBe(1);
+        const bounds = await box(paint);
+        const clip = { x: Math.floor(bounds.x) - 7, y: Math.floor(bounds.y + bounds.height / 2) - 3, width: 4, height: 6 };
+        const visibleShadow = await page.screenshot({ clip });
+        let withoutShadow: Buffer;
+        await elevation.evaluate((element) => { (element as HTMLElement).style.boxShadow = "none"; });
+        try {
+          withoutShadow = await page.screenshot({ clip });
+        } finally {
+          await elevation.evaluate((element) => { (element as HTMLElement).style.removeProperty("box-shadow"); });
+        }
+        expect(visibleShadow.equals(withoutShadow), "The neutral field shadow must paint outside its moving edge").toBe(false);
+        if (progress > 0) {
+          const panel = await box(panelElevation);
+          const panelClip = { x: Math.floor(panel.x + panel.width / 2) - 2, y: Math.floor(panel.y) - 4, width: 4, height: 3 };
+          const panelShadow = await page.screenshot({ clip: panelClip });
+          await panelElevation.evaluate((element) => { (element as HTMLElement).style.boxShadow = "none"; });
+          let withoutPanelShadow: Buffer;
+          try {
+            withoutPanelShadow = await page.screenshot({ clip: panelClip });
+          } finally {
+            await panelElevation.evaluate((element) => { (element as HTMLElement).style.removeProperty("box-shadow"); });
+          }
+          expect(panelShadow.equals(withoutPanelShadow), `The panel shadow must paint above its expanding top edge at ${String(progress)}`).toBe(false);
+        }
+      }
+
+      await finishMorph(surface);
+      await expect(surface).not.toHaveAttribute("data-morph");
+      await expect(input).toBeFocused();
+      const settledGroup = surface.locator('[data-slot="input-group"]');
+      await expect(settledGroup).toHaveCSS("box-shadow", before.shadow);
+      await expect(settledGroup).toHaveCSS("border-color", before.border);
+      await expect(paint).toHaveCSS("box-shadow", "none");
+      await expect(elevation).toHaveCSS("opacity", "0");
+    });
+  }
+
   test("@webkit desktop send moves the revealed field into the appearing panel", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();
@@ -528,26 +641,43 @@ test.describe("conversation smoke", () => {
     const surface = page.locator('[data-chat-surface][data-mobile="false"]');
     const surfaceComposer = surface.locator('[data-conversation-composer] [data-slot="input-group"]');
     const motion = await surfaceComposer.evaluate((element) => {
+      const paint = element.querySelector<HTMLElement>("[data-composer-surface]");
+      if (!paint) throw new Error("Expected independent composer paint.");
       const animation = element.getAnimations().find(({ effect }) =>
         effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
       if (!(animation?.effect instanceof KeyframeEffect)) throw new Error("Expected composer transfer motion.");
       const keyframes = animation.effect.getKeyframes();
       const duration = Number(animation.effect.getTiming().duration);
+      const paintAnimation = paint.getAnimations().find(({ effect }) =>
+        effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.width !== undefined));
+      if (!paintAnimation) throw new Error("Expected field paint resizing.");
       animation.currentTime = 0;
+      paintAnimation.currentTime = 0;
       const start = element.getBoundingClientRect();
+      const paintStart = paint.getBoundingClientRect();
       animation.currentTime = duration / 2;
+      paintAnimation.currentTime = duration / 2;
       const middle = element.getBoundingClientRect();
+      const paintMiddle = paint.getBoundingClientRect();
       animation.currentTime = duration;
+      paintAnimation.currentTime = duration;
       const end = element.getBoundingClientRect();
+      const paintEnd = paint.getBoundingClientRect();
       return {
         keyframes,
+        paintStart: { left: paintStart.left, width: paintStart.width },
+        paintMiddleWidth: paintMiddle.width,
+        paintEndWidth: paintEnd.width,
         start: { bottom: start.bottom, left: start.left, width: start.width, height: start.height },
         middle: { bottom: middle.bottom, width: middle.width },
         end: { bottom: end.bottom, left: end.left, width: end.width, height: end.height },
       };
     });
     const geometry = JSON.stringify({ before, motion, viewport: page.viewportSize() });
-    expect(motion.start.left, geometry).toBeCloseTo(before.x, 0);
+    expect(motion.paintStart.left, geometry).toBeCloseTo(before.x, 0);
+    expect(motion.paintStart.width, geometry).toBeCloseTo(before.width, 0);
+    expect(motion.paintMiddleWidth, geometry).toBeLessThan(motion.paintStart.width);
+    expect(motion.paintMiddleWidth, geometry).toBeGreaterThan(motion.paintEndWidth);
     expect(motion.start.bottom, geometry).toBeCloseTo(before.y + before.height, 0);
     expect(motion.end.bottom, geometry).toBeLessThan(motion.start.bottom - 20);
     expect(motion.end.bottom, geometry).toBeGreaterThan(motion.start.bottom - 40);
@@ -591,7 +721,7 @@ test.describe("conversation smoke", () => {
     await expect(entry.locator("[data-reopen-field]")).toBeVisible();
   });
 
-  test("desktop Close during opening continues from the current panel frame", async ({ page }) => {
+  test("@webkit desktop Close during opening continues from the current panel frame", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();
     await readyComposer(page);
@@ -604,6 +734,9 @@ test.describe("conversation smoke", () => {
     await expect(surface).toHaveAttribute("data-closing", "true");
     expectClipPathClose(closing.clipPath, opening.clipPath);
     expect(closing.opacity).toBeCloseTo(opening.opacity, 3);
+    for (const property of ["x", "y", "width", "height", "opacity"] as const) {
+      expect(closing.elevation[property]).toBeCloseTo(opening.elevation[property], property === "opacity" ? 3 : 0);
+    }
 
     await trackLineHandoff(surface);
     await finishMorph(surface);

@@ -10,6 +10,14 @@
   --safe-left: max(1rem, env(safe-area-inset-left, 0px));
   --edge-gutter: max(0.5rem, env(safe-area-inset-bottom, 0px));
   --launcher-line-height: 0.3125rem;
+  --chat-shadow-contact: rgb(0 0 0 / 6%);
+  --chat-shadow-ambient: rgb(0 0 0 / 9%);
+  --chat-field-shadow: 0 0.0625rem 0.1875rem var(--chat-shadow-contact), 0 0.25rem 0.75rem var(--chat-shadow-ambient);
+}
+
+:global(.dark) .shell {
+  --chat-shadow-contact: rgb(0 0 0 / 20%);
+  --chat-shadow-ambient: rgb(0 0 0 / 30%);
 }
 
 .edgeEntry,
@@ -155,9 +163,6 @@
   border-radius: var(--surface-radius);
   background: transparent;
   color: var(--foreground);
-
-  // Composite the shadow after the inner shape is clipped during reveal and collapse.
-  filter: drop-shadow(0 0.75rem 1.5rem var(--background));
   bottom: calc(var(--viewport-bottom) + var(--edge-gutter) + 1rem);
   left: calc(var(--viewport-left) + var(--safe-left) + (var(--viewport-width) - var(--safe-left) - var(--safe-right)) / 2);
   opacity: 1;
@@ -173,6 +178,15 @@
 
 .surface:not(:popover-open, [data-closing="true"]) {
   display: none;
+}
+
+.panelElevation {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0.25rem 0.5rem var(--chat-shadow-contact), 0 0.625rem 1.5rem var(--chat-shadow-ambient);
+  pointer-events: none;
 }
 
 .morphFrame {
@@ -324,6 +338,16 @@
   }
 }
 
+@media (min-width: 48rem) {
+  .edgeEntry,
+  .surface[data-mobile="false"] {
+    width: min(
+      calc(100vw - 2 * var(--page-shell-padding-inline)),
+      calc(var(--viewport-width) - var(--safe-left) - var(--safe-right))
+    );
+  }
+}
+
 @media (forced-colors: active) {
   .entryStroke {
     background: buttontext;
@@ -370,7 +394,8 @@
     animation-name: conversation-entry-stroke-fade;
   }
 
-  .edgeEntry [data-composer-surface] {
+  .edgeEntry [data-composer-surface],
+  .surface [data-composer-elevation] {
     // Keep shadow above Safari's 4px sample strip; the group's real border and focus ring remain unclipped.
     clip-path: inset(-2rem -2rem -2px);
   }
@@ -391,7 +416,7 @@
   width: calc(100% + 2px);
   height: calc(100% + 2px);
   border-color: var(--border);
-  box-shadow: 0 0.25rem 1.25rem var(--background);
+  box-shadow: var(--chat-field-shadow);
   transition-delay: 0s;
 }
 
@@ -733,6 +758,14 @@
 }
 
 .surface[data-morph] [data-slot="input-group"] {
+  // Resolve the utility ring here so its non-inheriting value follows the resizing paint.
+  --composer-focus-shadow: var(--tw-ring-shadow);
+
   box-shadow: none;
   border-color: transparent;
+}
+
+.surface[data-morph] [data-slot="input-group"]:has([data-slot="input-group-control"]:focus-visible) [data-composer-surface] {
+  box-shadow: var(--composer-focus-shadow);
+  border-color: var(--ring);
 }
