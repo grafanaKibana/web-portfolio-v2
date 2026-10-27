@@ -2,6 +2,11 @@
 
 Next.js portfolio with validated structured content and repository-authored MDX.
 
+<p>
+<a href="https://reshetnik.dev"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/View_portfolio.svg?variant=default&amp;size=sm&amp;font=geist&amp;mode=dark&amp;logo=ri%3ALuArrowUpRight&amp;color=84cc16&amp;logoColor=0e100f&amp;valueColor=0e100f&amp;labelTextColor=0e100f"><img alt="View portfolio" src="https://shieldcn.dev/badge/View_portfolio.svg?variant=default&amp;size=sm&amp;font=geist&amp;mode=light&amp;logo=ri%3ALuArrowUpRight&amp;color=437100&amp;logoColor=ffffff&amp;valueColor=ffffff&amp;labelTextColor=ffffff"></picture></a>
+<a href="https://github.com/grafanaKibana/web-portfolio-v2/actions/workflows/verify.yml"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/ci/grafanaKibana/web-portfolio-v2.svg?variant=outline&amp;size=xs&amp;font=geist&amp;mode=dark&amp;logo=githubactions&amp;color=84cc16&amp;logoColor=84cc16&amp;valueColor=fafafa&amp;labelTextColor=fafafa&amp;label=Verify&amp;workflow=verify.yml&amp;branch=main&amp;statusDot=true"><img alt="Verify" src="https://shieldcn.dev/github/ci/grafanaKibana/web-portfolio-v2.svg?variant=outline&amp;size=xs&amp;font=geist&amp;mode=light&amp;logo=githubactions&amp;color=437100&amp;logoColor=437100&amp;valueColor=18181b&amp;labelTextColor=18181b&amp;label=Verify&amp;workflow=verify.yml&amp;branch=main&amp;statusDot=true"></picture></a>
+</p>
+
 ## Commands
 
 ```bash
@@ -105,3 +110,4 @@ Use synthetic fixtures and controlled responses. Tests must not depend on curren
 ## Shared UI generation
 
 `components.json` points shadcn at root `components/`, `components/ui/`, `lib/`, and the local `components/ui/utils.ts` adapter. Registry templates can still differ from this repository's Base UI conventions or import `cn` directly. Review every generated diff before adoption; do not overwrite existing controls or assume generator aliases rewrite all upstream source.
+
