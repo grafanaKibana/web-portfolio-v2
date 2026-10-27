@@ -1,0 +1,217 @@
+{
+  "version": 1,
+  "project": {
+    "id": "portfolio",
+    "title": "Portfolio",
+    "subtitle": "",
+    "background": "#fcfcfb",
+    "accent": "#71977c",
+    "backgroundStyle": "solid",
+    "artDirection": "porcelain",
+    "layout": "desktop-centered",
+    "imageZoom": 1,
+    "ink": "#252527",
+    "imageOffsetX": 0,
+    "siteBackdrop": true,
+    "siteTint": "#e0e9e2",
+    "edgeBleed": 0.06
+  },
+  "outputDir": "public/projects/web-portfolio-v2",
+  "captures": [
+    {
+      "id": "overview-light",
+      "provider": "web",
+      "url": "/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "colorScheme": "light",
+      "fallback": "public/projects/web-portfolio-v2/captures/overview-light.png",
+      "ready": {
+        "selector": "main",
+        "expression": "document.documentElement.dataset.splashComplete === 'true'"
+      },
+      "localStorage": {}
+    },
+    {
+      "id": "overview-dark",
+      "provider": "web",
+      "url": "/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "colorScheme": "dark",
+      "fallback": "public/projects/web-portfolio-v2/captures/overview-dark.png",
+      "ready": {
+        "selector": "main",
+        "expression": "document.documentElement.dataset.splashComplete === 'true'"
+      },
+      "localStorage": {}
+    }
+  ],
+  "outputs": [
+    {
+      "id": "hero",
+      "template": "showcase",
+      "captures": [
+        "overview-light"
+      ],
+      "width": 1600,
+      "height": 1200,
+      "layout": "desktop-centered",
+      "theme": "light",
+      "capturesByTheme": {
+        "light": [
+          "overview-light"
+        ],
+        "dark": [
+          "overview-dark"
+        ]
+      }
+    },
+    {
+      "id": "hero-dark",
+      "template": "showcase",
+      "captures": [
+        "overview-dark"
+      ],
+      "width": 1600,
+      "height": 1200,
+      "layout": "desktop-centered",
+      "theme": "dark",
+      "capturesByTheme": {
+        "light": [
+          "overview-light"
+        ],
+        "dark": [
+          "overview-dark"
+        ]
+      }
+    },
+    {
+      "id": "themes",
+      "template": "showcase",
+      "captures": [
+        "overview-light"
+      ],
+      "width": 1600,
+      "height": 1000,
+      "layout": "desktop-centered",
+      "theme": "light",
+      "capturesByTheme": {
+        "light": [
+          "overview-light"
+        ],
+        "dark": [
+          "overview-dark"
+        ]
+      }
+    },
+    {
+      "id": "themes-dark",
+      "template": "showcase",
+      "captures": [
+        "overview-dark"
+      ],
+      "width": 1600,
+      "height": 1000,
+      "layout": "desktop-centered",
+      "theme": "dark",
+      "capturesByTheme": {
+        "light": [
+          "overview-light"
+        ],
+        "dark": [
+          "overview-dark"
+        ]
+      }
+    },
+    {
+      "id": "social",
+      "template": "showcase",
+      "captures": [
+        "overview-light"
+      ],
+      "width": 1200,
+      "height": 900,
+      "layout": "desktop-centered",
+      "theme": "light",
+      "capturesByTheme": {
+        "light": [
+          "overview-light"
+        ],
+        "dark": [
+          "overview-dark"
+        ]
+      }
+    },
+    {
+      "id": "social-dark",
+      "template": "showcase",
+      "captures": [
+        "overview-dark"
+      ],
+      "width": 1200,
+      "height": 900,
+      "layout": "desktop-centered",
+      "theme": "dark",
+      "capturesByTheme": {
+        "light": [
+          "overview-light"
+        ],
+        "dark": [
+          "overview-dark"
+        ]
+      }
+    },
+    {
+      "id": "centered",
+      "template": "showcase",
+      "layout": "desktop-centered",
+      "captures": [
+        "overview-light"
+      ],
+      "width": 1600,
+      "height": 1200,
+      "theme": "light",
+      "capturesByTheme": {
+        "light": [
+          "overview-light"
+        ],
+        "dark": [
+          "overview-dark"
+        ]
+      }
+    },
+    {
+      "id": "centered-dark",
+      "template": "showcase",
+      "layout": "desktop-centered",
+      "captures": [
+        "overview-dark"
+      ],
+      "width": 1600,
+      "height": 1200,
+      "theme": "dark",
+      "capturesByTheme": {
+        "light": [
+          "overview-light"
+        ],
+        "dark": [
+          "overview-dark"
+        ]
+      }
+    }
+  ],
+  "prepare": {
+    "command": "npm ci --cache .product-captures-cache/npm && npm run build",
+    "timeoutMs": 600000
+  },
+  "server": {
+    "command": "npm start -- --hostname 127.0.0.1 --port 4186",
+    "url": "http://127.0.0.1:4186",
+    "timeoutMs": 60000
+  }
+}

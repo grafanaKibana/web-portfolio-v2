@@ -52,3 +52,12 @@ next-env.d.ts
 /.playwright-cli/
 /output/playwright/
 /test-results/
+
+# Reproducible product capture runtime (generated locally and in CI).
+/.product-captures-cache/
+/.github/actions/product-captures/node_modules/
+# Standalone capture tool is checked by product-captures-check.yml.
+/docs/assets/product-captures/gallery.html
+/docs/assets/product-captures/manifest.json
+/public/projects/web-portfolio-v2/gallery.html
+/public/projects/web-portfolio-v2/manifest.json
