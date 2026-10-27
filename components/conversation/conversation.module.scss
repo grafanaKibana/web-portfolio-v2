@@ -163,9 +163,6 @@
   border-radius: var(--surface-radius);
   background: transparent;
   color: var(--foreground);
-
-  // Composite the shadow after the inner shape is clipped during reveal and collapse.
-  filter: drop-shadow(0 0.25rem 0.5rem var(--chat-shadow-contact)) drop-shadow(0 0.625rem 1.5rem var(--chat-shadow-ambient));
   bottom: calc(var(--viewport-bottom) + var(--edge-gutter) + 1rem);
   left: calc(var(--viewport-left) + var(--safe-left) + (var(--viewport-width) - var(--safe-left) - var(--safe-right)) / 2);
   opacity: 1;
@@ -181,6 +178,15 @@
 
 .surface:not(:popover-open, [data-closing="true"]) {
   display: none;
+}
+
+.panelElevation {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0.25rem 0.5rem var(--chat-shadow-contact), 0 0.625rem 1.5rem var(--chat-shadow-ambient);
+  pointer-events: none;
 }
 
 .morphFrame {

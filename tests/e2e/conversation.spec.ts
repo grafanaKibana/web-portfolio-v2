@@ -21,6 +21,9 @@ type AskFixtureWindow = Window & {
   askFixture: { aborted: number[]; requests: AskRequest[] };
 };
 
+/** Visible panel paint and shadow state at an intercepted animation frame. */
+type PanelMotionSample = { clipPath: string; opacity: number; elevation: { x: number; y: number; width: number; height: number; opacity: number } };
+
 /** Installs deterministic event-driven Ask streams and transport accounting.
  * @param page - Browser page receiving the fixture.
  */
@@ -151,7 +154,7 @@ async function expectFrameGeometryStable(surface: Locator): Promise<void> {
  * @param control - Control that starts opening or closing the desktop surface.
  * @returns Current frame clip and opacity.
  */
-async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPath: string; opacity: number }> {
+async function triggerAndSampleSurfaceMotion(control: Locator): Promise<PanelMotionSample> {
   await triggerAndPauseSurfaceMotion(
     control,
     '[data-chat-surface][data-mobile="false"] [data-chat-frame]',
@@ -172,7 +175,11 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPa
       current.currentTime = Number(animation.effect.getTiming().duration) * 0.45;
     }
     const style = getComputedStyle(target);
-    return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
+    const elevation = owner.querySelector("[data-chat-elevation]");
+    if (!elevation) throw new Error("Expected the panel shadow layer.");
+    const { x, y, width, height } = elevation.getBoundingClientRect();
+    return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity),
+      elevation: { x, y, width, height, opacity: Number(getComputedStyle(elevation).opacity) } };
   });
 }
 
@@ -180,7 +187,7 @@ async function triggerAndSampleSurfaceMotion(control: Locator): Promise<{ clipPa
  * @param control - Close control inside the opening desktop surface.
  * @returns Closing frame's initial clip and opacity.
  */
-async function triggerAndSampleClosingStart(control: Locator): Promise<{ clipPath: string; opacity: number }> {
+async function triggerAndSampleClosingStart(control: Locator): Promise<PanelMotionSample> {
   return control.evaluate(async (element) => {
     (element as HTMLElement).click();
     for (let frame = 0; frame < 10; frame += 1) {
@@ -188,13 +195,18 @@ async function triggerAndSampleClosingStart(control: Locator): Promise<{ clipPat
       const target = surface?.querySelector<HTMLElement>("[data-chat-frame]");
       const animation = target?.getAnimations().find(({ effect }) =>
         effect instanceof KeyframeEffect && effect.getKeyframes().some((keyframe) => keyframe.clipPath !== undefined));
-      if (target && animation?.effect instanceof KeyframeEffect) {
-        for (const current of target.getAnimations()) {
+      if (surface && target && animation?.effect instanceof KeyframeEffect) {
+        for (const current of surface.getAnimations({ subtree: true })) {
+          if (current.timeline !== document.timeline) continue;
           current.pause();
           current.currentTime = 0;
         }
         const style = getComputedStyle(target);
-        return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity) };
+        const elevation = surface.querySelector("[data-chat-elevation]");
+        if (!elevation) throw new Error("Expected the panel shadow layer.");
+        const { x, y, width, height } = elevation.getBoundingClientRect();
+        return { clipPath: style.clipPath, opacity: Number.parseFloat(style.opacity),
+          elevation: { x, y, width, height, opacity: Number(getComputedStyle(elevation).opacity) } };
       }
       await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
     }
@@ -557,7 +569,10 @@ test.describe("conversation smoke", () => {
       const paint = surface.locator("[data-composer-surface]");
       const elevation = surface.locator("[data-composer-elevation]");
       await expect(elevation).toHaveCSS("box-shadow", beforeElevation);
-      for (const progress of [0, 0.1, 0.5, 0.9]) {
+      const panelElevation = surface.locator("[data-chat-elevation]");
+      await expect(panelElevation).toBeAttached();
+      await expect(surface).toHaveCSS("filter", "none");
+      for (const progress of [0, 0.1, 0.5, 0.9, 1]) {
         await surface.evaluate((element, progress) => {
           const group = element.querySelector('[data-conversation-composer] [data-slot="input-group"]');
           const transfer = group?.getAnimations().find(({ effect }) => effect instanceof KeyframeEffect
@@ -584,6 +599,19 @@ test.describe("conversation smoke", () => {
           await elevation.evaluate((element) => { (element as HTMLElement).style.removeProperty("box-shadow"); });
         }
         expect(visibleShadow.equals(withoutShadow), "The neutral field shadow must paint outside its moving edge").toBe(false);
+        if (progress > 0) {
+          const panel = await box(panelElevation);
+          const panelClip = { x: Math.floor(panel.x + panel.width / 2) - 2, y: Math.floor(panel.y) - 4, width: 4, height: 3 };
+          const panelShadow = await page.screenshot({ clip: panelClip });
+          await panelElevation.evaluate((element) => { (element as HTMLElement).style.boxShadow = "none"; });
+          let withoutPanelShadow: Buffer;
+          try {
+            withoutPanelShadow = await page.screenshot({ clip: panelClip });
+          } finally {
+            await panelElevation.evaluate((element) => { (element as HTMLElement).style.removeProperty("box-shadow"); });
+          }
+          expect(panelShadow.equals(withoutPanelShadow), `The panel shadow must paint above its expanding top edge at ${String(progress)}`).toBe(false);
+        }
       }
 
       await finishMorph(surface);
@@ -692,7 +720,7 @@ test.describe("conversation smoke", () => {
     await expect(entry.locator("[data-reopen-field]")).toBeVisible();
   });
 
-  test("desktop Close during opening continues from the current panel frame", async ({ page }) => {
+  test("@webkit desktop Close during opening continues from the current panel frame", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();
     await readyComposer(page);
@@ -705,6 +733,9 @@ test.describe("conversation smoke", () => {
     await expect(surface).toHaveAttribute("data-closing", "true");
     expectClipPathClose(closing.clipPath, opening.clipPath);
     expect(closing.opacity).toBeCloseTo(opening.opacity, 3);
+    for (const property of ["x", "y", "width", "height", "opacity"] as const) {
+      expect(closing.elevation[property]).toBeCloseTo(opening.elevation[property], property === "opacity" ? 3 : 0);
+    }
 
     await trackLineHandoff(surface);
     await finishMorph(surface);

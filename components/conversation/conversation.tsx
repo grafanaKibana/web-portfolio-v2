@@ -48,6 +48,23 @@ function rectClipPath(bounds: DOMRect, visible: DOMRect): string {
   return `polygon(${String(left)}px ${String(top)}px, ${String(right)}px ${String(top)}px, ${String(right)}px ${String(bottom)}px, ${String(left)}px ${String(bottom)}px)`;
 }
 
+/** Builds panel-shadow insets that follow the visible frame without filtering clipped descendants.
+ * @param bounds - Natural panel bounds.
+ * @param composer - Collapsed panel rectangle.
+ * @param phase - Direction of the panel reveal.
+ * @param previous - Interrupted shadow geometry and opacity.
+ * @returns Shadow geometry and opacity keyframes on the panel's clock.
+ */
+function panelElevationFrames(bounds: DOMRect, composer: DOMRect, phase: SurfaceMorphPhase, previous: Record<string, string> | null) {
+  const collapsed = { top: composer.top - bounds.top, right: bounds.right - composer.right,
+    bottom: bounds.bottom - composer.bottom, left: composer.left - bounds.left };
+  const insets = Object.fromEntries(Object.entries(collapsed).map(([side, value]) => [side,
+    phase === "opening" ? [previous?.[side] ?? `${String(value)}px`, "0px"]
+      : [previous?.[side] ?? "0px", `${String(value)}px`],
+  ]));
+  return { ...insets, opacity: [Number.parseFloat(previous?.opacity ?? (phase === "opening" ? "0" : "1")), phase === "opening" ? 1 : 0] };
+}
+
 /** Removes transient inline geometry from one morph-owned element.
  * @param element - Element returning to stylesheet-owned geometry.
  * @param properties - Inline properties written by the morph controller.
@@ -65,6 +82,7 @@ function clearSurfaceMotionStyles(surface: HTMLElement) {
   const line = surface.querySelector<HTMLElement>("[data-chat-morph-line]");
   const composer = findComposerGroup(surface);
   clearInlineProperties(frame, ["clip-path", "opacity"]);
+  clearInlineProperties(surface.querySelector<HTMLElement>("[data-chat-elevation]"), ["top", "right", "bottom", "left", "opacity"]);
   clearInlineProperties(surface.querySelector<HTMLElement>("[data-chat-frame-fill]"), ["background-color"]);
   for (const edge of surface.querySelectorAll<HTMLElement>("[data-chat-edge-fill]")) clearInlineProperties(edge, ["background-color"]);
   clearInlineProperties(line, ["bottom", "left", "opacity", "transform"]);
@@ -147,6 +165,7 @@ function useSurfaceToggleMotion(
    */
   const morphSurface = useCallback((surface: HTMLElement, phase: SurfaceMorphPhase) => {
     const frame = surface.querySelector<HTMLElement>("[data-chat-frame]");
+    const panelElevation = surface.querySelector<HTMLElement>("[data-chat-elevation]");
     const fill = surface.querySelector<HTMLElement>("[data-chat-frame-fill]");
     const line = surface.querySelector<HTMLElement>("[data-chat-morph-line]");
     const composer = findComposerGroup(surface);
@@ -167,6 +186,9 @@ function useSurfaceToggleMotion(
     const currentFillOpacity = interrupted ? fillOpacityRef.current : null;
     const currentFrameOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(frame).opacity) : null;
     const currentFrameClip = interrupted ? window.getComputedStyle(frame).clipPath : null;
+    const currentPanelInsets = interrupted && panelElevation ? Object.fromEntries(
+      ["top", "right", "bottom", "left", "opacity"].map((property) => [property, getComputedStyle(panelElevation).getPropertyValue(property)]),
+    ) : null;
     const currentPaint = interrupted ? paint.getBoundingClientRect() : null;
     const currentAccentOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(accent).opacity) : null;
     const currentElevationOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(elevation).opacity) : null;
@@ -214,6 +236,8 @@ function useSurfaceToggleMotion(
         ? [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : rectClipPath(surfaceTarget, composerTarget), fullClip]
         : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, rectClipPath(surfaceTarget, composerTarget)],
     }, { duration: panelDuration, ease }));
+    if (!mobile && panelElevation) animations.push(animateMini(panelElevation,
+      panelElevationFrames(surfaceTarget, composerTarget, phase, currentPanelInsets), { duration: panelDuration, ease }));
     const destination = origin ?? lineTarget;
     const openingFromLine = phase === "opening" && destination.height <= line.offsetHeight;
     const movingToLine = phase === "closing" && !returningToField;
@@ -1016,7 +1040,7 @@ export function Conversation() {
               handleBeforeToggle(event);
               dismiss("dismiss", true);
             }} onToggle={handleToggle} popover="auto" ref={(node) => { surfaceRef.current = node; }} role="dialog">
-              <div aria-hidden className={styles.morphFrame} data-chat-frame><span className={styles.morphFill} data-chat-frame-fill /></div>
+              <span aria-hidden className={styles.panelElevation} data-chat-elevation /><div aria-hidden className={styles.morphFrame} data-chat-frame><span className={styles.morphFill} data-chat-frame-fill /></div>
               <span aria-hidden className={styles.morphLine} data-chat-morph-line />
               {contents}
             </div>
