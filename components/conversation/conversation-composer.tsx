@@ -20,7 +20,12 @@ export const conversationPlaceholder = "Ask about my work…";
  * @returns Shared field surface for editable and retained entries.
  */
 export function ConversationFieldSurface() {
-  return <span aria-hidden className={clsx("field-surface", styles.fieldSurface)} data-composer-surface><span data-composer-accent /></span>;
+  return (
+    <span aria-hidden className={clsx("field-surface", styles.fieldSurface)} data-composer-surface>
+      <span className={styles.fieldElevation} data-composer-elevation />
+      <span data-composer-accent />
+    </span>
+  );
 }
 
 /** Properties for the conversation's single active editable composer. */

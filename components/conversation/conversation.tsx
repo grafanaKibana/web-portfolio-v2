@@ -71,6 +71,7 @@ function clearSurfaceMotionStyles(surface: HTMLElement) {
   clearInlineProperties(composer, ["opacity", "transform"]);
   clearInlineProperties(surface.querySelector<HTMLElement>("[data-composer-surface]"), ["width", "height", "border-color"]);
   clearInlineProperties(surface.querySelector<HTMLElement>("[data-composer-accent]"), ["opacity"]);
+  clearInlineProperties(surface.querySelector<HTMLElement>("[data-composer-elevation]"), ["opacity"]);
   for (const element of surface.querySelectorAll<HTMLElement>("[data-composer-content]")) element.style.removeProperty("opacity");
   for (const element of surface.querySelectorAll<HTMLElement>("[data-chat-reveal], [data-conversation-history]")) element.style.removeProperty("opacity");
   surface.style.removeProperty("height");
@@ -151,8 +152,9 @@ function useSurfaceToggleMotion(
     const composer = findComposerGroup(surface);
     const paint = composer?.querySelector<HTMLElement>("[data-composer-surface]");
     const accent = composer?.querySelector<HTMLElement>("[data-composer-accent]");
+    const elevation = composer?.querySelector<HTMLElement>("[data-composer-elevation]");
     const origin = originRef.current;
-    if (!frame || !fill || !line || !composer || !paint || !accent) {
+    if (!frame || !fill || !line || !composer || !paint || !accent || !elevation) {
       cancelAnimations();
       releaseSurfaceMotion(surface, phase);
       const completion = completionRef.current;
@@ -167,6 +169,7 @@ function useSurfaceToggleMotion(
     const currentFrameClip = interrupted ? window.getComputedStyle(frame).clipPath : null;
     const currentPaint = interrupted ? paint.getBoundingClientRect() : null;
     const currentAccentOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(accent).opacity) : null;
+    const currentElevationOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(elevation).opacity) : null;
     const controls = Array.from(composer.querySelectorAll<HTMLElement>("[data-composer-content]"));
     const currentControlOpacity = interrupted ? controls.map((element) => Number.parseFloat(window.getComputedStyle(element).opacity)) : [];
     const currentComposerTransform = interrupted ? window.getComputedStyle(composer).transform : null;
@@ -246,6 +249,11 @@ function useSurfaceToggleMotion(
       width: [currentPaint?.width ?? (phase === "opening" ? destination.width : composerTarget.width), phase === "opening" ? composerTarget.width : destination.width],
       height: [currentPaint?.height ?? (phase === "opening" ? destination.height : composerTarget.height), phase === "opening" ? composerTarget.height : destination.height],
     }, { duration: fieldDuration, ease }));
+    // Keep Soft elevation through the entire move, then fade it once the panel's geometry is stable.
+    const elevationDelay = phase === "opening" && !openingFromLine ? fieldDuration : 0;
+    animations.push(animateMini(elevation, {
+      opacity: [currentElevationOpacity ?? (phase === "opening" && !openingFromLine ? 1 : 0), returningToField ? 1 : 0],
+    }, { delay: elevationDelay, duration: elevationDelay > 0 ? 0.12 : fieldDuration, ease }));
     animations.push(animateMini(accent, {
       opacity: [currentAccentOpacity ?? (openingFromLine ? 1 : 0), movingToLine ? 1 : 0],
     }, { delay: movingToLine ? fieldDuration * 0.6 : 0, duration: movingToLine ? fieldDuration * 0.4 : 0.18, ease }));

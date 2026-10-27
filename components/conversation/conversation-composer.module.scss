@@ -28,11 +28,19 @@
   transform: translateX(-50%);
 }
 
-.fieldSurface > span {
+.fieldSurface > [data-composer-accent] {
   position: absolute;
   inset: -1px;
   border-radius: inherit;
   background: var(--brand-accent-text-gradient);
+  opacity: 0;
+}
+
+.fieldElevation {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--chat-field-shadow);
   opacity: 0;
 }
 

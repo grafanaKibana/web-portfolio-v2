@@ -239,7 +239,7 @@ async function sampleEntryResize(field: Locator) {
         return { width: paint.getBoundingClientRect().width, height: paint.getBoundingClientRect().height,
           fullWidth: element.getBoundingClientRect().width, fullHeight: element.getBoundingClientRect().height,
           clip: getComputedStyle(element).clipPath, controlsWidth: controls.getBoundingClientRect().width, controlsOpacity: Number(getComputedStyle(controls).opacity),
-          accent: getComputedStyle(paint.firstElementChild ?? paint).opacity };
+          accent: getComputedStyle(paint.querySelector("[data-composer-accent]") ?? paint).opacity };
       }
       await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve(); }); });
     }
@@ -302,17 +302,19 @@ test.describe("conversation smoke", () => {
   });
 
   for (const width of [768, 1024, 1440]) {
-    test(`@webkit desktop shell alignment at ${String(width)}px`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await readyComposer(page);
-      const { pageGutter } = await readShellWidthContract(page);
-      const entry = await box(page.locator("[data-edge-entry]"));
-      expect(entry.x).toBeCloseTo(pageGutter, 0);
-      expect(entry.width).toBeCloseTo(width - 2 * pageGutter, 0);
+    test.describe(`shell viewport ${String(width)}px`, () => {
+      test.use({ viewport: { width, height: 900 } });
 
-      const dialog = await send(page, "Synthetic shell alignment question");
-      await expect.poll(async () => (await box(dialog)).x).toBeCloseTo(pageGutter, 0);
-      expect((await box(dialog)).width).toBeCloseTo(width - 2 * pageGutter, 0);
+      test(`@webkit desktop shell alignment at ${String(width)}px`, async ({ page }) => {
+        const { pageGutter } = await readShellWidthContract(page);
+        const entry = await box(page.locator("[data-edge-entry]"));
+        expect(entry.x).toBeCloseTo(pageGutter, 0);
+        expect(entry.width).toBeCloseTo(width - 2 * pageGutter, 0);
+
+        const dialog = await send(page, "Synthetic shell alignment question");
+        await expect.poll(async () => (await box(dialog)).x).toBeCloseTo(pageGutter, 0);
+        expect((await box(dialog)).width).toBeCloseTo(width - 2 * pageGutter, 0);
+      });
     });
   }
 
@@ -531,7 +533,7 @@ test.describe("conversation smoke", () => {
   });
 
   for (const theme of ["light", "dark"] as const) {
-    test(`@webkit first send preserves the focused field during transfer (${theme})`, async ({ page }) => {
+    test(`@webkit first send preserves field elevation and focus during transfer (${theme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "no-preference" });
       await page.addInitScript((theme) => { localStorage.setItem("theme", theme); }, theme);
       await page.reload();
@@ -544,6 +546,8 @@ test.describe("conversation smoke", () => {
         shadow: getComputedStyle(element).boxShadow,
       }));
       expect(before.shadow).not.toBe("none");
+      const beforeElevation = await entryGroup.locator("[data-composer-surface]").evaluate((element) => getComputedStyle(element).boxShadow);
+      expect(beforeElevation).not.toBe("none");
 
       await triggerAndPauseSurfaceMotion(page.getByRole("button", { name: "Send", exact: true }),
         '[data-chat-surface][data-mobile="false"] [data-slot="input-group"]', "transform");
@@ -551,16 +555,35 @@ test.describe("conversation smoke", () => {
       const input = surface.getByRole("textbox", { name: "Your question" });
       await expect(input).toBeFocused();
       const paint = surface.locator("[data-composer-surface]");
+      const elevation = surface.locator("[data-composer-elevation]");
+      await expect(elevation).toHaveCSS("box-shadow", beforeElevation);
       for (const progress of [0, 0.1, 0.5, 0.9]) {
         await surface.evaluate((element, progress) => {
+          const group = element.querySelector('[data-conversation-composer] [data-slot="input-group"]');
+          const transfer = group?.getAnimations().find(({ effect }) => effect instanceof KeyframeEffect
+            && effect.getKeyframes().some((keyframe) => keyframe.transform !== undefined));
+          if (!transfer?.effect) throw new Error("Expected the field transfer clock.");
+          const elapsed = Number(transfer.effect.getTiming().duration) * progress;
           for (const animation of element.getAnimations({ subtree: true })) {
             const end = animation.effect?.getComputedTiming().endTime;
-            if (typeof end === "number" && Number.isFinite(end)) animation.currentTime = end * progress;
+            if (typeof end === "number" && Number.isFinite(end)) animation.currentTime = Math.min(elapsed, end);
           }
         }, progress);
         await expect(input).toBeFocused();
         await expect(paint).not.toHaveCSS("box-shadow", "none");
         await expect(paint).toHaveCSS("border-color", before.border);
+        expect(await elevation.evaluate((element) => Number(getComputedStyle(element).opacity))).toBe(1);
+        const bounds = await box(paint);
+        const clip = { x: Math.floor(bounds.x) - 7, y: Math.floor(bounds.y + bounds.height / 2) - 3, width: 4, height: 6 };
+        const visibleShadow = await page.screenshot({ clip });
+        let withoutShadow: Buffer;
+        await elevation.evaluate((element) => { (element as HTMLElement).style.boxShadow = "none"; });
+        try {
+          withoutShadow = await page.screenshot({ clip });
+        } finally {
+          await elevation.evaluate((element) => { (element as HTMLElement).style.removeProperty("box-shadow"); });
+        }
+        expect(visibleShadow.equals(withoutShadow), "The neutral field shadow must paint outside its moving edge").toBe(false);
       }
 
       await finishMorph(surface);
@@ -570,6 +593,7 @@ test.describe("conversation smoke", () => {
       await expect(settledGroup).toHaveCSS("box-shadow", before.shadow);
       await expect(settledGroup).toHaveCSS("border-color", before.border);
       await expect(paint).toHaveCSS("box-shadow", "none");
+      await expect(elevation).toHaveCSS("opacity", "0");
     });
   }
 

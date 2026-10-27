@@ -12,6 +12,7 @@
   --launcher-line-height: 0.3125rem;
   --chat-shadow-contact: rgb(0 0 0 / 6%);
   --chat-shadow-ambient: rgb(0 0 0 / 9%);
+  --chat-field-shadow: 0 0.0625rem 0.1875rem var(--chat-shadow-contact), 0 0.25rem 0.75rem var(--chat-shadow-ambient);
 }
 
 :global(.dark) .shell {
@@ -387,7 +388,8 @@
     animation-name: conversation-entry-stroke-fade;
   }
 
-  .edgeEntry [data-composer-surface] {
+  .edgeEntry [data-composer-surface],
+  .surface [data-composer-elevation] {
     // Keep shadow above Safari's 4px sample strip; the group's real border and focus ring remain unclipped.
     clip-path: inset(-2rem -2rem -2px);
   }
@@ -408,7 +410,7 @@
   width: calc(100% + 2px);
   height: calc(100% + 2px);
   border-color: var(--border);
-  box-shadow: 0 0.0625rem 0.1875rem var(--chat-shadow-contact), 0 0.25rem 0.75rem var(--chat-shadow-ambient);
+  box-shadow: var(--chat-field-shadow);
   transition-delay: 0s;
 }
 
