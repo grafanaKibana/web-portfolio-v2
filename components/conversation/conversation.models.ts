@@ -1,6 +1,20 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { AskCompletion, AskContext, AskFollowUp, AskSource } from "@/lib/ask.contract";
 
+/** Direction of the native conversation surface's current morph. */
+export type SurfaceMorphPhase = "opening" | "closing";
+/** Panel-shadow edge offsets in pixels relative to its natural host. */
+export type PanelInsets = { top: number; right: number; bottom: number; left: number };
+/** Clipping and shadow representations derived from one visible panel rectangle. */
+export interface PanelGeometry {
+  clipPath: string;
+  insets: PanelInsets;
+}
+/** Computed shadow values retained before an interrupted animation is cancelled. */
+export type PanelElevationSnapshot = { [Side in keyof PanelInsets]: string } & { opacity: number };
+/** Complete, two-endpoint keyframes for the panel shadow's inset edges and opacity. */
+export type PanelElevationKeyframes = { [Side in keyof PanelInsets]: [string, string] } & { opacity: [number, number] };
+
 /** Answer source reported by the conversation endpoint. */
 export type ConversationMode = "live";
 /** Lifecycle state of one conversation turn. */

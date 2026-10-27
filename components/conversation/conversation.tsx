@@ -20,11 +20,12 @@ import { Button } from "@/components/ui/button";
 import { ConversationComposer, ConversationFieldSurface, conversationPlaceholder } from "./conversation-composer";
 import { ConversationActionTooltip, ConversationView } from "./conversation-view";
 import { chatGrowthDuration, chatMotionEase } from "./conversation-motion";
+import { panelElevationFrames, panelGeometry, readPanelElevation } from "./conversation-surface-motion";
+import type { SurfaceMorphPhase } from "./conversation.models";
 import { useConversation } from "./use-conversation";
 import { useConversationShell } from "./use-conversation-shell";
 import styles from "./conversation.module.scss";
 
-type SurfaceMorphPhase = "opening" | "closing";
 type ConversationDismiss = (intent?: "dismiss" | "navigate" | "reset", nativeClosing?: boolean) => void;
 
 /** Returns the visible composer group whose box transfers between page and thread.
@@ -33,36 +34,6 @@ type ConversationDismiss = (intent?: "dismiss" | "navigate" | "reset", nativeClo
  */
 function findComposerGroup(owner: ParentNode): HTMLElement | null {
   return owner.querySelector<HTMLElement>('[data-conversation-composer] [data-slot="input-group"]');
-}
-
-/** Describes a screen-space rectangle as a clip polygon relative to one element.
- * @param bounds - Element box that owns the clip path.
- * @param visible - Screen-space rectangle that should remain visible.
- * @returns A four-corner polygon that can extend beyond the owning box.
- */
-function rectClipPath(bounds: DOMRect, visible: DOMRect): string {
-  const left = visible.left - bounds.left;
-  const right = visible.right - bounds.left;
-  const top = visible.top - bounds.top;
-  const bottom = visible.bottom - bounds.top;
-  return `polygon(${String(left)}px ${String(top)}px, ${String(right)}px ${String(top)}px, ${String(right)}px ${String(bottom)}px, ${String(left)}px ${String(bottom)}px)`;
-}
-
-/** Builds panel-shadow insets that follow the visible frame without filtering clipped descendants.
- * @param bounds - Natural panel bounds.
- * @param composer - Collapsed panel rectangle.
- * @param phase - Direction of the panel reveal.
- * @param previous - Interrupted shadow geometry and opacity.
- * @returns Shadow geometry and opacity keyframes on the panel's clock.
- */
-function panelElevationFrames(bounds: DOMRect, composer: DOMRect, phase: SurfaceMorphPhase, previous: Record<string, string> | null) {
-  const collapsed = { top: composer.top - bounds.top, right: bounds.right - composer.right,
-    bottom: bounds.bottom - composer.bottom, left: composer.left - bounds.left };
-  const insets = Object.fromEntries(Object.entries(collapsed).map(([side, value]) => [side,
-    phase === "opening" ? [previous?.[side] ?? `${String(value)}px`, "0px"]
-      : [previous?.[side] ?? "0px", `${String(value)}px`],
-  ]));
-  return { ...insets, opacity: [Number.parseFloat(previous?.opacity ?? (phase === "opening" ? "0" : "1")), phase === "opening" ? 1 : 0] };
 }
 
 /** Removes transient inline geometry from one morph-owned element.
@@ -186,9 +157,7 @@ function useSurfaceToggleMotion(
     const currentFillOpacity = interrupted ? fillOpacityRef.current : null;
     const currentFrameOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(frame).opacity) : null;
     const currentFrameClip = interrupted ? window.getComputedStyle(frame).clipPath : null;
-    const currentPanelInsets = interrupted && panelElevation ? Object.fromEntries(
-      ["top", "right", "bottom", "left", "opacity"].map((property) => [property, getComputedStyle(panelElevation).getPropertyValue(property)]),
-    ) : null;
+    const currentPanelInsets = interrupted && panelElevation ? readPanelElevation(panelElevation) : null;
     const currentPaint = interrupted ? paint.getBoundingClientRect() : null;
     const currentAccentOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(accent).opacity) : null;
     const currentElevationOpacity = interrupted ? Number.parseFloat(window.getComputedStyle(elevation).opacity) : null;
@@ -203,6 +172,7 @@ function useSurfaceToggleMotion(
 
     const composerTarget = composer.getBoundingClientRect();
     const surfaceTarget = surface.getBoundingClientRect();
+    const collapsedPanel = panelGeometry(surfaceTarget, composerTarget);
     const fullClip = "polygon(0px 0px, 100% 0px, 100% 100%, 0px 100%)";
     const lineTarget = DOMRect.fromRect({
       x: composerTarget.left + (composerTarget.width - line.offsetWidth) / 2,
@@ -233,11 +203,11 @@ function useSurfaceToggleMotion(
     if (!mobile) animations.push(animateMini(frame, {
       opacity: [currentFrameOpacity ?? (phase === "opening" ? 0 : 1), phase === "opening" ? 1 : 0],
       clipPath: phase === "opening"
-        ? [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : rectClipPath(surfaceTarget, composerTarget), fullClip]
-        : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, rectClipPath(surfaceTarget, composerTarget)],
+        ? [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : collapsedPanel.clipPath, fullClip]
+        : [currentFrameClip && currentFrameClip !== "none" ? currentFrameClip : fullClip, collapsedPanel.clipPath],
     }, { duration: panelDuration, ease }));
     if (!mobile && panelElevation) animations.push(animateMini(panelElevation,
-      panelElevationFrames(surfaceTarget, composerTarget, phase, currentPanelInsets), { duration: panelDuration, ease }));
+      panelElevationFrames(collapsedPanel.insets, phase, currentPanelInsets), { duration: panelDuration, ease }));
     const destination = origin ?? lineTarget;
     const openingFromLine = phase === "opening" && destination.height <= line.offsetHeight;
     const movingToLine = phase === "closing" && !returningToField;

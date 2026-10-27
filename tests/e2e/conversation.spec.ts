@@ -553,6 +553,7 @@ test.describe("conversation smoke", () => {
       await page.getByRole("textbox", { name: "Your question" }).fill("Synthetic focused field transfer");
       const entryGroup = page.locator('[data-edge-entry] [data-slot="input-group"]');
       await expect.poll(async () => entryGroup.evaluate((element) => element.getAnimations().length)).toBe(0);
+      await expect.poll(async () => entryGroup.locator("[data-composer-surface]").evaluate((element) => element.getAnimations().length)).toBe(0);
       const before = await entryGroup.evaluate((element) => ({
         border: getComputedStyle(element).borderColor,
         shadow: getComputedStyle(element).boxShadow,
