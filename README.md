@@ -110,4 +110,3 @@ Use synthetic fixtures and controlled responses. Tests must not depend on curren
 ## Shared UI generation
 
 `components.json` points shadcn at root `components/`, `components/ui/`, `lib/`, and the local `components/ui/utils.ts` adapter. Registry templates can still differ from this repository's Base UI conventions or import `cn` directly. Review every generated diff before adoption; do not overwrite existing controls or assume generator aliases rewrite all upstream source.
-
