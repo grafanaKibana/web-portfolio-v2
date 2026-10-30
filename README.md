@@ -13,106 +13,42 @@ Next.js portfolio with validated structured content and repository-authored MDX.
 <a href="https://github.com/grafanaKibana/web-portfolio-v2/actions/workflows/verify.yml"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/ci/grafanaKibana/web-portfolio-v2.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=dark&amp;label=CI&amp;workflow=verify.yml&amp;branch=main&amp;statusDot=true&amp;gradient=18181b%2C18181b%2C90&amp;labelTextColor=fafafa"><img alt="CI status" src="https://shieldcn.dev/github/ci/grafanaKibana/web-portfolio-v2.svg?variant=outline&amp;size=sm&amp;font=geist&amp;mode=light&amp;label=CI&amp;workflow=verify.yml&amp;branch=main&amp;statusDot=true&amp;gradient=fafafa%2Cfafafa%2C90&amp;labelTextColor=18181b" style="display:inline-block;margin:0;vertical-align:middle"></picture></a>
 </p>
 
-## Commands
+A personal portfolio presenting Nikita Reshetnik’s experience, projects, writing, and contact information. The homepage provides an overview, with dedicated pages for project case studies and technical articles.
+
+## Get started
+
+Browse Home for the profile and selected work, Projects for the full project index and case studies, or Articles for technical writing.
+
+Ask answers questions about Nikita’s published work, role fit, and evidence for skills, with citations linking to site content. Paste the job description when asking about a role: the service does not fetch submitted job URLs or browse the web.
+
+## Local setup
+
+Use Node.js 22, matching CI, and npm.
 
 ```bash
+npm ci
 npm run dev
-npm run typecheck
-npm run lint
-npm run test:unit
-npm run test:ask
-npm run test:conversation
-npm run test:content
-npm run test:contrast
-npm run test:documentation
-npm run test:seo
-npm run test:plugin-links
-npm run test:descriptor
-npm run test:brand-assets
-npm run build
-npm run test:e2e
 ```
 
-`test:unit` discovers neutral tests as `*.test.*` and server-only tests as `*.server.test.*`. Focused commands remain available for a single contract. Build the production application before running Playwright directly; its configuration owns the temporary server on port 3192. The browser gate runs semantic visitor journeys in Chromium and selected engine-sensitive journeys in WebKit. Detailed Home layout cases remain available with `npx playwright test --config=playwright.education.config.ts` during feature work; the CI gate owns their shared containment risk through its desktop smoke case. `npm run test:e2e:dev` checks two shared style contracts against Turbopack development mode on port 3193, because CSS ordering can differ from the production build. Its separate `.next-e2e-dev` output lets it run alongside a normal development server without sharing Next's development lock.
+Open [localhost:3000](http://localhost:3000). The `predev` script generates hero backgrounds. To serve a production build, run `npm run build`, then `npm start`.
 
-Code activity pull-request rows require a server-only `GITHUB_TOKEN` deployment secret. Without it, the independently fetched public contribution calendar can still render. Never expose the token with a `NEXT_PUBLIC_` prefix.
+Live Ask requires server-only `ASK_API_KEY` in `.env.local` or the platform environment. The Ask API guide below documents endpoint, model, and completion-limit defaults and overrides. Page browsing does not require that key. Optional server-only `GITHUB_TOKEN` enables pull-request activity rows; public contribution data can render without it. Keep both credentials out of `NEXT_PUBLIC_` variables.
 
-Plugin links on case studies use Obsidian's official download statistics and each source repository's latest stable GitHub release for their labels. Home project rows link to those case studies. Data refreshes on demand after a day in the server cache; unavailable data retains the original labels and destinations.
+## How it works
 
-Home's Selected work heading shows the total stars across the configured GitHub account's public repositories. The server refreshes repository data on demand after a day in the cache and hides the optional count when GitHub is unavailable.
+Next.js Server Components load validated local content. [portfolio.yaml](content/portfolio.yaml) supplies profile and Home records. Project and article loaders validate MDX slugs and metadata, then supply a fixed set of static detail routes. Unknown slugs return a 404. Client components add theme, navigation, and conversation behavior.
 
-The project index shows positive GitHub star counts and available total Obsidian plugin downloads beside each title. Stars use the same filled gold icon and theme colors as the Home total; zero-star counters are hidden while zero downloads remain visible. It sorts by descending stars, keeps the existing order for ties, and places projects without star data last. Optional counts refresh on demand after a day and disappear independently when unavailable. Home keeps its curated featured-project order without per-project metrics.
+Ask loads the validated public portfolio corpus, adds bounded optional activity data, and makes a structured model request. It streams answer text followed by validated local citations and follow-ups, and stores no transcript on the server. Optional metrics failures retain curated content rather than removing project pages.
 
-## Directory map
+## Update content
 
-| Path | Responsibility |
-| --- | --- |
-| `app/` | Next.js route entries, metadata handlers, and route-private implementation. |
-| `app/(home)/page.tsx` | `/` route entry; `(home)` groups source without changing the URL. |
-| `app/(home)/_components/` | Home-private UI owners and their companions. |
-| `components/` | Application-wide shared UI, including the site frame and reusable controls. |
-| `components/conversation/` | Site-wide conversation UI; `ConversationService` owns browser transport/history while the hook owns React state and lifecycle. |
-| `app/api/ask/` | Portfolio-scoped endpoint and its [API/provider contract](app/api/ask/README.md); the thin route composes server-only request, answer and corpus services under `_lib/`. |
-| `lib/ask.contract.ts` | Shared request, completion, source and follow-up DTOs used by conversation and endpoint. |
-| `lib/ask.config.ts` | Shared browser/server Ask wire limits. |
-| `components/ui/` | Shared UI foundation and its local generator utility adapter. |
-| `lib/` | Application-wide shared non-UI runtime code. |
-| `lib/content/` | Content discovery, loading, validation, and shared content types. |
-| `lib/seo/` | Shared URL and metadata-route builders. |
-| `content/` | Authored YAML and MDX; no runtime TypeScript. |
-| `public/` | Framework-served static assets. |
-| `tests/` | Repository-wide quality checks and browser workflows under `tests/e2e/`. |
+Update structured facts in the YAML and long-form pages in [content/projects](content/projects/) or [content/articles](content/articles/). MDX is trusted executable repository source.
 
-`app/layout.tsx` is the sole root layout. A `page.tsx` or `route.ts` exposes a route; colocated implementation files do not. Underscore folders mark route-private implementation. Root `components/` and `lib/` are the shared application scopes. Do not create duplicate `app/_components/` or `app/_lib/` shared folders.
+`package.json` provides focused content, Ask, conversation, lint, typecheck, and browser-test commands.
 
-## Placement rule
+## Guides
 
-Put a file at the narrowest owner that fully owns its behavior. Promote it only when a real consumer outside that owner appears.
+- [Design guide](DESIGN.md) — Visual direction, content voice, and interaction behavior.
+- [Ask API guide](app/api/ask/README.md) — Local credentials, portfolio grounding, streaming, and error behavior.
 
-1. Used by one component? Keep it in that component folder.
-2. Used by multiple components in one route? Put it at their nearest route-private common scope.
-3. Used by multiple routes? Put UI in root `components/`; put non-UI runtime code in root `lib/`.
-4. Required by Next.js? Keep the special file at its framework location.
-5. Authored content or a public asset? Keep it in `content/` or `public/`; runtime readers belong in `lib/` or the route that exclusively consumes them.
-
-Next.js supports multiple project organizations. This repository chooses root shared folders plus route-private colocation and applies that choice consistently.
-
-Application workflows use cohesive service classes with readonly injected dependencies. React components and hooks remain functions, as do Next.js entry exports and other framework-required adapters. Bare function exports belong only in cohesive generic helper collections or required adapters. Keep related data/type families, error classes and grouped configuration in owner-local companion files; separate browser-safe configuration from server-only provider or credential concerns.
-
-### Examples
-
-- The conversation is mounted by the root layout, so its UI, hook and `ConversationService` live in `components/conversation/`. The hook owns React state and request identity; the service owns request history and streaming transport.
-- The thin `app/api/ask/route.ts` composes `AskService`, which owns request validation, HTTP/SSE lifecycle and disposal. `AskAnswerService` owns provider generation and output validation; `AskCorpusService` owns corpus preparation. Shared DTOs stay in `lib/ask.contract.ts`, shared wire limits stay in `lib/ask.config.ts`, and server-only models/configuration stay beside the Ask services.
-- Hero-only behavior stays under `app/(home)/_components/hero/`. Descriptor sequencing lives inside `hero/descriptor-rotation/` because no other owner consumes it.
-- Projects and Writing both use the Home editorial row, so it lives at their Home-private common owner: `app/(home)/_components/editorial-row/`.
-- Project content is consumed by Home and project routes, so its loader lives at `lib/content/projects/server.ts`, while authored project MDX remains in `content/projects/`.
-
-## Imports and boundaries
-
-Use relative imports within one owner. Use the existing `@/` alias when crossing owners. Import the public component entry, never another owner's private companion.
-
-| Allowed | Forbidden |
-| --- | --- |
-| Hero entry → its descriptor companion | About → Hero descriptor companion |
-| Home route → Home component entry | One route → a sibling route's private implementation |
-| Home or project route → `@/lib/content/...` | Root `components/` or `lib/` → route-private code |
-| Site component → shared `lib/` helper | `components/ui/` → route workflows or content readers |
-| UI primitive → another UI primitive | Production code → colocated tests or `tests/` |
-
-ESLint checks resolved TypeScript and JavaScript import zones, including aliases, relative imports, re-exports, type imports, and supported literal dynamic imports. It does not infer business ownership for a new folder. Adding a route, root component owner, or private component owner requires a reviewed zone plus allowed and forbidden fixtures in `tests/eslint-boundaries.test.mjs`.
-
-MDX and SCSS internals are reviewed against the same ownership rules but are outside TypeScript import-zone coverage. The production build verifies MDX bundling. Next.js compilation and explicit `server-only` guards verify the server/client graph.
-
-## Test ownership
-
-- Unit and module integration tests live beside their subject as `*.test.ts`, `*.test.tsx`, or `*.test.mjs`.
-- A test importing a `server-only` subject uses `*.server.test.*` and runs with React server conditions.
-- Cross-cutting documentation, contrast, and import-boundary checks stay under `tests/`.
-- Browser workflows stay under `tests/e2e/`.
-- Production modules never import tests. Tests may import their production subjects.
-
-Use synthetic fixtures and controlled responses. Tests must not depend on current portfolio wording, identities, dates, counts, inventory, or live services.
-
-## Shared UI generation
-
-`components.json` points shadcn at root `components/`, `components/ui/`, `lib/`, and the local `components/ui/utils.ts` adapter. Registry templates can still differ from this repository's Base UI conventions or import `cn` directly. Review every generated diff before adoption; do not overwrite existing controls or assume generator aliases rewrite all upstream source.
+[Report an issue](https://github.com/grafanaKibana/web-portfolio-v2/issues) | [Contributing](https://github.com/grafanaKibana/web-portfolio-v2/pulls) | License: not specified.
