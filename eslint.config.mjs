@@ -312,6 +312,7 @@ const eslintConfig = defineConfig([
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([
+    ".product-captures-cache/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     ".next-e2e-dev/**",

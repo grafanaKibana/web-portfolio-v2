@@ -1,6 +1,12 @@
-# Nikita Reshetnik Portfolio
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/projects/web-portfolio-v2/hero-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="public/projects/web-portfolio-v2/hero.png">
+  <img src="public/projects/web-portfolio-v2/hero.png" alt="Product overview">
+</picture>
 
+<p align="center">
 Next.js portfolio with validated structured content and repository-authored MDX.
+</p>
 
 <p align="center">
 <a href="https://reshetnik.dev"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/View_portfolio.svg?variant=default&amp;size=sm&amp;font=geist&amp;mode=dark&amp;logo=ri%3ALuArrowUpRight&amp;color=84cc16&amp;logoColor=0e100f&amp;valueColor=0e100f&amp;labelTextColor=0e100f&amp;gradient=84cc16%2C95d133%2C110"><img alt="View portfolio" src="https://shieldcn.dev/badge/View_portfolio.svg?variant=default&amp;size=sm&amp;font=geist&amp;mode=light&amp;logo=ri%3ALuArrowUpRight&amp;color=437100&amp;logoColor=ffffff&amp;valueColor=ffffff&amp;labelTextColor=ffffff&amp;gradient=437100%2C4c7a10%2C110"></picture></a>

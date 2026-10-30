@@ -1,0 +1,17 @@
+{
+  "name": "Portfolio",
+  "output": "public/projects/web-portfolio-v2",
+  "appearance": {
+    "layout": "centered",
+    "tint": "#e0e9e2"
+  },
+  "capture": {
+    "ready": "main",
+    "waitFor": "document.documentElement.dataset.splashComplete === 'true'"
+  },
+  "build": "npm ci --cache .product-captures-cache/npm && npm run build",
+  "server": {
+    "command": "npm start -- --hostname 127.0.0.1 --port 4186",
+    "url": "http://127.0.0.1:4186"
+  }
+}
