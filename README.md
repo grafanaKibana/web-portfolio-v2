@@ -51,4 +51,4 @@ Update structured facts in the YAML and long-form pages in [content/projects](co
 - [Design guide](DESIGN.md) — Visual direction, content voice, and interaction behavior.
 - [Ask API guide](app/api/ask/README.md) — Local credentials, portfolio grounding, streaming, and error behavior.
 
-[Report an issue](https://github.com/grafanaKibana/web-portfolio-v2/issues) | [Contributing](https://github.com/grafanaKibana/web-portfolio-v2/pulls) | License: not specified.
+[Report an issue](https://github.com/grafanaKibana/web-portfolio-v2/issues) | [Contributing](https://github.com/grafanaKibana/web-portfolio-v2/pulls)
