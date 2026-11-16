@@ -130,6 +130,8 @@ Contact places its introduction and direct links in one wide-screen row, with th
 
 Breakpoints belong in code. Evaluate both representative screen sizes and the widths where a layout changes.
 
+The Contact **Book a call** action opens the configured `home.contact.bookingUrl` in a new tab using a native link. Omitted or null configuration hides the action. Booking remains available without JavaScript and uses the same keyboard, hover, and focus treatment as the other contact links.
+
 ## Interaction states
 
 | Situation | Visitor-facing behavior |

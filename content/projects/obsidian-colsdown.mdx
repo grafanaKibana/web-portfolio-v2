@@ -6,9 +6,12 @@ export const metadata = {
   tags: ["Obsidian API", "TypeScript", "Markdown", "CSS", "Vitest"],
   links: [
     { label: "Store page", href: "https://obsidian.md/plugins?id=colsdown" },
-    { label: "Source", href: "https://github.com/grafanaKibana/obsidian-colsdown" },
+    {
+      label: "Source",
+      href: "https://github.com/grafanaKibana/obsidian-colsdown",
+    },
   ],
-}
+};
 
 ## About
 
@@ -57,15 +60,15 @@ Main content
 
 This produces a 30/70 layout. `%% cols:stack %%` starts vertically arranged sections instead of side-by-side columns. Existing `colsdown` and `stack` fences remain supported:
 
-```markdown
-~~~colsdown
+````markdown
+```colsdown
 Sidebar content
 
 ::: 70%
 
 Main content
-~~~
 ```
+````
 
 Omitting widths creates equal automatic columns, while fractional widths such as `1fr` and `2fr` express proportional tracks. The parser preserves nested layouts and ignores marker-looking lines inside code fences.
 

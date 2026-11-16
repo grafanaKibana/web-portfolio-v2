@@ -57,11 +57,18 @@ export function HomeContact() {
               <ArrowUpRight aria-hidden="true" className="ml-auto action-icon opacity-45" />
             </a>
           ))}
-          <span aria-disabled="true" className="inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground opacity-35">
-            <Calendar aria-hidden="true" className="action-icon" />
-            Book a call
-            <ArrowUpRight aria-hidden="true" className="ml-auto action-icon opacity-45" />
-          </span>
+          {contact.bookingUrl && (
+            <a
+              className="inline-flex min-h-12 min-w-0 items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              href={contact.bookingUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <Calendar aria-hidden="true" className="action-icon opacity-65" />
+              Book a call
+              <ArrowUpRight aria-hidden="true" className="ml-auto action-icon opacity-45" />
+            </a>
+          )}
         </div>
       </div>
     </section>

@@ -115,6 +115,7 @@ export interface HomeContent {
   contact: {
     description: string;
     email: string;
+    bookingUrl?: string | undefined;
   };
   footer: {
     locale: string;
@@ -153,6 +154,24 @@ function string(value: unknown, path: string): string {
     throw new Error(`content/portfolio.yaml: ${path} must be a non-empty string`);
   }
   return value;
+}
+
+/**
+ * Validates an optional booking destination, with omission or null disabling booking.
+ *
+ * @param value - Untrusted booking URL.
+ * @returns The HTTPS destination, or undefined when booking is disabled.
+ * @throws When the value is not an absolute HTTPS URL without credentials.
+ */
+function bookingUrl(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+
+  const href = string(value, "home.contact.bookingUrl").trim();
+  const url = URL.canParse(href) ? new URL(href) : undefined;
+  if (!url || url.protocol !== "https:" || !url.hostname || url.username || url.password) {
+    throw new Error("content/portfolio.yaml: home.contact.bookingUrl must be an absolute HTTPS URL without credentials");
+  }
+  return url.href;
 }
 
 /**
@@ -442,6 +461,7 @@ export function validatePortfolio(value: unknown): { profile: PortfolioProfile; 
       contact: {
         description: string(contact.description, "home.contact.description"),
         email: string(contact.email, "home.contact.email"),
+        bookingUrl: bookingUrl(contact.bookingUrl),
       },
       footer: {
         locale: string(footer.locale, "home.footer.locale"),
