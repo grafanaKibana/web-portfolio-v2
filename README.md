@@ -46,7 +46,7 @@ Update structured facts in the YAML and long-form pages in [content/projects](co
 
 `package.json` provides focused content, Ask, conversation, lint, typecheck, and browser-test commands.
 
-Set `home.contact.bookingUrl` in [portfolio.yaml](content/portfolio.yaml) to change the **Book a call** destination. Any absolute HTTPS URL without credentials is supported. Remove the field or set it to `null` to hide the action. It opens in a new tab and works without JavaScript. Rebuild and redeploy after configuration changes.
+Set `home.contact.bookingUrl` in [portfolio.yaml](content/portfolio.yaml) to change the **Book a call** destination. Cal.com links open a popup matching the website theme; brand colors and month layout live in [booking.config.ts](app/\(home\)/_components/contact/booking.config.ts). Without JavaScript, while the embed loads, or if its script fails, the link opens in a new tab. Other HTTPS providers retain native new-tab navigation. Remove the field or set it to `null` to hide the action. Rebuild and redeploy after configuration changes.
 
 ## Guides
 
