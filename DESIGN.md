@@ -130,6 +130,8 @@ Contact places its introduction and direct links in one wide-screen row, with th
 
 Breakpoints belong in code. Evaluate both representative screen sizes and the widths where a layout changes.
 
+The Contact **Book a call** action enhances a configured Cal.com `home.contact.bookingUrl` with a month-view popup following the website theme. Its brand colors follow the site's green `--brand-accent-text` tokens: `#007c60` in light mode and `#6bdbb2` in dark mode (the dark mix resolved to sRGB). Small screens use Cal's slots view. The modal retains focus, closes with Escape even while loading, and returns focus to the link. While the script loads, on script failure, without JavaScript, or for another HTTPS provider, the native link opens in a new tab. Omitted or null configuration hides the action. Preserve the existing contact link styling and keyboard treatment.
+
 ## Interaction states
 
 | Situation | Visitor-facing behavior |

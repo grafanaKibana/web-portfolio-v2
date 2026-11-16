@@ -94,6 +94,24 @@ test("portfolio validation accepts a complete document and derives date presenta
   assert.deepEqual(content.home.projects.featuredSlugs, ["fixture-project"])
 })
 
+test("portfolio validation supports optional provider-independent HTTPS booking links", () => {
+  for (const value of [undefined, null, "https://booking.example.test/intro", " https://other.example.test/call?duration=30#details "]) {
+    const fixture = portfolioFixture() as { home: { contact: Record<string, unknown> } }
+    fixture.home.contact.bookingUrl = value
+
+    assert.equal(validatePortfolio(fixture).home.contact.bookingUrl, value == null ? undefined : value.trim())
+  }
+})
+
+test("portfolio validation rejects unsafe or malformed booking destinations with field diagnostics", () => {
+  for (const value of ["", " ", 42, false, {}, [], "/intro", "not a URL", "//booking.example.test/intro", "http://booking.example.test/intro", "javascript:alert(1)", "https://user:password@booking.example.test/intro"]) {
+    const fixture = portfolioFixture() as { home: { contact: Record<string, unknown> } }
+    fixture.home.contact.bookingUrl = value
+
+    assert.throws(() => validatePortfolio(fixture), /content\/portfolio\.yaml: home\.contact\.bookingUrl must be/)
+  }
+})
+
 test("portfolio validation accepts exactly one supported certification visual", () => {
   const iconContent = validatePortfolio(portfolioFixture())
   assert.deepEqual(iconContent.profile.certifications[0], {

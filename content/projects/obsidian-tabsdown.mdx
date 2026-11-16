@@ -6,10 +6,16 @@ export const metadata = {
   tags: ["Obsidian API", "Quartz", "TypeScript", "Markdown", "CSS"],
   links: [
     { label: "Store page", href: "https://obsidian.md/plugins?id=tabsdown" },
-    { label: "Obsidian source", href: "https://github.com/grafanaKibana/obsidian-tabsdown" },
-    { label: "Quartz source", href: "https://github.com/grafanaKibana/quartz-tabsdown" },
+    {
+      label: "Obsidian source",
+      href: "https://github.com/grafanaKibana/obsidian-tabsdown",
+    },
+    {
+      label: "Quartz source",
+      href: "https://github.com/grafanaKibana/quartz-tabsdown",
+    },
   ],
-}
+};
 
 ## About
 
@@ -73,15 +79,15 @@ Plain Markdown content
 
 Fenced `tabsdown` blocks remain supported with the same layout features. Optional configuration appears before the first `tab:` label.
 
-```markdown
-~~~tabsdown
+````markdown
+```tabsdown
 tab: Notes
 Plain Markdown content
 
 tab: Example
 `code` and other Markdown
-~~~
 ```
+````
 
 In Obsidian, the plugin delegates rendered bodies to Obsidian's Markdown renderer and writes in-place edits back into the original layout. In Quartz, the transformer recognizes both formats before Obsidian Flavored Markdown, inserts each body into the syntax tree, and lets later transformers process it normally. Quartz reports malformed layouts with their original source; incomplete layouts in Obsidian can reveal the note's source for editing.
 
