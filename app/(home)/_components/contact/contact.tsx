@@ -3,7 +3,7 @@ import { ArrowUpRight, Calendar, Mail } from "lucide-react";
 import { clsx } from "clsx";
 
 import { home, profile } from "@/lib/content/portfolio/server";
-import { BookingLink } from "./booking-link";
+import { BookingLink } from "../booking-link/booking-link";
 import styles from "./contact.module.scss";
 
 const socialIcons = {

@@ -1,14 +1,17 @@
 import type { CSSProperties } from "react";
 import {
   type LucideIcon,
+  CalendarIcon,
   TelescopeIcon,
   MailIcon,
   ArrowBigDownDashIcon
 } from "lucide-react";
 import { home } from "@/lib/content/portfolio/server";
 import { buttonVariants } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { OpeningImages } from "@/components/opening-splash/opening-splash";
 import { clsx } from "clsx";
+import { BookingLink } from "../booking-link/booking-link";
 import { DescriptorRotation } from "./descriptor-rotation/descriptor-rotation";
 import { HeroBackground } from "./hero-background";
 import styles from "./hero.module.scss";
@@ -39,6 +42,7 @@ const heroColors = {
 } as CSSProperties;
 
 const icons: Record<string, LucideIcon> = {
+  booking: CalendarIcon,
   contact: MailIcon,
   download: ArrowBigDownDashIcon,
   experience: TelescopeIcon,
@@ -58,7 +62,7 @@ function Icon({ name }: { name: string }) {
 }
 
 /**
- * Renders the portfolio introduction and primary contact and résumé actions.
+ * Renders the portfolio introduction and contact, booking, résumé, and experience actions.
  *
  * @returns The Home Hero section.
  */
@@ -107,17 +111,25 @@ export function HomeHero() {
           interval={home.hero.descriptorInterval}
         />
       </div>
-      <div data-page-motion-intro="immediate" className={clsx(styles.actions, "w-full lg:w-auto")} data-slot="hero-actions">
-        <a aria-label="Open résumé PDF" className={clsx(buttonVariants(), styles.resumeButton)} href={home.hero.resumeHref}>
-          <Icon name="download" />
-          Résumé
-          <span aria-hidden="true" className={styles.resumeFormat}>PDF</span>
-        </a>
-        <a className={buttonVariants({ variant: "ghost" })} href="#contact">
+      <div data-page-motion-intro="immediate" className={clsx(styles.actions, "w-full")} data-slot="hero-actions">
+        <a className={clsx(buttonVariants({ variant: "ghost" }), styles.jumpLink)} href="#contact">
           <Icon name="contact" />
           Get in touch
         </a>
-        <a className={buttonVariants({ variant: "ghost" })} href="#experience">
+        <ButtonGroup className={styles.primaryActions}>
+          {home.contact.bookingUrl && (
+            <BookingLink className={buttonVariants()} href={home.contact.bookingUrl} slot="button">
+              <Icon name="booking" />
+              Book a call
+            </BookingLink>
+          )}
+          <a aria-label="Open résumé PDF" className={buttonVariants()} data-slot="button" href={home.hero.resumeHref}>
+            <Icon name="download" />
+            Résumé
+            <span aria-hidden="true" className={styles.resumeFormat}>PDF</span>
+          </a>
+        </ButtonGroup>
+        <a className={clsx(buttonVariants({ variant: "ghost" }), styles.jumpLink)} href="#experience">
           <Icon name="experience" />
           Explore experience
         </a>

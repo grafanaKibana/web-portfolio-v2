@@ -43,6 +43,7 @@ const homeOwners = [
   ["experience", ["./experience.tsx"]],
   ["code-activity", ["./code-activity.tsx"]],
   ["contact", ["./contact.tsx"]],
+  ["booking-link", ["./booking-link.tsx"]],
   ["about", ["./about.tsx"]],
   ["education", ["./education.tsx"]],
   ["skills", ["./skills.tsx"]],

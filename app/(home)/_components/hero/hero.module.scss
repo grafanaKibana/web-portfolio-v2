@@ -136,14 +136,14 @@
 }
 
 .actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  justify-content: center;
   margin-top: 2.25rem;
 
-  > a {
-    width: 100%;
-    min-height: 2.75rem;
+  a {
+    height: 2.5rem;
 
     &:focus-visible {
       outline: 2px solid var(--hero-foreground);
@@ -152,8 +152,23 @@
   }
 }
 
-.resumeButton {
-  grid-column: 1 / -1;
+/* Equal halves keep the open seam between the two filled actions on the hero's center line. */
+.primaryActions:has(> a + a) {
+  --hero-action-seam-radius: 0.375rem;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.125rem;
+
+  > a:first-child {
+    border-start-end-radius: var(--hero-action-seam-radius);
+    border-end-end-radius: var(--hero-action-seam-radius);
+  }
+
+  > a:last-child {
+    border-start-start-radius: var(--hero-action-seam-radius);
+    border-end-start-radius: var(--hero-action-seam-radius);
+  }
 }
 
 .resumeFormat {
@@ -168,31 +183,58 @@
   opacity: 0.68;
 }
 
-@media (max-width: 24.375rem) {
-  .actions {
-    column-gap: 0.375rem;
+@media (max-width: 47.999rem) {
+  /* Breaks the wrapped row so the filled pair leads and the borderless links follow. */
+  .actions::after {
+    flex-basis: 100%;
+    order: 1;
+    content: "";
   }
 
-  .actions > a {
-    min-width: 0;
-    min-height: 2.75rem;
-    height: auto;
-    padding-block: 0.5rem;
-    white-space: normal;
+  .jumpLink {
+    order: 2;
   }
+}
 
-  .actions > a:not(.resumeButton) {
-    padding-inline: 0.625rem;
+@media (max-width: 22.5rem) {
+  .actions a {
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+    font-size: 0.8125rem;
   }
 }
 
 @media (max-width: 17.5rem) {
   .actions {
-    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    align-items: center;
+
+    &::after {
+      content: none;
+    }
   }
 
-  .resumeButton {
-    grid-column: auto;
+  .jumpLink {
+    order: 0;
+  }
+
+  .primaryActions svg {
+    display: none;
+  }
+}
+
+@media (min-width: 48rem) {
+  .actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .jumpLink:first-child {
+    justify-self: end;
+  }
+
+  .jumpLink:last-child {
+    justify-self: start;
   }
 }
 
@@ -224,23 +266,11 @@
   }
 
   .actions {
-    grid-template-columns: repeat(3, max-content);
     margin-top: 2.875rem;
 
-    > a {
-      width: auto;
-      min-height: 2.25rem;
+    a {
+      height: 2.25rem;
     }
-  }
-
-  .resumeButton {
-    grid-column: auto;
-  }
-}
-
-@media (min-width: 30rem) and (max-width: 63.999rem) {
-  .actions {
-    max-width: 36rem;
   }
 }
 

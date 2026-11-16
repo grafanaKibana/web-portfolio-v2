@@ -22,13 +22,15 @@ function bookingApi(): BookingApi | undefined {
  * Enhances a booking link with a themed Cal.com popup while retaining native navigation as a fallback.
  *
  * @param href - Validated booking destination.
- * @param className - Existing contact link styling.
+ * @param className - Styling supplied by the owning action.
+ * @param slot - Optional `data-slot` value letting grouping controls recognize the link.
  * @param children - Booking link content.
  * @returns A native link and, for Cal.com destinations, the deferred embed scripts.
  */
-export function BookingLink({ href, className, children }: {
+export function BookingLink({ href, className, slot, children }: {
   href: string;
   className: string;
+  slot?: string;
   children: ReactNode;
 }) {
   const { resolvedTheme } = useTheme();
@@ -57,6 +59,7 @@ export function BookingLink({ href, className, children }: {
       <a
         aria-haspopup={calLink && ready ? "dialog" : undefined}
         className={className}
+        data-slot={slot}
         href={href}
         onClick={(event) => {
           const api = bookingApi();
@@ -83,6 +86,8 @@ export function BookingLink({ href, className, children }: {
           </Script>
           {bootstrapped && (
             <Script
+              // A second link reusing the cached request is notified through onLoad only.
+              onLoad={() => { setReady(true); }}
               onReady={() => { setReady(true); }}
               src="https://app.cal.com/embed/embed.js"
               strategy="afterInteractive"
