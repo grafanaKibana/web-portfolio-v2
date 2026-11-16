@@ -1,8 +1,8 @@
-/** Cal.com popup appearance shared by both website themes. */
+/** Cal.com popup appearance using the site's brand-accent-text greens, resolved to sRGB for the embed. */
 export const bookingUi = {
   cssVarsPerTheme: {
-    light: { "cal-brand": "#211f1f" },
-    dark: { "cal-brand": "#fcfafa" },
+    light: { "cal-brand": "#007c60" },
+    dark: { "cal-brand": "#6bdbb2" },
   },
   hideEventTypeDetails: false,
   layout: "month_view",
