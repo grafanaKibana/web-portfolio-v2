@@ -6,7 +6,7 @@ import {
   MailIcon,
   ArrowBigDownDashIcon
 } from "lucide-react";
-import { home } from "@/lib/content/portfolio/server";
+import { home, profile } from "@/lib/content/portfolio/server";
 import { buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { OpeningImages } from "@/components/opening-splash/opening-splash";
@@ -40,6 +40,14 @@ const heroColors = {
   "--hero-light-noise-opacity": heroNoise.light / 200,
   "--hero-dark-noise-opacity": heroNoise.dark / 200,
 } as CSSProperties;
+
+const [titleStart = "", titleEnd = ""] = home.hero.title.split(profile.name);
+
+/** The headline opens on the name, then cycles each descriptor with its article. */
+const titlePhrases = [
+  profile.name,
+  ...home.hero.descriptors.map(({ article, label }) => `${article} ${label}`),
+];
 
 const icons: Record<string, LucideIcon> = {
   booking: CalendarIcon,
@@ -90,7 +98,7 @@ export function HomeHero() {
         className={clsx(styles.background, styles.darkBackground)}
       />
       <HeroBackground sources={{ light: lightImage.src, dark: darkImage.src, noise: noiseImage.src }} />
-      <div data-page-motion-intro="immediate" className={clsx(styles.availability, "inline-flex items-center rounded-full py-1.5 text-xs font-medium")}>
+      <div data-page-motion-intro="immediate" className={clsx(styles.availability, "inline-flex items-center rounded-full bg-foreground/8 py-1.5 text-xs font-medium")}>
         <span
           aria-hidden="true"
           className={clsx(styles.availabilityDot, "size-1.5 animate-pulse rounded-full motion-reduce:animate-none")}
@@ -102,15 +110,18 @@ export function HomeHero() {
         </span>
       </div>
       <h1 data-page-motion-intro="immediate" id="intro-heading" className={clsx(styles.heading, "m-0 font-medium")}>
-        <span className="block">{home.hero.title}</span>
-        <span className="block text-content-foreground">{home.hero.lead}</span>
+        <span className="sr-only">{home.hero.title}</span>
+        <span aria-hidden="true">
+          <span className={styles.greeting}>{titleStart.trimEnd()}</span>{" "}
+          <span className="whitespace-nowrap">
+            <DescriptorRotation interval={home.hero.descriptorInterval} phrases={titlePhrases} />
+            {titleEnd}
+          </span>
+        </span>
       </h1>
-      <div data-page-motion-intro="immediate" className={clsx(styles.descriptorSlot, "flex items-center justify-center")}>
-        <DescriptorRotation
-          descriptors={home.hero.descriptors}
-          interval={home.hero.descriptorInterval}
-        />
-      </div>
+      <p data-page-motion-intro="immediate" className={clsx(styles.lead, "m-0 text-content-foreground")}>
+        {home.hero.lead}
+      </p>
       <div data-page-motion-intro="immediate" className={clsx(styles.actions, "w-full")} data-slot="hero-actions">
         <a className={clsx(buttonVariants({ variant: "ghost" }), styles.jumpLink)} href="#contact">
           <Icon name="contact" />

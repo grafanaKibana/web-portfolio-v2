@@ -10,12 +10,25 @@ export function nextDescriptorIndex(current: number, count: number): number {
 }
 
 /**
- * Resolves descriptor motion that stays brief for reduced-motion preferences.
+ * Resolves how long one phrase stays: the lead phrase holds for two intervals, except on its opening pass.
  *
- * @param reducedMotion - Whether translation should be removed and timing shortened.
- * @returns Entry, active, exit, and transition values for one descriptor.
+ * @param index - Index of the visible phrase.
+ * @param interval - Base rotation interval in milliseconds.
+ * @param opening - Whether the sequence has not advanced yet, so the first change arrives promptly.
+ * @returns The dwell time in milliseconds.
  */
-export function resolveDescriptorMotion(reducedMotion: boolean) {
+export function descriptorDwell(index: number, interval: number, opening: boolean): number {
+  return index === 0 && !opening ? interval * 2 : interval;
+}
+
+/**
+ * Resolves phrase motion as focus progress: the outgoing phrase defocuses before the incoming one resolves.
+ *
+ * @param reducedMotion - Whether the change should collapse to one brief fade.
+ * @param growing - Whether the incoming phrase is wider, so it waits for the slot to open around it.
+ * @returns Entry, active, exit, and transition values for one phrase.
+ */
+export function resolveDescriptorMotion(reducedMotion: boolean, growing: boolean) {
   if (reducedMotion) {
     return {
       animate: { opacity: 1 },
@@ -26,9 +39,12 @@ export function resolveDescriptorMotion(reducedMotion: boolean) {
   }
 
   return {
-    animate: { opacity: 1, y: "0rem" },
-    exit: { opacity: 0, y: "-0.875rem" },
-    initial: { opacity: 0, y: "0.875rem" },
-    transition: { duration: 0.58, ease: [0.22, 0.61, 0.36, 1] as const },
+    animate: {
+      "--phrase-progress": 1,
+      transition: { delay: growing ? 0.36 : 0.22, duration: 0.52, ease: [0.3, 0.5, 0.3, 1] as const },
+    },
+    exit: { "--phrase-progress": 0, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] as const } },
+    initial: { "--phrase-progress": 0 },
+    transition: { duration: 0.52 },
   };
 }

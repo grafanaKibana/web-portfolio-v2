@@ -88,6 +88,12 @@ export interface PortfolioProfile {
   links: readonly ExternalLink[];
 }
 
+/** A role the hero headline rotates through, with the indefinite article its sentence needs. */
+export interface HeroDescriptor {
+  article: string;
+  label: string;
+}
+
 /** Validated configuration and copy for the home route. */
 export interface HomeContent {
   metadataDescription: string;
@@ -98,7 +104,7 @@ export interface HomeContent {
     availability: { status: string; qualifier: string };
     title: string;
     lead: string;
-    descriptors: readonly string[];
+    descriptors: readonly HeroDescriptor[];
     descriptorInterval: number;
     resumeHref: string;
   };
@@ -329,6 +335,22 @@ function link(value: unknown, path: string): ExternalLink {
 }
 
 /**
+ * Validates one hero descriptor and the article that precedes it in the headline.
+ *
+ * @param value - Untrusted descriptor record.
+ * @param path - Source path for diagnostics.
+ * @returns The descriptor label with its article.
+ * @throws When the article or label is missing or empty.
+ */
+function heroDescriptor(value: unknown, path: string): HeroDescriptor {
+  const source = record(value, path);
+  return {
+    article: string(source.article, `${path}.article`),
+    label: string(source.label, `${path}.label`),
+  };
+}
+
+/**
  * Parses the validated profile branch of the portfolio document.
  *
  * @param sourceProfile - Untrusted profile record from the YAML root.
@@ -426,12 +448,17 @@ export function validatePortfolio(value: unknown): { profile: PortfolioProfile; 
   const contact = record(sourceHome.contact, "home.contact");
   const availability = record(hero.availability, "home.hero.availability");
   const footer = record(sourceHome.footer, "home.footer");
-  const descriptors = array(hero.descriptors, "home.hero.descriptors", string);
+  const profile = parseProfile(sourceProfile);
+  const title = string(hero.title, "home.hero.title");
+  const descriptors = array(hero.descriptors, "home.hero.descriptors", heroDescriptor);
   const descriptorInterval = number(hero.descriptorInterval, "home.hero.descriptorInterval");
   if (!descriptors.length) throw new Error("content/portfolio.yaml: home.hero.descriptors must not be empty");
+  if (title.split(profile.name).length !== 2) {
+    throw new Error("content/portfolio.yaml: home.hero.title must contain profile.name exactly once");
+  }
   if (descriptorInterval <= 0) throw new Error("content/portfolio.yaml: home.hero.descriptorInterval must be positive");
   return {
-    profile: parseProfile(sourceProfile),
+    profile,
     home: {
       metadataDescription: string(sourceHome.metadataDescription, "home.metadataDescription"),
       mobileNavigation: {
@@ -442,7 +469,7 @@ export function validatePortfolio(value: unknown): { profile: PortfolioProfile; 
           status: string(availability.status, "home.hero.availability.status"),
           qualifier: string(availability.qualifier, "home.hero.availability.qualifier"),
         },
-        title: string(hero.title, "home.hero.title"),
+        title,
         lead: string(hero.lead, "home.hero.lead"),
         descriptors,
         descriptorInterval,

@@ -139,7 +139,11 @@ home:
     availability: { status: "Open to work", qualifier: "remote or relocation" }
     title: "Hi, I’m Nikita Reshetnik."
     lead: "I make things. Some talk back."
-    descriptors: ["AI Engineer", "Software Developer", "UI Design Enthusiast", "Open Source Contributor"]
+    descriptors:
+      - { article: "an", label: "AI Engineer" }
+      - { article: "a", label: "Software Developer" }
+      - { article: "a", label: "UI Design Enthusiast" }
+      - { article: "an", label: "Open Source Contributor" }
     descriptorInterval: 3200
     resumeHref: "https://github.com/grafanaKibana/LatexCV/releases/latest/download/resume.pdf"
   projects:

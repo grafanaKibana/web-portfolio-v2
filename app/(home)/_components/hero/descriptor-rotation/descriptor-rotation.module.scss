@@ -1,8 +1,71 @@
 .stage {
+  --edge-inline: 0.3em;
+  --edge-block: 0.15em;
+
+  position: relative;
   display: inline-grid;
+  box-sizing: content-box;
+
+  /* Centers the track itself, so a phrase wider than the slot overflows equally on both sides. */
+  justify-content: center;
+  justify-items: center;
+  margin: calc(-1 * var(--edge-block)) calc(-1 * var(--edge-inline));
+  padding: var(--edge-block) var(--edge-inline);
+  overflow-x: clip;
+  white-space: nowrap;
+
+  /* The padding is cancelled by the margin, so the resting phrase is untouched and only overflow fades out. */
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--edge-inline),
+    #000 calc(100% - var(--edge-inline)),
+    transparent
+  );
+  transition: width 560ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-.rotation {
+/*
+ * Focus is a crossfade, not a filter on the text: a blurred copy hands over to glyphs that are never filtered.
+ * Filtering the real text makes browsers repaint it on another sub-pixel when the blur ends, which reads as a snap.
+ */
+.phrase {
+  --phrase-progress: 1;
+
+  /* The sharp glyphs take over only once the copy is nearly in focus, so the handover adds no halo or extra weight. */
+  --phrase-sharp: clamp(0, calc((var(--phrase-progress) - 0.45) / 0.45), 1);
+
+  position: relative;
   grid-area: 1 / 1;
-  letter-spacing: 0.16em;
+
+  &::before {
+    position: absolute;
+    inset: 0;
+
+    /* The radius falls off quadratically: a wide soft cloud at the start, close to focus well before the end. */
+    filter: blur(calc((1 - var(--phrase-progress)) * (1 - var(--phrase-progress)) * 0.22em + 0.01em));
+    opacity: clamp(0, min(var(--phrase-progress) * 3.2, (1 - var(--phrase-sharp)) * 1.6), 1);
+    pointer-events: none;
+    content: attr(data-text);
+  }
+}
+
+.sharp {
+  opacity: var(--phrase-sharp);
+}
+
+.sizers {
+  position: absolute;
+  visibility: hidden;
+
+  > span {
+    display: block;
+    width: max-content;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage {
+    transition: none;
+  }
 }

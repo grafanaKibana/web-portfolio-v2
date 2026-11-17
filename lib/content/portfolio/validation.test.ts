@@ -63,9 +63,9 @@ function portfolioFixture(): Record<string, unknown> {
       mobileNavigation: { scrollThreshold: 240 },
       hero: {
         availability: { status: "Available", qualifier: "Fixture qualifier" },
-        title: "Fixture title",
+        title: "Fixture greeting, Fixture Person.",
         lead: "Fixture lead",
-        descriptors: ["Fixture descriptor"],
+        descriptors: [{ article: "a", label: "Fixture descriptor" }],
         descriptorInterval: 3_000,
         resumeHref: "https://example.test/resume.pdf",
       },
@@ -232,8 +232,20 @@ test("portfolio validation enforces chapter and hero invariants", () => {
   assert.throws(() => validatePortfolio(missingRole), /must have at least one matching experience/)
 
   const emptyDescriptors = portfolioFixture() as {
-    home: { hero: { descriptors: string[] } }
+    home: { hero: { descriptors: unknown[] } }
   }
   emptyDescriptors.home.hero.descriptors = []
   assert.throws(() => validatePortfolio(emptyDescriptors), /hero\.descriptors must not be empty/)
+
+  const missingArticle = portfolioFixture() as {
+    home: { hero: { descriptors: unknown[] } }
+  }
+  missingArticle.home.hero.descriptors = [{ label: "Fixture descriptor" }]
+  assert.throws(() => validatePortfolio(missingArticle), /hero\.descriptors\[0\]\.article must be a non-empty string/)
+
+  for (const title of ["Fixture greeting.", "Fixture Person, Fixture Person."]) {
+    const unsplittableTitle = portfolioFixture() as { home: { hero: { title: string } } }
+    unsplittableTitle.home.hero.title = title
+    assert.throws(() => validatePortfolio(unsplittableTitle), /hero\.title must contain profile\.name exactly once/)
+  }
 })

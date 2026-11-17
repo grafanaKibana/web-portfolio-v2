@@ -347,7 +347,7 @@ test("AskService partitions synthetic website evidence by its rendered source co
         availability: { status: "HERO_STATUS_MARKER", qualifier: "HERO_QUALIFIER_MARKER" },
         title: "HERO_TITLE_MARKER",
         lead: "HERO_LEAD_MARKER",
-        descriptors: ["HERO_DESCRIPTOR_MARKER"],
+        descriptors: [{ article: "a", label: "HERO_DESCRIPTOR_MARKER" }],
         descriptorInterval: 3201,
         resumeHref: "https://example.test/resume",
       },

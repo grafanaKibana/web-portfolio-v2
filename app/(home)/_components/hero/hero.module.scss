@@ -6,6 +6,10 @@
   --hero-veil: var(--hero-light-veil);
   --hero-noise-opacity: var(--hero-light-noise-opacity);
   --hero-fade-height: 6rem;
+
+  /* The viewport-relative floor keeps the longest rotating phrase on one line down to the narrowest phones. */
+  /* stylelint-disable-next-line number-max-precision -- Preserve the approved responsive type curve. */
+  --hero-title-size: clamp(min(1.75rem, 6.8vw), 3.90625vw, 2.5rem);
   --foreground: var(--hero-foreground);
   --content-foreground: var(--hero-content-foreground);
   --muted-foreground: var(--hero-muted-foreground);
@@ -113,7 +117,6 @@
   gap: 0.5625rem;
   margin-bottom: 1.625rem;
   padding-inline: 0.6875rem 0.8125rem;
-  background: color-mix(in srgb, var(--hero-surface) 25%, transparent);
 }
 
 .availabilityDot {
@@ -123,16 +126,18 @@
 
 .heading {
   overflow-wrap: anywhere;
-  /* stylelint-disable-next-line number-max-precision -- Preserve the approved responsive type curve. */
-  font-size: clamp(1.75rem, 3.90625vw, 2.5rem);
+  font-size: var(--hero-title-size);
   line-height: 1.12;
   letter-spacing: -0.03em;
   text-wrap: balance;
 }
 
-.descriptorSlot {
-  margin-top: 1.5rem;
-  color: var(--content-foreground);
+.lead {
+  margin-top: 0.75rem;
+  font-size: max(1.0625rem, calc(var(--hero-title-size) * 0.45));
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
 }
 
 .actions {
@@ -181,6 +186,21 @@
   line-height: 1;
   letter-spacing: 0.08em;
   opacity: 0.68;
+}
+
+/* Below this width the longest phrase cannot share a line with the greeting, so the greeting always leads alone. */
+@media (max-width: 35.999rem) {
+  .greeting {
+    display: block;
+  }
+}
+
+/* The headline may run past the reading shell; the hero is full-bleed, so one centered line beats a wrap. */
+@media (min-width: 36rem) {
+  .heading {
+    width: max-content;
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 47.999rem) {
@@ -242,6 +262,9 @@
   .hero {
     --hero-fade-height: 12.25rem;
 
+    /* stylelint-disable-next-line number-max-precision -- Preserve the approved responsive type curve. */
+    --hero-title-size: clamp(2.5rem, -0.576923rem + 4.807692vw, 3.75rem);
+
     padding-block: 6.25rem var(--hero-fade-height);
   }
 
@@ -256,13 +279,8 @@
     height: 0.4375rem;
   }
 
-  .heading {
-    /* stylelint-disable-next-line number-max-precision -- Preserve the approved responsive type curve. */
-    font-size: clamp(2.5rem, -0.576923rem + 4.807692vw, 3.75rem);
-  }
-
-  .descriptorSlot {
-    margin-top: 2.125rem;
+  .lead {
+    margin-top: 1rem;
   }
 
   .actions {
