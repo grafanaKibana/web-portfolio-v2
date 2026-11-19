@@ -390,28 +390,44 @@ function useSurfaceContentMotion(open: boolean, model: ReturnType<typeof useConv
   }, [surfaceRef]);
 }
 
-/** Tracks each arrival at the page end so an explicit close can leave its line resting.
- * @returns Current end visibility and arrival number.
+/** Scrubs the entry through the footer's closing space and identifies each visit for dismissal.
+ * @param rootRef - Conversation shell that owns the scroll-driven paint.
+ * @returns Footer approach, completion, and visit identity for entry interaction.
  */
-function useAtPageEnd() {
-  const [position, setPosition] = useState({ atPageEnd: false, pageEndVisit: 0 });
+function useFooterReveal(rootRef: RefObject<HTMLDivElement | null>) {
+  const [position, setPosition] = useState({ approaching: false, atPageEnd: false, pageEndVisit: 0 });
   useEffect(() => {
-    /** Measures the actual document edge without inferring intent from scroll direction. */
+    const shell = rootRef.current;
+    if (!shell) return;
+    let previous = -1;
+
+    /** Updates paint directly while committing React state only at interaction boundaries. */
     function updatePageEnd() {
-      const root = document.documentElement;
-      const atPageEnd = window.scrollY + window.innerHeight >= root.scrollHeight - 2;
-      setPosition((current) => current.atPageEnd === atPageEnd ? current : {
-        atPageEnd, pageEndVisit: current.pageEndVisit + (atPageEnd ? 1 : 0),
-      });
+      const remaining = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+      // Allow two pixels for fractional scroll positions at the document edge.
+      const progress = Math.max(0, Math.min(1, 1 - (remaining - 2) / 80));
+      if (progress === previous) return;
+      const approaching = progress > 0;
+      const atPageEnd = progress === 1;
+      if (approaching !== (previous > 0) || atPageEnd !== (previous === 1)) {
+        setPosition((current) => ({
+          approaching, atPageEnd, pageEndVisit: current.pageEndVisit + (approaching && !current.approaching ? 1 : 0),
+        }));
+      }
+      previous = progress;
+      shell?.style.setProperty("--footer-reveal", String(progress));
     }
+    const observer = new ResizeObserver(updatePageEnd);
+    observer.observe(document.body);
     updatePageEnd();
     window.addEventListener("scroll", updatePageEnd, { passive: true });
     window.addEventListener("resize", updatePageEnd);
     return () => {
+      observer.disconnect();
       window.removeEventListener("scroll", updatePageEnd);
       window.removeEventListener("resize", updatePageEnd);
     };
-  }, []);
+  }, [rootRef]);
 
   return position;
 }
@@ -814,7 +830,7 @@ export function Conversation() {
   const [suppressedPageEndVisit, setSuppressedPageEndVisit] = useState(0);
   const [typing, setTyping] = useState(false);
   const waitForPointerMoveRef = useRef(false);
-  const { atPageEnd, pageEndVisit } = useAtPageEnd();
+  const { approaching, atPageEnd, pageEndVisit } = useFooterReveal(rootRef);
   const gestureRef = useRef<ConversationGesture | null>(null);
   const previouslyOpen = useRef(false);
   const { anchorTurnId, cancelMorph, entryOrigin, morphCompletionRef, morphPhase, prepareClosing, prepareOpening, setAnchorTurnId } = useConversationMorphLifecycle(
@@ -928,7 +944,8 @@ export function Conversation() {
     if (open) { dismiss(); return; }
     if (model.expanded) {
       const entry = rootRef.current?.querySelector<HTMLElement>("[data-edge-entry]");
-      prepareOpening(entry?.querySelector<HTMLElement>(entry.dataset.entryRevealed === "true" ? "[data-reopen-field]" : "[data-entry-stroke]")?.getBoundingClientRect() ?? null);
+      const origin = entry?.querySelector<HTMLElement>("[data-reopen-field] [data-composer-surface]");
+      prepareOpening(origin?.getBoundingClientRect() ?? null);
       setAnchorTurnId(undefined);
       setOpen(true);
     } else {
@@ -957,9 +974,9 @@ export function Conversation() {
     } else handleNativeClose(event.currentTarget);
   }
 
-  const entryRevealed = !open && ((atPageEnd && pageEndVisit !== suppressedPageEndVisit) || (model.expanded
-    ? revealed
-    : entryFocused || Boolean(model.draft) || revealed));
+  const directReveal = revealed || (!model.expanded && (entryFocused || Boolean(model.draft)));
+  const footerReveal = !open && !directReveal && approaching && pageEndVisit !== suppressedPageEndVisit;
+  const entryRevealed = !open && (directReveal || (footerReveal && atPageEnd));
   const contents = <ConversationInterior active={open} restoringHistory={morphPhase === "opening" && !anchorTurnId} anchorTurnId={anchorTurnId} dismiss={dismiss} gestureRef={gestureRef} handleRef={handleRef} mobile={mobile} model={model} onAccepted={handleAccepted} onNavigate={dismissForShell} setTyping={setTyping} surfaceRef={surfaceRef} titleRef={titleRef} typing={typing} />;
 
   return (
@@ -967,10 +984,9 @@ export function Conversation() {
       {capability !== "unsupported" ? (
         <>
           <div
-            className={styles.edgeEntry}
-            data-edge-entry
+            className={styles.edgeEntry} data-edge-entry
             data-entry-revealed={entryRevealed}
-            data-has-history={model.expanded}
+            data-footer-reveal={(footerReveal && capability === "supported" && !hidden && !morphPhase) || undefined} data-has-history={model.expanded}
             onFocusCapture={(event) => { setEntryFocused(true); if (event.target instanceof HTMLElement && event.target.hasAttribute("data-launcher") && !model.expanded) handleLauncherClick(); }}
             onBlurCapture={(event) => {
               if (event.currentTarget.contains(event.relatedTarget)) return;

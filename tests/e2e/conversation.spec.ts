@@ -352,7 +352,56 @@ test.describe("conversation smoke", () => {
     await expect(input).toBeVisible();
     const footerContent = await box(page.locator("footer > :last-child"));
     const entryField = await box(page.locator('[data-edge-entry] [data-slot="input-group"]'));
-    expect(entryField.y - (footerContent.y + footerContent.height)).toBeGreaterThanOrEqual(8);
+    expect(entryField.y - (footerContent.y + footerContent.height)).toBeGreaterThanOrEqual(39);
+  });
+
+  test("@webkit footer scroll widens and retracts the idle field without taking focus", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.mouse.move(8, 8);
+    const entry = page.locator("[data-edge-entry]");
+    const paint = entry.locator("[data-composer-surface]");
+    const field = entry.locator('[data-slot="input-group"]');
+    await expect(entry.getByRole("textbox")).toHaveCount(0);
+    const fullWidth = await field.evaluate((element) => element.getBoundingClientRect().width);
+    const lineWidth = (await box(entry.locator("[data-entry-stroke]"))).width;
+
+    /** Places the viewport a given distance from its final scroll position.
+     * @param remaining - Distance in CSS pixels above the document edge.
+     */
+    async function scrollFromEnd(remaining: number) {
+      await page.evaluate((distance) => {
+        window.scrollTo({ behavior: "instant", top: document.documentElement.scrollHeight - window.innerHeight - distance });
+      }, remaining);
+    }
+
+    await scrollFromEnd(40);
+    await expect.poll(async () => (await box(paint)).width).toBeGreaterThan(lineWidth + 1);
+    const midway = (await box(paint)).width;
+    expect(midway).toBeLessThan(fullWidth - 1);
+    const input = entry.locator("textarea");
+    await input.focus();
+    await expect(input).not.toBeFocused();
+
+    const controls = entry.locator("[data-composer-row]");
+    await expect(controls).toHaveCSS("opacity", "0");
+
+    // Stop during the controls' fade, where an unfinished surface would expose both ends.
+    await scrollFromEnd(14);
+    await expect.poll(async () => controls.evaluate((row) => Number(getComputedStyle(row).opacity))).toBeGreaterThan(0);
+    const row = await box(controls);
+    const surface = await box(paint);
+    expect(surface.x).toBeLessThanOrEqual(row.x);
+    expect(surface.y).toBeLessThanOrEqual(row.y);
+    expect(surface.x + surface.width).toBeGreaterThanOrEqual(row.x + row.width);
+    expect(surface.y + surface.height).toBeGreaterThanOrEqual(row.y + row.height);
+
+    await scrollFromEnd(0);
+    await expect.poll(async () => (await box(paint)).width).toBeCloseTo(fullWidth, 0);
+    await expect(entry.getByRole("textbox")).not.toBeFocused();
+    await scrollFromEnd(40);
+    await expect.poll(async () => (await box(paint)).width).toBeCloseTo(midway, 0);
+    await scrollFromEnd(200);
+    await expect(entry.locator("[data-entry-stroke]")).toBeVisible();
   });
 
   test("@webkit desktop hover morph keeps one jade shape through reveal and hide", async ({ page }) => {

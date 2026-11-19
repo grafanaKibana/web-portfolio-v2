@@ -435,16 +435,17 @@
 @media (min-width: 40rem) {
   .edgeEntry {
     --revealed-field-lift: 8px;
+    --field-offset: 2.5rem;
 
-    padding-bottom: 2.5rem;
+    padding-bottom: var(--field-offset);
   }
 
   .entryField {
-    transform: translateY(2.5rem);
+    transform: translateY(var(--field-offset));
   }
 
   .edgeEntry[data-entry-revealed="true"] .entryField {
-    transform: translateY(calc(2.5rem - var(--revealed-field-lift)));
+    transform: translateY(calc(var(--field-offset) - var(--revealed-field-lift)));
   }
 
   .edgeEntry[data-entry-revealed="true"] .reopenLabel {
@@ -494,6 +495,51 @@
   opacity: 1;
   transition-duration: 110ms;
   transition-delay: 270ms;
+}
+
+// Only passive footer entry follows scroll. Hover, tap and keyboard keep their own transitions.
+@media (prefers-reduced-motion: no-preference) {
+  .edgeEntry[data-footer-reveal] {
+    // Finish the surface before the unscaled controls fade through the last quarter of scroll.
+    --field-growth: min(1, var(--footer-reveal) / 0.75);
+    --field-lift: calc(var(--revealed-field-lift) * var(--field-growth));
+
+    .entryStroke {
+      visibility: hidden;
+    }
+
+    .entryField,
+    .reopenLabel {
+      visibility: visible;
+      transition: none;
+    }
+
+    .entryField {
+      transform: translateY(calc(var(--field-offset, 0px) - var(--field-lift)));
+    }
+
+    .reopenLabel {
+      transform: translateY(calc(-1 * var(--field-lift)));
+    }
+
+    [data-composer-surface] {
+      width: calc(7.5rem + (100% + 2px - 7.5rem) * var(--field-growth));
+      height: calc(var(--launcher-line-height) + (100% + 2px - var(--launcher-line-height)) * var(--field-growth));
+      border-color: var(--border);
+      box-shadow: var(--chat-field-shadow);
+      transition: none;
+    }
+
+    [data-composer-accent] {
+      opacity: calc(1 - var(--footer-reveal) * 3);
+      transition: none;
+    }
+
+    [data-composer-content] {
+      opacity: calc(var(--footer-reveal) * 4 - 3);
+      transition: none;
+    }
+  }
 }
 
 .mobileSurface {
