@@ -112,11 +112,9 @@ export function HomeHero() {
       <h1 data-page-motion-intro="immediate" id="intro-heading" className={clsx(styles.heading, "m-0 font-medium")}>
         <span className="sr-only">{home.hero.title}</span>
         <span aria-hidden="true">
-          <span className={styles.greeting}>{titleStart.trimEnd()}</span>{" "}
-          <span className="whitespace-nowrap">
-            <DescriptorRotation interval={home.hero.descriptorInterval} phrases={titlePhrases} />
-            {titleEnd}
-          </span>
+          {titleStart.trimEnd()}{" "}
+          <DescriptorRotation interval={home.hero.descriptorInterval} phrases={titlePhrases} />
+          {titleEnd}
         </span>
       </h1>
       <p data-page-motion-intro="immediate" className={clsx(styles.lead, "m-0 text-content-foreground")}>
@@ -142,7 +140,7 @@ export function HomeHero() {
         </ButtonGroup>
         <a className={clsx(buttonVariants({ variant: "ghost" }), styles.jumpLink)} href="#experience">
           <Icon name="experience" />
-          Explore experience
+          Experience
         </a>
       </div>
     </section>

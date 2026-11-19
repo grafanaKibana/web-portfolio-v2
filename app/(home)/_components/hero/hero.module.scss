@@ -1,3 +1,11 @@
+@use "sass:math";
+
+$hero-action-seam-radius: 0.375rem;
+$hero-action-nest-gap: 0.25rem;
+
+/* The tips meet at an acute angle, so a smaller radius reads as round as the seam's right-angle corners. */
+$hero-action-nest-tip-radius: 0.125rem;
+
 .hero {
   --hero-foreground: var(--hero-light-foreground);
   --hero-content-foreground: var(--hero-light-content-foreground);
@@ -7,9 +15,9 @@
   --hero-noise-opacity: var(--hero-light-noise-opacity);
   --hero-fade-height: 6rem;
 
-  /* The viewport-relative floor keeps the longest rotating phrase on one line down to the narrowest phones. */
+  /* The floor fits the headline with its longest phrase, about 15.3em wide, on one line inside 1rem margins. */
   /* stylelint-disable-next-line number-max-precision -- Preserve the approved responsive type curve. */
-  --hero-title-size: clamp(min(1.75rem, 6.8vw), 3.90625vw, 2.5rem);
+  --hero-title-size: clamp(min(1.75rem, calc((100vw - 2rem) / 15.6)), 3.90625vw, 2.5rem);
   --foreground: var(--hero-foreground);
   --content-foreground: var(--hero-content-foreground);
   --muted-foreground: var(--hero-muted-foreground);
@@ -124,12 +132,13 @@
   background-image: var(--brand-accent-gradient);
 }
 
+/* The headline may run past the reading shell; the hero is full-bleed, so one centered line beats a wrap. */
 .heading {
-  overflow-wrap: anywhere;
+  width: max-content;
   font-size: var(--hero-title-size);
   line-height: 1.12;
   letter-spacing: -0.03em;
-  text-wrap: balance;
+  white-space: nowrap;
 }
 
 .lead {
@@ -141,14 +150,17 @@
 }
 
 .actions {
+  --hero-action-gap: 0.5rem;
+  --hero-action-height: 2.5rem;
+
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.5rem;
+  gap: 0.25rem var(--hero-action-gap);
   justify-content: center;
   margin-top: 2.25rem;
 
   a {
-    height: 2.5rem;
+    height: var(--hero-action-height);
 
     &:focus-visible {
       outline: 2px solid var(--hero-foreground);
@@ -157,9 +169,39 @@
   }
 }
 
+/*
+ * Masks the jump-link hover surface so its inner end curves around the neighboring cap, with the two tips
+ * rounded. The surface box must end at the cap's center; the 1px button border is taken at 16px/rem.
+ */
+@mixin nested-hover-mask($height) {
+  $cap: math.div($height, 2) - 0.0625rem;
+  $cut: $cap + $hero-action-nest-gap;
+  $tip-y: $cap - $hero-action-nest-tip-radius;
+  $reach: $cut + $hero-action-nest-tip-radius;
+  $tip-x: math.sqrt(math.div($reach * $reach - $tip-y * $tip-y, 1rem * 1rem)) * 1rem;
+  $tip-angle: math.atan2($tip-y, $tip-x);
+
+  @each $child, $edge, $toward, $axis in (first-child, 100%, right, 270deg), (last-child, 0%, left, 90deg) {
+    $tip-edge: calc(100% - #{$tip-x});
+
+    @if $edge == 0% {
+      $tip-edge: $tip-x;
+    }
+
+    &:#{$child}::before {
+      mask-image:
+        radial-gradient(circle $cut at $edge 50%, transparent calc(100% - 0.5px), #000),
+        linear-gradient(to $toward, #000 calc(100% - #{$tip-x}), transparent 0),
+        conic-gradient(from $axis - $tip-angle at $edge 50%, #000 $tip-angle * 2, transparent 0),
+        radial-gradient(circle $hero-action-nest-tip-radius at $tip-edge calc(50% - #{$tip-y}), #000 calc(100% - 0.5px), transparent),
+        radial-gradient(circle $hero-action-nest-tip-radius at $tip-edge calc(50% + #{$tip-y}), #000 calc(100% - 0.5px), transparent);
+    }
+  }
+}
+
 /* Equal halves keep the open seam between the two filled actions on the hero's center line. */
 .primaryActions:has(> a + a) {
-  --hero-action-seam-radius: 0.375rem;
+  --hero-action-seam-radius: #{$hero-action-seam-radius};
 
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -188,31 +230,33 @@
   opacity: 0.68;
 }
 
-/* Below this width the longest phrase cannot share a line with the greeting, so the greeting always leads alone. */
-@media (max-width: 35.999rem) {
-  .greeting {
-    display: block;
-  }
-}
-
-/* The headline may run past the reading shell; the hero is full-bleed, so one centered line beats a wrap. */
-@media (min-width: 36rem) {
-  .heading {
-    width: max-content;
-    white-space: nowrap;
-  }
-}
-
 @media (max-width: 47.999rem) {
-  /* Breaks the wrapped row so the filled pair leads and the borderless links follow. */
-  .actions::after {
-    flex-basis: 100%;
-    order: 1;
-    content: "";
+  /*
+   * The filled pair leads and the borderless links meet beneath its seam, so both rows share the hero's center line.
+   * Equal columns as wide as the wider link keep that seam centered whatever the labels measure.
+   */
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 0.5rem;
+    width: max-content;
+  }
+
+  .primaryActions {
+    grid-column: 1 / -1;
+    justify-self: center;
   }
 
   .jumpLink {
-    order: 2;
+    grid-row: 2;
+  }
+
+  .jumpLink:first-child {
+    justify-self: end;
+  }
+
+  .jumpLink:last-child {
+    justify-self: start;
   }
 }
 
@@ -224,18 +268,17 @@
   }
 }
 
+/* The narrowest screens stack the links under the pair, which drops its icons to fit. */
 @media (max-width: 17.5rem) {
   .actions {
+    display: flex;
     flex-direction: column;
+    row-gap: 0.25rem;
     align-items: center;
-
-    &::after {
-      content: none;
-    }
   }
 
-  .jumpLink {
-    order: 0;
+  .primaryActions {
+    order: -1;
   }
 
   .primaryActions svg {
@@ -249,12 +292,51 @@
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   }
 
+  /* The hover surface nests against the filled pair: its inner end is cut concentric with the neighboring cap. */
+  .jumpLink {
+    --hero-action-nest-reach: calc(-1px - var(--hero-action-gap) - var(--hero-action-height) / 2);
+
+    @include nested-hover-mask(2.5rem);
+
+    position: relative;
+    isolation: isolate;
+
+    &:hover {
+      background: none;
+    }
+
+    &::before {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      background: color-mix(in oklab, var(--foreground) 8%, transparent);
+      opacity: 0;
+      pointer-events: none;
+      content: "";
+      transition: opacity 150ms;
+      mask-composite: intersect, add, add, add, add;
+    }
+
+    &:hover::before {
+      opacity: 1;
+    }
+  }
+
   .jumpLink:first-child {
     justify-self: end;
+
+    &::before {
+      right: var(--hero-action-nest-reach);
+    }
   }
 
   .jumpLink:last-child {
     justify-self: start;
+
+    &::before {
+      left: var(--hero-action-nest-reach);
+    }
   }
 }
 
@@ -284,11 +366,13 @@
   }
 
   .actions {
-    margin-top: 2.875rem;
+    --hero-action-height: 2.25rem;
 
-    a {
-      height: 2.25rem;
-    }
+    margin-top: 2.875rem;
+  }
+
+  .jumpLink {
+    @include nested-hover-mask(2.25rem);
   }
 }
 
