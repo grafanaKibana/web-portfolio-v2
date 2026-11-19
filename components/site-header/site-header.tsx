@@ -40,19 +40,18 @@ export function SiteHeader() {
         closeLabel="Close navigation"
         compactNavigationLabel="Compact navigation"
         defaultSectionLabel="About"
+        homeLabel="Home"
         detailRoutes={[
           {
             routePrefix: "/projects/",
             backHref: "/projects",
-            backLabel: "Back to list",
-            homeLabel: "Home",
+            backLabel: "All projects",
             navigationLabel: "Project navigation",
           },
           {
             routePrefix: "/articles/",
             backHref: "/articles",
-            backLabel: "Back to list",
-            homeLabel: "Home",
+            backLabel: "All articles",
             navigationLabel: "Article navigation",
           },
         ]}

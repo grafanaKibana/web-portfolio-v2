@@ -35,10 +35,10 @@ interface MobileNavigationProps {
   closeLabel: string;
   compactNavigationLabel: string;
   defaultSectionLabel: string;
+  homeLabel: string;
   detailRoutes: readonly {
     backHref: string;
     backLabel: string;
-    homeLabel: string;
     navigationLabel: string;
     routePrefix: string;
   }[];
@@ -107,7 +107,7 @@ function useSectionNavigationState(
     activeLabel,
     open,
     setOpen,
-    visible: activeRouteHref ? false : visible,
+    visible: Boolean(activeRouteHref) || visible,
   };
 }
 
@@ -119,6 +119,7 @@ function useSectionNavigationState(
  * @param compactNavigationLabel - Accessible label for the no-JavaScript navigation.
  * @param defaultSectionLabel - Label shown before a section becomes active.
  * @param detailRoutes - Detail-route controls selected from the active router segments.
+ * @param homeLabel - Accessible name for the mark linking from collection pages to Home.
  * @param items - Section anchors shown by the shell.
  * @param navigationLabel - Accessible popover navigation label.
  * @param primaryNavigationLabel - Accessible label for the shell navigation.
@@ -133,6 +134,7 @@ export function MobileNavigation({
   compactNavigationLabel,
   defaultSectionLabel,
   detailRoutes,
+  homeLabel,
   items,
   navigationLabel,
   primaryNavigationLabel,
@@ -165,7 +167,7 @@ export function MobileNavigation({
       >
         <div className="flex items-center">
           <Link
-            aria-label={detailRoute.homeLabel}
+            aria-label={homeLabel}
             className={headerIconButtonClassName}
             href="/"
           >
@@ -196,7 +198,7 @@ export function MobileNavigation({
       className={clsx(headerStyles.navigation, "relative mx-auto flex h-full w-full items-center justify-between")}
     >
       <Link
-        aria-label={backToTopLabel}
+        aria-label={activeRouteHref ? homeLabel : backToTopLabel}
         className={headerIconButtonClassName}
         href="/#top"
       >

@@ -8,6 +8,10 @@
   opacity: 1;
 }
 
+:global(body):has([data-slot="site-header-noscript"]) .trigger {
+  display: none;
+}
+
 .chevron {
   width: 0.8125rem;
   height: 0.8125rem;

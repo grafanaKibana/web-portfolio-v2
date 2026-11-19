@@ -5,8 +5,8 @@ import { getSiteOrigin } from "@/lib/seo/site-url";
 const siteOrigin = getSiteOrigin();
 
 const collections = [
-  { path: "/articles", rowSlot: "article-row" },
-  { path: "/projects", rowSlot: "project-row" },
+  { path: "/articles", rowSlot: "article-row", returnLabel: "All articles" },
+  { path: "/projects", rowSlot: "project-row", returnLabel: "All projects" },
 ] as const;
 const staticRoutes = ["/accessibility", "/privacy", "/terms", "/for-robots"] as const;
 
@@ -153,6 +153,20 @@ test("unknown routes return readable non-indexable fallbacks", async ({ page }) 
 
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
+  test("compact collection navigation uses the native section menu", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const { path } of collections) {
+      await page.goto(path);
+      const trigger = page.getByText("Jump to section", { exact: true });
+      await expect(trigger).toBeVisible();
+      await expect(page.locator("button[aria-label='Jump to section']")).toBeHidden();
+      await trigger.click();
+      const contact = page.getByRole("navigation", { name: "Compact navigation" }).getByRole("link", { name: "Contact" });
+      await contact.click();
+      await expect(page).toHaveURL(/\/#contact$/u);
+    }
+  });
+
   test("collections and discovered details retain native navigation", async ({ page }) => {
     await page.goto("/");
     const sectionLink = page.locator('a[href="/#skills"]').first();
@@ -176,7 +190,7 @@ test.describe("without JavaScript", () => {
       if (paths.length === 0) continue;
       await page.goto(paths[0] ?? collection.path);
       await expect(page.locator("main#main > article")).toBeVisible();
-      const back = page.getByRole("link", { name: "Back to list" });
+      const back = page.getByRole("link", { name: collection.returnLabel, exact: true });
       await expect(back).toHaveAttribute("href", collection.path);
       await back.click();
       await expect(page).toHaveURL(new RegExp(`${collection.path}$`));

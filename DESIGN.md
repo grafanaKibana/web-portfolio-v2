@@ -44,7 +44,7 @@ The hero introduces Nikita and offers contact, booking, résumé, and experience
 | `/privacy`, `/terms`, `/accessibility`, `/for-robots` | Supporting site information linked from the footer |
 | `/llms.txt` | Machine-readable companion information |
 
-Keep desktop section navigation inline. Home section links place the first visible content one rem below the sticky header, accounting for section padding; the end of the page may leave more space when scrolling reaches its limit. Compact navigation extends below the header; on touch devices its surface also extends above the header and beyond the viewport top without changing the menu geometry. Collection pages link sections back to Home; detail pages offer Home and Back to list, leaving the content title in the reading area.
+Keep desktop section navigation inline. Home section links place the first visible content one rem below the sticky header, accounting for section padding. The end of the page may leave more space when scrolling reaches its limit. Compact navigation extends below the header. On touch devices its surface also extends above the header and beyond the viewport top without changing the menu geometry. The Projects and Articles indexes show the compact section selector on arrival, with section links leading back to Home. Home reveals its selector after scrolling. Detail pages offer Home and either All projects or All articles. Project links sit beside the title when they fit and wrap beneath it on narrower screens, with tap targets at least 44 px tall.
 
 ## Design principles
 

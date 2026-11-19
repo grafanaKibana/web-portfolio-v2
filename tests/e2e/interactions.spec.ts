@@ -94,8 +94,9 @@ test("skip navigation transfers keyboard focus to main content", { tag: "@webkit
 test("compact navigation traps focus, restores it, and reaches a visible target", { tag: "@webkit" }, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openStableRoute(page, "/");
-  await page.locator("main#main > section").nth(1).scrollIntoViewIfNeeded();
   const trigger = page.getByRole("button", { name: "Jump to section" });
+  await expect(trigger).toBeHidden();
+  await page.locator("main#main > section").nth(1).scrollIntoViewIfNeeded();
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Jump to section" });
   const close = page.getByRole("button", { name: "Close navigation" });
@@ -124,6 +125,20 @@ test("compact navigation traps focus, restores it, and reaches a visible target"
   const headerBox = await boxOf(page.locator('[data-slot="site-header"]'));
   expect(targetBox.y - headerBox.y - headerBox.height).toBeGreaterThanOrEqual(14);
   expect(targetBox.y - headerBox.y - headerBox.height).toBeLessThanOrEqual(18);
+});
+
+test("compact collection menus expose Home sections on arrival", { tag: "@webkit" }, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const [path, section] of [["/projects", "projects"], ["/articles", "writing"]] as const) {
+    await openStableRoute(page, path);
+    await expect(page.getByRole("link", { name: "Home", exact: true })).toHaveAttribute("href", "/#top");
+    await page.getByRole("button", { name: "Jump to section" }).click();
+    const current = page.getByRole("dialog").locator('a[aria-current="location"]');
+    await expect(current).toHaveAttribute("href", `/#${section}`);
+    await current.click();
+    await expect(page).toHaveURL(new RegExp(`/#${section}$`));
+    await expect(page.locator(`#${section}`)).toBeInViewport();
+  }
 });
 
 for (const { width, sections } of [

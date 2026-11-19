@@ -71,10 +71,10 @@ export default async function ProjectPage({
     <main id="main" tabIndex={-1} className="page-shell-gutter w-full flex-1 py-12 focus:outline-none lg:py-20">
       <article>
         <header className="pb-12" data-slot="project-hero">
-          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between" data-page-motion-intro data-slot="project-title-row">
-            <h1 className="min-w-0 flex-1 [overflow-wrap:anywhere] text-balance text-[2rem] leading-[1.1875] font-semibold tracking-[-0.025em] md:text-5xl md:leading-[1.15]">{project.metadata.title.split(/(?<=\.)/).map((part, index) => <span key={index}>{part}<wbr /></span>)}</h1>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-4" data-page-motion-intro data-slot="project-title-row">
+            <h1 className="min-w-0 max-w-full flex-auto [overflow-wrap:anywhere] text-balance text-[2rem] leading-[1.1875] font-semibold tracking-[-0.025em] md:text-5xl md:leading-[1.15]">{project.metadata.title.split(/(?<=\.)/).map((part, index) => <span key={index}>{part}<wbr /></span>)}</h1>
             {links.length ? (
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-6" data-slot="project-actions">
+              <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 sm:gap-x-6" data-slot="project-actions">
                 {links.map((link) => {
                   let icon = <ExternalLink aria-hidden="true" className="action-icon opacity-60" />;
                   if (link.href.startsWith("https://obsidian.md/plugins")) {
@@ -86,7 +86,7 @@ export default async function ProjectPage({
                   return (
                     <a
                       aria-label={link.ariaLabel}
-                      className="action-link"
+                      className="action-link min-h-11 min-w-11 max-w-full [overflow-wrap:anywhere]"
                       href={link.href}
                       key={link.href}
                       rel="noreferrer"
