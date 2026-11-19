@@ -122,10 +122,6 @@
   to { opacity: 1; }
 }
 
-.summary::-webkit-details-marker {
-  display: none;
-}
-
 @media (any-pointer: coarse) {
   .header::before {
     top: calc(-1 * var(--site-header-top));

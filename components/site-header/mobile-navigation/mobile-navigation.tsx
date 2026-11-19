@@ -1,14 +1,13 @@
 "use client";
 
 import { clsx } from "clsx";
-import { ArrowLeft, Check, ChevronDown, ChevronRight, House, X } from "lucide-react";
+import { ArrowLeft, BriefcaseBusiness, ChevronDown, CodeXml, Folder, GraduationCap, House, Mail, PenLine, UserRound, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetTitle,
   SheetTrigger,
@@ -25,14 +24,19 @@ const headerIconButtonClassName = buttonVariants({
   variant: "ghost",
 });
 
-interface NavigationItem {
-  label: string;
-  href: string;
-}
+const items = [
+  { label: "About", href: "#about", icon: UserRound },
+  { label: "Experience", href: "#experience", icon: BriefcaseBusiness },
+  { label: "Education", href: "#education", icon: GraduationCap },
+  { label: "Skills", href: "#skills", icon: Wrench },
+  { label: "Projects", href: "#projects", icon: Folder },
+  { label: "Code", href: "#code", icon: CodeXml },
+  { label: "Writing", href: "#writing", icon: PenLine },
+  { label: "Contact", href: "#contact", icon: Mail },
+] as const;
 
 interface MobileNavigationProps {
   backToTopLabel: string;
-  closeLabel: string;
   compactNavigationLabel: string;
   defaultSectionLabel: string;
   homeLabel: string;
@@ -42,7 +46,6 @@ interface MobileNavigationProps {
     navigationLabel: string;
     routePrefix: string;
   }[];
-  items: readonly NavigationItem[];
   navigationLabel: string;
   primaryNavigationLabel: string;
   scrollThreshold: number;
@@ -58,13 +61,11 @@ interface MobileNavigationProps {
 /**
  * Tracks the active section plus compact-selector visibility and modal state.
  *
- * @param items - Section anchors observed in the document.
  * @param scrollThreshold - Scroll offset that reveals the selector.
  * @param activeRouteHref - Section represented by a non-Home collection route.
  * @returns The current navigation state and modal setter.
  */
 function useSectionNavigationState(
-  items: readonly NavigationItem[],
   scrollThreshold: number,
   activeRouteHref?: string,
 ) {
@@ -97,7 +98,7 @@ function useSectionNavigationState(
       window.removeEventListener("resize", updateNavigation);
       window.removeEventListener("scroll", updateNavigation);
     };
-  }, [activeRouteHref, items, scrollThreshold]);
+  }, [activeRouteHref, scrollThreshold]);
 
   const activeLabel = activeRouteHref
     ? items.find(({ href }) => href === activeRouteHref)?.label
@@ -115,12 +116,10 @@ function useSectionNavigationState(
  * Renders active desktop links and the centered compact section selector.
  *
  * @param backToTopLabel - Accessible label for the Home control.
- * @param closeLabel - Accessible label for the sheet close control.
  * @param compactNavigationLabel - Accessible label for the no-JavaScript navigation.
  * @param defaultSectionLabel - Label shown before a section becomes active.
  * @param detailRoutes - Detail-route controls selected from the active router segments.
  * @param homeLabel - Accessible name for the mark linking from collection pages to Home.
- * @param items - Section anchors shown by the shell.
  * @param navigationLabel - Accessible popover navigation label.
  * @param primaryNavigationLabel - Accessible label for the shell navigation.
  * @param scrollThreshold - Scroll offset that reveals the selector.
@@ -130,12 +129,10 @@ function useSectionNavigationState(
  */
 export function MobileNavigation({
   backToTopLabel,
-  closeLabel,
   compactNavigationLabel,
   defaultSectionLabel,
   detailRoutes,
   homeLabel,
-  items,
   navigationLabel,
   primaryNavigationLabel,
   scrollThreshold,
@@ -154,7 +151,6 @@ export function MobileNavigation({
       ? "#writing"
       : undefined;
   const { activeLabel, open, setOpen, visible } = useSectionNavigationState(
-    items,
     scrollThreshold,
     activeRouteHref,
   );
@@ -191,6 +187,22 @@ export function MobileNavigation({
       </nav>
     );
   }
+
+  const sectionLinks = items.map(({ href, label, icon: Icon }) => {
+    const current = label === activeLabel;
+    return (
+      <a
+        aria-current={current ? "location" : undefined}
+        className="text-ui-xs flex min-h-11 items-center gap-3 rounded-sm px-3 text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 aria-[current=location]:font-bold"
+        href={`/${href}`}
+        key={href}
+        onClick={() => { setOpen(false); }}
+      >
+        <Icon aria-hidden="true" className={clsx("size-4 shrink-0", !current && "text-muted-foreground")} strokeWidth={current ? 3 : 2} />
+        {label}
+      </a>
+    );
+  });
 
   return (
     <nav
@@ -232,68 +244,35 @@ export function MobileNavigation({
           <ChevronDown aria-hidden="true" className={clsx(styles.chevron, "opacity-50")} />
         </SheetTrigger>
         <SheetContent
-          className={clsx(styles.popup, "xl:hidden")}
+          className={clsx(styles.popup, "bg-background text-foreground motion-reduce:transition-none xl:hidden")}
           data-portfolio-navigation-sheet
           finalFocus
+          onBackdropClick={() => { setOpen(false); }}
           showCloseButton={false}
           side="top"
         >
           <SheetTitle className="sr-only">{triggerLabel}</SheetTitle>
-          <SheetClose
-            aria-label={closeLabel}
-            className={clsx(styles.close, headerIconButtonClassName)}
-          >
-            <X aria-hidden="true" className={styles.uiIcon} />
-          </SheetClose>
-          <nav
-            aria-label={navigationLabel}
-            className={clsx(styles.menu, "overflow-y-auto p-3")}
-            data-lenis-prevent
-          >
-            {items.map((item) => {
-              const current = item.label === activeLabel;
-              return (
-                <a
-                  aria-current={current ? "location" : undefined}
-                  className={clsx(styles.link, "group text-ui-xs flex min-h-11 items-center justify-between rounded-sm px-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", current && "font-medium text-foreground")}
-                  href={`/${item.href}`}
-                  key={item.href}
-                  onClick={() => {
-                    setOpen(false);
-                  }}
-                >
-                  <span>{item.label}</span>
-                  {current
-                    ? <Check aria-hidden="true" className={styles.uiIcon} data-slot="mobile-navigation-current" />
-                    : <ChevronRight aria-hidden="true" className={clsx(styles.uiIcon, "opacity-0 transition-opacity group-hover:opacity-50 motion-reduce:transition-none")} data-slot="mobile-navigation-chevron" />}
-                </a>
-              );
-            })}
+          <nav aria-label={navigationLabel} className="overflow-y-auto overscroll-contain p-3" data-lenis-prevent>
+            {sectionLinks}
           </nav>
         </SheetContent>
       </Sheet>
       <noscript>
-        <details className="text-ui-xs absolute left-1/2 top-2 z-50 w-54 -translate-x-1/2 xl:hidden">
-          <summary
-            className={clsx(headerStyles.summary, "flex min-h-11 cursor-pointer list-none items-center justify-center font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground")}
-          >
-            {triggerLabel}
-          </summary>
-          <nav
-            aria-label={compactNavigationLabel}
-            className={clsx(styles.floatingMenuShadow, styles.noScriptMenu, "rounded-md border bg-popover p-1.5")}
-          >
-            {items.map((item) => (
-              <a
-                key={item.href}
-                className="flex min-h-11 items-center rounded-sm px-2.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                href={`/${item.href}`}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-        </details>
+        <button
+          className="text-ui-xs absolute left-1/2 flex min-h-11 -translate-x-1/2 items-center rounded-sm px-3 font-medium text-muted-foreground focus-visible:outline xl:hidden"
+          popoverTarget="compact-section-menu"
+          type="button"
+        >
+          {triggerLabel}
+        </button>
+        <nav
+          aria-label={compactNavigationLabel}
+          className={clsx(styles.popup, "fixed inset-x-0 top-0 m-0 w-full overflow-y-auto overscroll-contain border-b bg-background p-3 text-foreground shadow-xl xl:hidden")}
+          id="compact-section-menu"
+          popover="auto"
+        >
+          {sectionLinks}
+        </nav>
       </noscript>
       <ThemeToggle labels={themeLabels} />
     </nav>

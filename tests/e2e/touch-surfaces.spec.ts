@@ -360,58 +360,36 @@ for (const viewport of touchViewports) {
   });
 }
 
-test("touch section selector surface fills the gap above the header", { tag: "@webkit" }, async ({ browser, baseURL }) => {
+test("touch section menu matches the page and dismisses on an outside tap", { tag: "@webkit" }, async ({ browser, baseURL }) => {
   if (!baseURL) throw new Error("Expected the Playwright project to provide a base URL");
-  const baselineContext = await browser.newContext({
-    baseURL,
-    colorScheme: "light",
-    hasTouch: false,
-    reducedMotion: "reduce",
-    viewport: { height: 844, width: 390 },
-  });
-  await baselineContext.addInitScript(() => {
-    localStorage.setItem("theme", "light");
-    sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-  });
-  const baselinePage = await openHome(baselineContext);
-  await baselinePage.locator("main#main > section").nth(1).scrollIntoViewIfNeeded();
-  await baselinePage.getByRole("button", { name: "Jump to section" }).click();
-  const baselinePopup = baselinePage.getByRole("dialog", { name: "Jump to section" });
-  await expect(baselinePopup).toBeVisible();
-  await baselinePopup.evaluate(async (element) => { await Promise.all(element.getAnimations({ subtree: true }).map(async (animation) => animation.finished)); });
-  const baselineBounds = await baselinePopup.boundingBox();
-  if (!baselineBounds) throw new Error("Expected the fine-pointer section selector to have measurable geometry");
-  await baselineContext.close();
-
   for (const theme of themes) {
     const context = await newTouchContext(browser, baseURL, { height: 844, theme, width: 390 });
     try {
-      const page = await openHome(context);
-      const initialExtents = await readDocumentExtents(page);
-      await page.locator("main#main > section").nth(1).scrollIntoViewIfNeeded();
-      await page.getByRole("button", { name: "Jump to section" }).tap();
+      const page = await context.newPage();
+      await page.goto("/projects");
+      const trigger = page.getByRole("button", { name: "Jump to section" });
+      await trigger.tap();
       const popup = page.getByRole("dialog", { name: "Jump to section" });
       await expect(popup).toBeVisible();
-      await popup.evaluate(async (element) => { await Promise.all(element.getAnimations({ subtree: true }).map(async (animation) => animation.finished)); });
-      const surface = await popup.evaluate((element) => {
-        const bounds = element.getBoundingClientRect();
-        const paint = getComputedStyle(element, "::before");
-        return {
-          backgroundColor: paint.backgroundColor,
-          bounds: { height: bounds.height, width: bounds.width, x: bounds.x, y: bounds.y },
-          paintedBottom: bounds.bottom - Number.parseFloat(paint.bottom),
-          paintedTop: bounds.top + Number.parseFloat(paint.top),
-        };
-      });
-      expect(surface.bounds.width).toBeCloseTo(baselineBounds.width, 0);
-      expect(surface.bounds.height).toBeCloseTo(baselineBounds.height, 0);
-      expect(surface.bounds.x).toBeCloseTo(baselineBounds.x, 0);
-      expect(surface.bounds.y).toBeCloseTo(baselineBounds.y, 0);
-      expect(surface.paintedTop).toBeLessThanOrEqual(-843.5);
-      expect(surface.paintedBottom).toBeGreaterThanOrEqual(surface.bounds.y);
-      expect(surface.paintedBottom - surface.bounds.y).toBeLessThanOrEqual(1.5);
-      expect(surface.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
-      expect(await readDocumentExtents(page)).toEqual(initialExtents);
+      const pageColor = await page.locator("body").evaluate((body) => getComputedStyle(body).backgroundColor);
+      await expect(popup).toHaveCSS("background-color", pageColor);
+      const links = popup.getByRole("link");
+      const current = popup.locator('a[aria-current="location"]');
+      await expect(current).toHaveCount(1);
+      await expect.poll(() => current.evaluate((link) => Number(getComputedStyle(link).fontWeight))).toBeGreaterThanOrEqual(700);
+      for (const link of await links.all()) {
+        await expect(link).toHaveAccessibleName(/\S/u);
+        await expect(link.locator("svg")).toHaveAttribute("aria-hidden", "true");
+      }
+
+      await expect.poll(() => popup.evaluate((element) => element.getBoundingClientRect().top)).toBeCloseTo(0, 0);
+      const bounds = await popup.boundingBox();
+      if (!bounds) throw new Error("Expected the menu to have measurable bounds");
+      const outsideY = bounds.y + bounds.height + 12;
+      expect(outsideY).toBeLessThan(844);
+      await page.touchscreen.tap(bounds.x + bounds.width / 2, outsideY);
+      await expect(popup).toBeHidden();
+      await expect(page).toHaveURL(/\/projects$/u);
     } finally {
       await context.close();
     }

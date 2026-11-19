@@ -72,6 +72,7 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
  *
  * @param className - Optional classes merged with the default styles.
  * @param children - Content rendered inside the primitive.
+ * @param onBackdropClick - Handles a click on the sheet's backdrop.
  * @param side - Preferred side of the owning surface.
  * @param showCloseButton - Whether to render the built-in close control.
  * @param props - Remaining properties forwarded to the underlying primitive.
@@ -80,16 +81,18 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
 function SheetContent({
   className,
   children,
+  onBackdropClick,
   side = "right",
   showCloseButton = true,
   ...props
 }: SheetPrimitive.Popup.Props & {
+  onBackdropClick?: SheetPrimitive.Backdrop.Props["onClick"]
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }) {
   return (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetOverlay onClick={onBackdropClick} />
       <SheetPrimitive.Popup
         data-slot="sheet-content"
         data-side={side}

@@ -4,17 +4,6 @@ import { MobileNavigation } from "./mobile-navigation/mobile-navigation";
 import { SiteHeaderSurface } from "./site-header-surface";
 import styles from "./site-header.module.scss";
 
-const navigationItems = [
-  { label: "About", href: "#about" },
-  { label: "Experience", href: "#experience" },
-  { label: "Education", href: "#education" },
-  { label: "Skills", href: "#skills" },
-  { label: "Projects", href: "#projects" },
-  { label: "Code", href: "#code" },
-  { label: "Writing", href: "#writing" },
-  { label: "Contact", href: "#contact" },
-] as const;
-
 /**
  * Composes the server-rendered primary navigation and its interactive leaves.
  *
@@ -37,7 +26,6 @@ export function SiteHeader() {
       <noscript><span data-slot="site-header-noscript" hidden /></noscript>
       <MobileNavigation
         backToTopLabel="Back to top"
-        closeLabel="Close navigation"
         compactNavigationLabel="Compact navigation"
         defaultSectionLabel="About"
         homeLabel="Home"
@@ -55,7 +43,6 @@ export function SiteHeader() {
             navigationLabel: "Article navigation",
           },
         ]}
-        items={navigationItems}
         navigationLabel="Mobile navigation"
         primaryNavigationLabel="Primary navigation"
         scrollThreshold={home.mobileNavigation.scrollThreshold}
