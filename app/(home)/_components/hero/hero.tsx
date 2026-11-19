@@ -98,12 +98,7 @@ export function HomeHero() {
         className={clsx(styles.background, styles.darkBackground)}
       />
       <HeroBackground sources={{ light: lightImage.src, dark: darkImage.src, noise: noiseImage.src }} />
-      <div data-page-motion-intro="immediate" className={clsx(styles.availability, "inline-flex items-center rounded-full bg-foreground/8 py-1.5 text-xs font-medium")}>
-        <span
-          aria-hidden="true"
-          className={clsx(styles.availabilityDot, "size-1.5 animate-pulse rounded-full motion-reduce:animate-none")}
-          data-slot="availability-dot"
-        />
+      <div data-page-motion-intro="immediate" className={clsx(styles.availability, "inline-flex items-center rounded-full bg-foreground/8 py-1.5 text-xs font-semibold")}>
         <span className="text-foreground">{home.hero.availability.status}</span>
         <span className="font-normal text-muted-foreground">
           {home.hero.availability.qualifier}

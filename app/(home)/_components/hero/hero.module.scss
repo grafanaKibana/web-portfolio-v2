@@ -124,12 +124,7 @@ $hero-action-nest-tip-radius: 0.125rem;
 .availability {
   gap: 0.5625rem;
   margin-bottom: 1.625rem;
-  padding-inline: 0.6875rem 0.8125rem;
-}
-
-.availabilityDot {
-  background: var(--brand-accent);
-  background-image: var(--brand-accent-gradient);
+  padding-inline: 0.75rem;
 }
 
 /* The headline may run past the reading shell; the hero is full-bleed, so one centered line beats a wrap. */
@@ -352,13 +347,8 @@ $hero-action-nest-tip-radius: 0.125rem;
 
   .availability {
     margin-bottom: 2.125rem;
-    padding-inline: 0.75rem 0.875rem;
+    padding-inline: 0.8125rem;
     font-size: 0.8125rem;
-  }
-
-  .availabilityDot {
-    width: 0.4375rem;
-    height: 0.4375rem;
   }
 
   .lead {

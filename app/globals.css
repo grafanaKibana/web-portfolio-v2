@@ -8,7 +8,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-content-foreground: var(--content-foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-barlow);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -188,9 +188,9 @@
   --input: oklch(0.93 0.007 106.5);
   --ring: var(--brand-accent-text);
   --chart-1: color-mix(in oklab, var(--brand-accent) 28%, var(--background));
-  --chart-2: color-mix(in oklab, var(--brand-accent) 48%, var(--background));
-  --chart-3: color-mix(in oklab, var(--brand-accent) 70%, var(--background));
-  --chart-4: var(--brand-accent);
+  --chart-2: color-mix(in oklab, var(--chart-1) 67%, var(--chart-4));
+  --chart-3: color-mix(in oklab, var(--chart-1) 33%, var(--chart-4));
+  --chart-4: var(--brand-accent-start);
   --chart-5: color-mix(in oklab, var(--brand-accent) 80%, var(--foreground));
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);

@@ -1,7 +1,7 @@
 // Establish Tailwind's layer order before component styles reopen those layers.
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Barlow, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { clsx } from "clsx";
@@ -18,8 +18,9 @@ import { getSiteOrigin } from "@/lib/seo/site-url";
 import "lenis/dist/lenis.css";
 import styles from "./layout.module.scss";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const barlow = Barlow({
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-barlow",
   subsets: ["latin"],
 });
 
@@ -82,7 +83,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={clsx(geistSans.variable, geistMono.variable, "h-full antialiased")}
+      className={clsx(barlow.variable, geistMono.variable, "h-full antialiased")}
       suppressHydrationWarning
     >
       <head>

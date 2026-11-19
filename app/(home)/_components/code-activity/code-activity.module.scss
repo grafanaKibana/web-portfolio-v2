@@ -1,7 +1,4 @@
-@use "sass:math";
-
 $chart-column-count: 53;
-$chart-gap: 0.1875rem;
 
 .statusIcon {
   color: var(--success);
@@ -115,6 +112,10 @@ $chart-gap: 0.1875rem;
 .calendarLegendSwatch {
   width: 0.625rem;
   height: 0.625rem;
+}
+
+.chartDay,
+.calendarLegendSwatch {
   border-radius: 0.125rem;
   background: var(--border);
 
@@ -158,56 +159,6 @@ $chart-gap: 0.1875rem;
 .chartMonths,
 .chartDays {
   grid-template-columns: repeat($chart-column-count, minmax(0, 1fr));
-}
-
-.chartDays {
-  --chart-gradient-width: calc(#{$chart-column-count * 100%} + #{($chart-column-count - 1) * $chart-gap});
-
-}
-
-@for $column from 0 through ($chart-column-count - 1) {
-  .chartDay:nth-of-type(n + #{$column * 7 + 1}):nth-of-type(-n + #{($column + 1) * 7}) {
-    --chart-gradient-position: #{math.div($column, $chart-column-count - 1) * 100%};
-  }
-}
-
-.chartDay {
-  border-radius: 0.125rem;
-
-  &[data-level="1"] {
-    --chart-cover: 72%;
-
-    background: var(--chart-1);
-  }
-
-  &[data-level="2"] {
-    --chart-cover: 52%;
-
-    background: var(--chart-2);
-  }
-
-  &[data-level="3"] {
-    --chart-cover: 30%;
-
-    background: var(--chart-3);
-  }
-
-  &[data-level="4"] {
-    --chart-cover: 0%;
-
-    background: var(--chart-4);
-  }
-}
-
-@media (forced-colors: none) {
-  .chartDay:not([data-level="0"]) {
-    background-image:
-      linear-gradient(color-mix(in oklab, var(--background) var(--chart-cover), transparent) 0 0),
-      var(--brand-accent-gradient);
-    background-position: 0 0, var(--chart-gradient-position) 0;
-    background-repeat: no-repeat;
-    background-size: 100% 100%, var(--chart-gradient-width) 100%;
-  }
 }
 
 @media (forced-colors: active) {
