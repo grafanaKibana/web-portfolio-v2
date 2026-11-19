@@ -24,6 +24,16 @@ export function SiteHeader() {
   return (
     <header className={clsx(styles.header, "sticky top-0 z-40")} data-slot="site-header">
       <SiteHeaderSurface />
+      <span aria-hidden="true" className={styles.veil}>
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+      </span>
       <noscript><span data-slot="site-header-noscript" hidden /></noscript>
       <MobileNavigation
         backToTopLabel="Back to top"

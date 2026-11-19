@@ -1,3 +1,5 @@
+@use "sass:list";
+
 .header {
   isolation: isolate;
 
@@ -6,22 +8,73 @@
   height: var(--site-header-height);
   color: var(--foreground);
 
-  &::before {
+  &::before,
+  .veil,
+  .veil > i {
     position: absolute;
     z-index: -1;
-    inset: 0;
-    background: radial-gradient(
-      ellipse 100% 100% at 50% 100%,
-      transparent 35%,
-      color-mix(in oklab, var(--background) 15%, transparent) 55%,
-      color-mix(in oklab, var(--background) 45%, transparent) 70%,
-      color-mix(in oklab, var(--background) 80%, transparent) 85%,
-      var(--background) 100%
+    inset: calc(-1 * var(--site-header-top)) 0 0;
+    pointer-events: none;
+  }
+
+  &::before {
+    background: linear-gradient(
+      to bottom,
+      var(--background),
+      color-mix(in oklab, var(--background) 92%, transparent) 12%,
+      color-mix(in oklab, var(--background) 78%, transparent) 50%,
+      color-mix(in oklab, var(--background) 40%, transparent) 78%,
+      transparent
     );
-    mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
+    content: "";
+  }
+
+  /* Browsers that draw the page beneath translucent chrome sample this solid strip instead of scrolled content. */
+  &::after {
+    position: absolute;
+    z-index: -1;
+    inset: auto 0 calc(100% + var(--site-header-top));
+    height: 100svh;
+    background: var(--background);
+    content: "";
+    pointer-events: none;
+  }
+
+  &::before,
+  &::after {
     opacity: 1;
     transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1);
-    content: "";
+  }
+
+  /* The veil runs past the header so the blur reaches zero below it instead of at its edge. */
+  .veil {
+    bottom: -60%;
+  }
+
+  /* Gently growing radii in wide overlapping bands compound into one continuous ramp; masking a single blur only crossfades sharp and soft copies. */
+  .veil > i {
+    inset: 0;
+  }
+
+  $veil-radii: (0.5px, 0.75px, 1.1px, 1.7px, 2.5px, 3.5px, 5px, 7px);
+
+  @each $radius in $veil-radii {
+    $step: list.index($veil-radii, $radius);
+
+    .veil > i:nth-child(#{$step}) {
+      backdrop-filter: blur($radius);
+      mask-image: linear-gradient(to top, transparent ($step - 1) * 10%, #000 ($step + 2) * 10%);
+    }
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .header::before {
+    background: linear-gradient(to bottom, var(--background) 60%, transparent);
+  }
+
+  .header .veil {
+    display: none;
   }
 }
 
@@ -36,8 +89,11 @@
 }
 
 @media not all and (any-pointer: coarse) {
-  :global(body):has([data-slot="hero"]) .header:where(:not([data-surface-visible="true"]))::before {
-    opacity: 0;
+  :global(body):has([data-slot="hero"]) .header:where(:not([data-surface-visible="true"])) {
+    &::before,
+    &::after {
+      opacity: 0;
+    }
   }
 
   :global(body):has([data-slot="hero"]) .header:where(:not([data-surface-visible="true"])) {
@@ -47,7 +103,8 @@
   }
 }
 
-:global(body):has([data-slot="site-header-noscript"]) .header::before {
+:global(body):has([data-slot="site-header-noscript"]) .header::before,
+:global(body):has([data-slot="site-header-noscript"]) .header::after {
   opacity: 1;
 }
 
@@ -75,16 +132,6 @@
     bottom: var(--site-header-top);
   }
 
-  .header::after {
-    position: absolute;
-    z-index: -1;
-    inset: auto 0 calc(100% + var(--site-header-top));
-    height: 100svh;
-    background: var(--background);
-    content: "";
-    pointer-events: none;
-  }
-
   .navigation :is(a, button) {
     min-width: 2.75rem;
     min-height: 2.75rem;
@@ -92,7 +139,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .header::before {
+  .header::before,
+  .header::after {
     transition-duration: 0.01ms;
   }
 
