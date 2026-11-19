@@ -26,32 +26,25 @@
 }
 
 /*
- * Focus is a crossfade, not a filter on the text: a blurred copy hands over to glyphs that are never filtered.
- * Filtering the real text makes browsers repaint it on another sub-pixel when the blur ends, which reads as a snap.
+ * Focus is a crossfade, not a filter on the text: a blurred shadow hands over to glyphs that are never filtered.
+ * Both fade through color alone, so a resting phrase is plain text with no filter or opacity layer left to tear down.
  */
 .phrase {
   --phrase-progress: 1;
 
-  /* The sharp glyphs take over only once the copy is nearly in focus, so the handover adds no halo or extra weight. */
+  /* The sharp glyphs take over only once the shadow is nearly in focus, so the handover adds no halo or extra weight. */
   --phrase-sharp: clamp(0, calc((var(--phrase-progress) - 0.45) / 0.45), 1);
+  --phrase-soft: clamp(0, min(var(--phrase-progress) * 3.2, (1 - var(--phrase-sharp)) * 1.6), 1);
 
-  position: relative;
   grid-area: 1 / 1;
 
-  &::before {
-    position: absolute;
-    inset: 0;
+  /* The radius falls off quadratically: a wide soft cloud at the start, close to focus well before the end. */
+  text-shadow:
+    0 0 calc((1 - var(--phrase-progress)) * (1 - var(--phrase-progress)) * 0.44em + 0.02em)
+    color-mix(in srgb, currentcolor calc(var(--phrase-soft) * 100%), transparent);
 
-    /* The radius falls off quadratically: a wide soft cloud at the start, close to focus well before the end. */
-    filter: blur(calc((1 - var(--phrase-progress)) * (1 - var(--phrase-progress)) * 0.22em + 0.01em));
-    opacity: clamp(0, min(var(--phrase-progress) * 3.2, (1 - var(--phrase-sharp)) * 1.6), 1);
-    pointer-events: none;
-    content: attr(data-text);
-  }
-}
-
-.sharp {
-  opacity: var(--phrase-sharp);
+  /* The fill fades instead of the color, which the shadow still needs at full strength. */
+  -webkit-text-fill-color: color-mix(in srgb, currentcolor calc(var(--phrase-sharp) * 100%), transparent);
 }
 
 .sizers {

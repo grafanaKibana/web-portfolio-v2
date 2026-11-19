@@ -96,13 +96,12 @@ export function DescriptorRotation({ phrases, interval }: {
           animate={descriptorMotion.animate}
           className={styles.phrase}
           data-slot="hero-descriptor"
-          data-text={phrases[index] ?? ""}
           exit={descriptorMotion.exit}
           initial={descriptorMotion.initial}
           key={index}
           transition={descriptorMotion.transition}
         >
-          <span className={styles.sharp}>{phrases[index] ?? ""}</span>
+          {phrases[index] ?? ""}
         </motion.span>
       </AnimatePresence>
     </span>
