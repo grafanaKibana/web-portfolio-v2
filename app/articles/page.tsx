@@ -48,7 +48,7 @@ export default async function ArticlesPage() {
                     <time dateTime={article.published}>
                       {publishedDate.format(new Date(`${article.published}T00:00:00Z`))}
                     </time>
-                    {` · ${String(readingMinutes)} min read`}
+                    {`, ${String(readingMinutes)} min read`}
                   </p>
                   <h2 data-page-motion-trigger id={`${slug}-article-title`} className="mt-3 break-words text-2xl font-semibold tracking-tight">
                     {article.title}

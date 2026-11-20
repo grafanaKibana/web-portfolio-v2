@@ -46,7 +46,7 @@ export function pullRequestSummary(activity: GitHubActivityResult): string | nul
   ].filter(({ count }) => count > 0);
 
   if (counts.length === 0) return "No recent pull requests";
-  return counts.map(({ count, label }) => `${String(count)} ${label}`).join(" · ");
+  return counts.map(({ count, label }) => `${String(count)} ${label}`).join(", ");
 }
 
 /**

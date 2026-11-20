@@ -87,8 +87,8 @@ test("portfolio validation accepts a complete document and derives date presenta
   assert.equal(content.profile.experience[0]?.period, "February 2024 — Present")
   assert.equal(content.profile.experience[1]?.period, "January 2021 — December 2023")
   assert.deepEqual(content.profile.careerChapters.map(({ id, meta }) => ({ id, meta })), [
-    { id: "current", meta: "2024—Present · 1 role" },
-    { id: "past", meta: "2021—2023 · 1 role" },
+    { id: "current", meta: "2024—Present, 1 role" },
+    { id: "past", meta: "2021—2023, 1 role" },
   ])
   assert.equal(content.profile.certifications[0]?.date, "March 2025")
   assert.deepEqual(content.home.projects.featuredSlugs, ["fixture-project"])

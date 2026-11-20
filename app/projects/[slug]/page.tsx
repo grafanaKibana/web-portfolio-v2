@@ -106,7 +106,7 @@ export default async function ProjectPage({
           </p>
           {project.metadata.tags?.length ? (
             <p className="mt-6 font-mono text-xs leading-[1.125rem] text-muted-foreground" data-page-motion-intro>
-              {project.metadata.tags.join(" · ")}
+              {project.metadata.tags.join(", ")}
             </p>
           ) : null}
         </header>

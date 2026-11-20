@@ -53,7 +53,7 @@ test("pull-request summary uses established status language and omits zero count
     underReview: [contribution, contribution],
   });
 
-  assert.equal(pullRequestSummary(activity), "1 merged · 2 open");
+  assert.equal(pullRequestSummary(activity), "1 merged, 2 open");
   assert.equal(pullRequestSummary(activityFixture({ pullRequestsAvailable: true })), "No recent pull requests");
   assert.equal(pullRequestSummary(activityFixture()), null);
 });

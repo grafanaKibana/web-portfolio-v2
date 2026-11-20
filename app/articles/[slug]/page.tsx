@@ -69,7 +69,7 @@ export default async function ArticlePage({
             <time dateTime={article.metadata.published}>
               {publishedDate.format(new Date(`${article.metadata.published}T00:00:00Z`))}
             </time>
-            {` · ${String(article.readingMinutes)} min read`}
+            {`, ${String(article.readingMinutes)} min read`}
           </p>
           <h1 className="mt-3 [overflow-wrap:anywhere] text-balance text-[2rem] leading-[1.1875] font-semibold tracking-[-0.025em] md:text-5xl md:leading-[1.15]" data-page-motion-intro>
             {article.metadata.title.split(/(?<=\.)/).map((part, index) => <span key={index}>{part}<wbr /></span>)}
@@ -79,7 +79,7 @@ export default async function ArticlePage({
           </p>
           {article.metadata.tags?.length ? (
             <p className="mt-6 font-mono text-xs leading-[1.125rem] text-muted-foreground" data-page-motion-intro>
-              {article.metadata.tags.join(" · ")}
+              {article.metadata.tags.join(", ")}
             </p>
           ) : null}
         </header>

@@ -303,7 +303,7 @@ function careerChapterMeta(roles: readonly Experience[], path: string): string {
   const end = present
     ? "Present"
     : String(Math.max(...roles.map((role) => Number((role.end ?? role.start).slice(0, 4)))));
-  return `${String(start)}—${end} · ${String(roles.length)} ${roles.length === 1 ? "role" : "roles"}`;
+  return `${String(start)}—${end}, ${String(roles.length)} ${roles.length === 1 ? "role" : "roles"}`;
 }
 
 /**
