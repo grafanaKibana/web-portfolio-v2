@@ -780,6 +780,8 @@ test.describe("conversation smoke", () => {
     const surface = page.locator('[data-chat-surface][data-mobile="false"]');
     await expect(surface).toHaveAttribute("data-morph", "opening");
 
+    // Leave the launcher's hover area before checking its resting state after close.
+    await page.mouse.move(8, 8);
     const closing = await triggerAndSampleClosingStart(page.getByRole("button", { name: "Close conversation" }));
     await expect(surface).toHaveAttribute("data-closing", "true");
     expectClipPathClose(closing.clipPath, opening.clipPath);
