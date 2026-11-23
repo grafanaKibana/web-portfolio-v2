@@ -7,7 +7,9 @@ for (const theme of ["light", "dark"] as const) {
   test(`Home keeps a shared responsive rhythm in ${theme}`, { tag: "@webkit" }, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
     await page.goto("/");
-    await page.evaluate((theme) => document.documentElement.classList.add(theme), theme);
+    await page.evaluate((theme) => {
+      document.documentElement.classList.add(theme);
+    }, theme);
     await page.evaluate(() => document.fonts.ready);
 
     // Content is deliberately replaced: spacing must not depend on portfolio copy or record counts.
