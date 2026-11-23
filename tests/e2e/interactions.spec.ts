@@ -292,24 +292,21 @@ for (const theme of ["light", "dark"] as const) {
     await page.addInitScript((theme) => {
       localStorage.setItem("theme", theme);
       sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-      document.addEventListener("animationstart", (event) => {
+      /** Tracks the entrance animation separately from the scroll-driven hero exit. */
+      function recordReveal(event: AnimationEvent) {
         const target = event.target;
         if (!(target instanceof HTMLElement) || !target.matches('[data-slot="hero"] > [data-page-motion-intro], [data-slot="site-header"] > nav, [data-entry-stroke]')) return;
+        if (event.animationName !== getComputedStyle(target).animationName.split(",")[0]) return;
+        if (event.type === "animationend") {
+          target.dataset.revealFinished = String(event.elapsedTime > 0);
+          return;
+        }
         target.dataset.revealForeground = getComputedStyle(target).color;
         target.dataset.revealStarts = String(Number(target.dataset.revealStarts ?? 0) + 1);
         target.dataset.revealBeforeHydration = String(!document.querySelector("[data-theme-root]"));
-        /** Records a real intermediate reveal frame before the animation finishes. */
-        const sample = () => {
-          const css = getComputedStyle(target);
-          if (Number(css.opacity) > 0 && Number(css.opacity) < 1 && css.visibility === "visible"
-            && (target.matches('[data-slot="site-header"] > nav') || css.transform !== "none")) {
-            target.dataset.revealProgressed = "true";
-          } else if (css.opacity !== "1") {
-            requestAnimationFrame(sample);
-          }
-        };
-        requestAnimationFrame(sample);
-      });
+      }
+      document.addEventListener("animationstart", recordReveal);
+      document.addEventListener("animationend", recordReveal);
     }, theme);
     let releaseAssets = false;
     const pending: VoidFunction[] = [];
@@ -324,7 +321,7 @@ for (const theme of ["light", "dark"] as const) {
       await expect(content).toHaveCount(6);
       for (const target of await content.all()) {
         await expect(target).toHaveAttribute("data-reveal-before-hydration", "true");
-        await expect(target).toHaveAttribute("data-reveal-progressed", "true");
+        await expect(target).toHaveAttribute("data-reveal-finished", "true");
         await expect(target).toHaveCSS("opacity", "1");
         await expect(target).toBeVisible();
         if (await target.getAttribute("data-entry-stroke") === null) await expect(target).toHaveCSS("transform", "none");
@@ -355,12 +352,29 @@ test("first-visit hero reveal waits for the splash handoff", { tag: "@webkit" },
   const content = page.locator('[data-slot="hero"] > [data-page-motion-intro], [data-slot="site-header"] > nav, [data-entry-stroke]');
   await expect(content).toHaveCount(6);
   for (const target of await content.all()) {
-    await expect(target).toHaveCSS("animation-play-state", "paused");
+    await expect(target).toHaveCSS("animation-play-state", /^paused(?:,\s*paused)*$/);
     await expect(target).toHaveCSS("opacity", "0");
+  }
+  // Sample each paused entrance at its midpoint without depending on frame delivery in CI.
+  const midpoints = await content.evaluateAll((elements) => elements.map((element) => {
+    const entryName = getComputedStyle(element).animationName.split(",")[0];
+    const entry = element.getAnimations().find((animation) => animation instanceof CSSAnimation && animation.animationName === entryName);
+    if (!entry?.effect) throw new Error("Missing entrance animation");
+    const originalTime = entry.currentTime;
+    const { delay, duration } = entry.effect.getTiming();
+    entry.currentTime = Number(delay) + Number(duration) / 2;
+    const { opacity, transform } = getComputedStyle(element);
+    entry.currentTime = originalTime;
+    return { opacity: Number(opacity), transform, moves: !element.matches("nav") };
+  }));
+  for (const midpoint of midpoints) {
+    expect(midpoint.opacity).toBeGreaterThan(0);
+    expect(midpoint.opacity).toBeLessThan(1);
+    if (midpoint.moves) expect(midpoint.transform).not.toBe("none");
   }
   await expect(page.locator("html")).toHaveAttribute("data-splash-complete", "true");
   for (const target of await content.all()) {
-    await expect(target).toHaveCSS("animation-play-state", "running");
+    await expect(target).toHaveCSS("animation-play-state", /^running(?:,\s*running)*$/);
     await expect(target).toHaveCSS("opacity", "1");
     if (await target.getAttribute("data-entry-stroke") === null) await expect(target).toHaveCSS("transform", "none");
   }
