@@ -363,7 +363,7 @@ test.describe("conversation smoke", () => {
     const field = entry.locator('[data-slot="input-group"]');
     await expect(entry.getByRole("textbox")).toHaveCount(0);
     const fullWidth = await field.evaluate((element) => element.getBoundingClientRect().width);
-    const lineWidth = (await box(entry.locator("[data-entry-stroke]"))).width;
+    const lineWidth = (await box(paint)).width;
 
     /** Places the viewport a given distance from its final scroll position.
      * @param remaining - Distance in CSS pixels above the document edge.
@@ -375,6 +375,7 @@ test.describe("conversation smoke", () => {
     }
 
     await scrollFromEnd(40);
+    await expect(entry).toHaveAttribute("data-footer-reveal", "true");
     await expect.poll(async () => (await box(paint)).width).toBeGreaterThan(lineWidth + 1);
     const midway = (await box(paint)).width;
     expect(midway).toBeLessThan(fullWidth - 1);
@@ -779,6 +780,8 @@ test.describe("conversation smoke", () => {
     const surface = page.locator('[data-chat-surface][data-mobile="false"]');
     await expect(surface).toHaveAttribute("data-morph", "opening");
 
+    // Leave the launcher's hover area before checking its resting state after close.
+    await page.mouse.move(8, 8);
     const closing = await triggerAndSampleClosingStart(page.getByRole("button", { name: "Close conversation" }));
     await expect(surface).toHaveAttribute("data-closing", "true");
     expectClipPathClose(closing.clipPath, opening.clipPath);

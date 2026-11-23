@@ -1,30 +1,15 @@
 import { expect, test } from "@playwright/test";
 
+// Keep the server-rendered layout responsive while measuring synthetic entries without hydration.
+test.use({ javaScriptEnabled: false });
+
 for (const theme of ["light", "dark"] as const) {
   test(`Home keeps a shared responsive rhythm in ${theme}`, { tag: "@webkit" }, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
-    await page.addInitScript((theme) => {
-      localStorage.setItem("theme", theme);
-      sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-    }, theme);
     await page.goto("/");
-    const fixture = await page.evaluate(() => ({
-      origin: location.origin,
-      styles: [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map((link) => link.href),
-      htmlClass: document.documentElement.className,
-      bodyClass: document.body.className,
-      main: document.querySelector("main")?.outerHTML,
-    }));
-    const main = fixture.main;
-    if (!main) throw new Error("Missing Home fixture");
-    // Isolate the production markup/CSS so hydration cannot replace synthetic entries mid-measurement.
-    await page.route("**/__home-spacing-fixture", (route) => route.fulfill({
-      contentType: "text/html",
-      body: `<html class="${fixture.htmlClass}"><head><base href="${fixture.origin}/">
-        ${fixture.styles.map((href) => `<link rel="stylesheet" href="${href}">`).join("")}
-        </head><body class="${fixture.bodyClass}">${main}</body></html>`,
-    }));
-    await page.goto("/__home-spacing-fixture");
+    await page.evaluate((theme) => {
+      document.documentElement.classList.add(theme);
+    }, theme);
     await page.evaluate(() => document.fonts.ready);
 
     // Content is deliberately replaced: spacing must not depend on portfolio copy or record counts.

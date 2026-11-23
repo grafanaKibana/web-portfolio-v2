@@ -250,9 +250,8 @@ test("no-JavaScript compact navigation scrolls locally on short screens", { tag:
   const page = await context.newPage();
   try {
     await page.goto("/");
-    const details = page.locator("noscript details");
-    await details.locator("summary").click();
-    const menu = details.getByRole("navigation", { name: "Compact navigation" });
+    await page.getByRole("button", { name: "Jump to section", exact: true }).click();
+    const menu = page.getByRole("navigation", { name: "Compact navigation" });
     await expect(menu).toBeVisible();
     const geometry = await menu.evaluate((element) => {
       const box = element.getBoundingClientRect();
@@ -268,8 +267,10 @@ test("no-JavaScript compact navigation scrolls locally on short screens", { tag:
     expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
     expect(geometry.overflowY).toBe("auto");
     expect(geometry.scrollHeight).toBeGreaterThan(geometry.clientHeight);
-    await menu.getByRole("link").last().scrollIntoViewIfNeeded();
-    await expect(menu.getByRole("link").last()).toBeVisible();
+    const lastLink = menu.getByRole("link").last();
+    await lastLink.scrollIntoViewIfNeeded();
+    await expect(lastLink).toBeInViewport({ ratio: 1 });
+    expect(await menu.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   } finally {
     await context.close();
