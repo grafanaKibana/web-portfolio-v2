@@ -292,7 +292,9 @@ for (const theme of ["light", "dark"] as const) {
     await page.addInitScript((theme) => {
       localStorage.setItem("theme", theme);
       sessionStorage.setItem("portfolio-opening-splash-seen", "true");
-      /** Tracks the entrance animation separately from the scroll-driven hero exit. */
+      /** Tracks the entrance animation separately from the scroll-driven hero exit.
+       * @param event - CSS animation start or end observed before hydration.
+       */
       function recordReveal(event: AnimationEvent) {
         const target = event.target;
         if (!(target instanceof HTMLElement) || !target.matches('[data-slot="hero"] > [data-page-motion-intro], [data-slot="site-header"] > nav, [data-entry-stroke]')) return;
