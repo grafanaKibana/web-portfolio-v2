@@ -127,7 +127,8 @@ async function transport(page: Page): Promise<AskFixtureWindow["askFixture"]> {
  * @returns Stable launcher used for focus restoration checks.
  */
 async function readyEntry(page: Page): Promise<Locator> {
-  await expect(page.locator('[data-conversation-shell][data-capability="supported"]')).toBeAttached();
+  // The server renders "unknown" until hydration and the first capability-detection frame.
+  await expect(page.locator("[data-conversation-shell]")).toHaveAttribute("data-capability", "supported", { timeout: 15_000 });
   await expect(page.locator('[data-slot="opening-splash"]')).toHaveCount(0);
   await expect.poll(async () => page.locator("[data-entry-stroke]").evaluate((element) => element.getAnimations().length)).toBe(0);
   const launcher = page.locator("button[data-launcher]");
